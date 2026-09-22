@@ -290,8 +290,8 @@ class TestEnsureLocalRegistryEntry:
         # ...but each version's own snapshot is still intact and distinct.
         old_snapshot = yaml.safe_load((tmp_path / URI / old_version / "aliases.yaml").read_text())
         new_snapshot = yaml.safe_load((tmp_path / URI / new_version / "aliases.yaml").read_text())
-        assert old_snapshot == {"version": old_version, "aliases": old_aliases}
-        assert new_snapshot == {"version": new_version, "aliases": new_aliases}
+        assert old_snapshot == {"version": old_version, "aliases": old_aliases, "in_upstream": False}
+        assert new_snapshot == {"version": new_version, "aliases": new_aliases, "in_upstream": False}
 
     def test_creates_marker_directory_only_when_not_in_upstream(self, builder, tmp_path):
         version = "1.21--h96c455f_1"
@@ -322,4 +322,29 @@ class TestEnsureLocalRegistryEntry:
         assert snapshot == {
             "version": "9.9--local",
             "aliases": [{"name": "samtools", "command": "samtools"}],
+            "in_upstream": False,
         }
+
+    def test_creates_marker_when_interactively_edited_even_if_in_upstream(self, builder, tmp_path):
+        """Regression: --interactive on a version that IS upstream must still be
+        versioned/markable, or shelley clean can never find or prune it and the
+        curated aliases can be silently clobbered by a later build of another
+        version (config["aliases"] is one field shared across every tag)."""
+        version = "1.21--h96c455f_1"
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
+             patch("shelley.builder.cvmfs_builder.edit_aliases_interactive",
+                   return_value=[{"name": "samtools", "command": "samtools"}]), \
+             patch.object(builder, "_compute_sha256", return_value="deadbeef"):
+            builder._ensure_local_registry_entry(
+                "samtools", version, str(tmp_path / f"samtools:{version}"), URI,
+                local_registry=str(tmp_path), in_upstream=True, interactive=True,
+            )
+
+        marker_dir = tmp_path / URI / version
+        assert marker_dir.is_dir(), (
+            "interactive edit of an in-upstream version must still be versioned"
+        )
+        snapshot = yaml.safe_load((marker_dir / "aliases.yaml").read_text())
+        assert snapshot["in_upstream"] is True

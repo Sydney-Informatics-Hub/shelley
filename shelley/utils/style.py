@@ -280,6 +280,11 @@ class ShelleyStyle:
             removed.append("Lmod modulefile symlink")
         if report.get("registry_tag_removed"):
             removed.append("local registry tag (was added locally, not upstream)")
+        if report.get("registry_entry_deleted"):
+            removed.append(
+                "local registry entry (last installed version — container.yaml and "
+                "any cached upstream tags were removed too)"
+            )
         removed_text = "\n".join(f"  [muted]• {item}[/muted]" for item in removed) or \
             "  [muted]• nothing further to remove[/muted]"
 

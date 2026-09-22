@@ -17,7 +17,7 @@ from shelley.commands.clean import (
 )
 from shelley.commands.find import list_installed_versions
 from shelley.utils import globals as gl
-from shelley.utils.style import console
+from shelley.utils.style import console, ShelleyStyle
 
 TOOL, VERSION = "samtools", "1.21--h96c455f_1"
 URI = f"quay.io/biocontainers/{TOOL}"
@@ -163,6 +163,27 @@ def test_uninstall_prunes_the_tag_when_a_marker_directory_proves_it_was_local(bu
     assert config["aliases"]
 
 
+def test_uninstall_removes_marker_but_keeps_upstream_tag(builder):
+    """A marker created for an interactively-edited but genuinely-upstream version
+    (in_upstream=True in its aliases.yaml snapshot) must be removed by clean, but
+    the tag itself — real upstream data, not a local addition — must stay."""
+    other_version = "1.20--abc"
+    registry_yaml = _registry_yaml({VERSION: "sha256:aaa", other_version: "sha256:bbb"})
+    marker_dir = gl.local_registry() / URI / VERSION
+    marker_dir.mkdir(parents=True)
+    (marker_dir / "aliases.yaml").write_text(
+        yaml.dump({"version": VERSION, "aliases": [], "in_upstream": True})
+    )
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert not marker_dir.exists()
+    assert report["registry_tag_removed"] is False
+    config = yaml.safe_load(registry_yaml.read_text())
+    assert config["tags"] == {VERSION: "sha256:aaa", other_version: "sha256:bbb"}
+
+
 def test_uninstall_marker_present_but_no_container_yaml_is_a_noop(builder):
     """A leftover marker with no container.yaml (already removed by hand, say) must
     not raise."""
@@ -174,6 +195,114 @@ def test_uninstall_marker_present_but_no_container_yaml_is_a_noop(builder):
 
     assert report["registry_tag_removed"] is False
     assert not marker_dir.exists()
+
+
+def test_uninstall_deletes_whole_registry_entry_when_last_version_cleaned(builder):
+    """Regression for the real star-fusion case: container.yaml still had genuine
+    upstream-cached tags for other versions, and no marker directory at all, yet
+    once the tool has zero installed versions left the whole entry must go."""
+    registry_yaml = _registry_yaml({
+        VERSION: "sha256:aaa",
+        "1.20--abc": "sha256:bbb",
+        "1.19--def": "sha256:ccc",
+    })
+    registry_dir = registry_yaml.parent
+    link_dir = builder.lmod_modules_path / TOOL
+    link_dir.mkdir(parents=True)
+    (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert report["registry_entry_deleted"] is True
+    assert report["registry_tag_removed"] is False
+    assert not registry_dir.exists()
+
+
+def test_uninstall_deletes_whole_registry_entry_including_marker_dir(builder):
+    """The whole-entry deletion must also sweep up a leftover marker directory,
+    without running the per-tag marker logic first."""
+    registry_yaml = _registry_yaml({VERSION: "sha256:aaa"})
+    registry_dir = registry_yaml.parent
+    marker_dir = registry_dir / VERSION
+    marker_dir.mkdir(parents=True)
+    (marker_dir / "aliases.yaml").write_text(
+        yaml.dump({"version": VERSION, "aliases": [], "in_upstream": False})
+    )
+    link_dir = builder.lmod_modules_path / TOOL
+    link_dir.mkdir(parents=True)
+    (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert report["registry_entry_deleted"] is True
+    assert report["registry_tag_removed"] is False
+    assert not registry_dir.exists()
+    assert not marker_dir.exists()
+
+
+def test_uninstall_keeps_registry_entry_when_sibling_versions_remain(builder):
+    """Regression guard: with other installed versions of the tool, the whole-entry
+    deletion must not fire and container.yaml must stay byte-for-byte untouched."""
+    other_version = "1.20--abc"
+    registry_yaml = _registry_yaml({VERSION: "sha256:aaa", other_version: "sha256:bbb"})
+    before = registry_yaml.read_text()
+    link_dir = builder.lmod_modules_path / TOOL
+    link_dir.mkdir(parents=True)
+    (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
+    (link_dir / f"{other_version}.lua").symlink_to(link_dir / "also-missing.lua")
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert report["registry_entry_deleted"] is False
+    assert registry_yaml.read_text() == before
+
+
+def test_uninstall_registry_entry_deletion_is_noop_when_directory_never_existed(builder):
+    link_dir = builder.lmod_modules_path / TOOL
+    link_dir.mkdir(parents=True)
+    (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert report["registry_entry_deleted"] is False
+
+
+def test_uninstall_deletes_registry_entry_directory_with_no_container_yaml(builder):
+    """A stray marker directory with no container.yaml still gets swept up once
+    this was the last installed version."""
+    registry_dir = gl.local_registry() / URI
+    marker_dir = registry_dir / VERSION
+    marker_dir.mkdir(parents=True)
+    link_dir = builder.lmod_modules_path / TOOL
+    link_dir.mkdir(parents=True)
+    (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert report["registry_entry_deleted"] is True
+    assert not registry_dir.exists()
+
+
+def test_uninstall_detects_last_version_even_when_this_calls_own_modulefile_already_missing(builder):
+    """tool_dir is otherwise empty but this version's own .lua was never there
+    (e.g. a previous partial clean) — must still be detected as the last version."""
+    registry_yaml = _registry_yaml({VERSION: "sha256:aaa"})
+    registry_dir = registry_yaml.parent
+    link_dir = builder.lmod_modules_path / TOOL
+    link_dir.mkdir(parents=True)
+
+    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+        report = builder.uninstall_module(TOOL, VERSION)
+
+    assert report["modulefile_removed"] is False
+    assert not link_dir.exists()
+    assert report["registry_entry_deleted"] is True
+    assert not registry_dir.exists()
 
 
 def test_uninstall_removes_shelley_state_even_when_shpc_uninstall_fails(builder):
@@ -244,7 +373,8 @@ def mock_clean_builder():
     fake_builder = MagicMock(spec=CVMFSModuleBuilder)
     fake_builder.uninstall_module.return_value = {
         "uri_tag": URI_TAG, "shpc_removed": True, "shpc_output": "",
-        "modulefile_removed": True,
+        "modulefile_removed": True, "registry_tag_removed": False,
+        "registry_entry_deleted": False,
     }
 
     with patch("shelley.commands.clean.CVMFSModuleBuilder", return_value=fake_builder), \
@@ -378,3 +508,31 @@ def test_cli_clean_dispatches_to_clean_module(monkeypatch):
 
     assert exc.value.code == 0
     mock_clean.assert_called_once_with(f"{TOOL}:{VERSION}", force=True)
+
+
+# ---------------------------------------------------------------------------
+# ShelleyStyle.create_clean_success rendering
+# ---------------------------------------------------------------------------
+
+def test_create_clean_success_mentions_registry_entry_deleted():
+    report = {
+        "shpc_removed": True, "modulefile_removed": True,
+        "registry_tag_removed": False, "registry_entry_deleted": True,
+    }
+
+    with console.capture() as cap:
+        console.print(ShelleyStyle.create_clean_success(TOOL, VERSION, report))
+
+    assert "local registry entry" in cap.get()
+
+
+def test_create_clean_success_still_mentions_registry_tag_removed():
+    report = {
+        "shpc_removed": True, "modulefile_removed": True,
+        "registry_tag_removed": True, "registry_entry_deleted": False,
+    }
+
+    with console.capture() as cap:
+        console.print(ShelleyStyle.create_clean_success(TOOL, VERSION, report))
+
+    assert "local registry tag" in cap.get()

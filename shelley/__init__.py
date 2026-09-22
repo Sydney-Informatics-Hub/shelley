@@ -12,7 +12,7 @@ bioinformatics software from CVMFS repositories.
 # and `date-released` — nothing derives those, so they must be hand-edited or they
 # go stale), update CHANGELOG.md, and tag vX.Y.Z.
 # See docs/how-to/developer-setup.md ("Preparing a release").
-__version__ = "0.3.0"
+__version__ = "0.3.0-dev"
 
 from .client.cli import main as cli_main
 from .builder.cvmfs_builder import CVMFSModuleBuilder
