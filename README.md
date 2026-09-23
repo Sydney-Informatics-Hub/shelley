@@ -9,6 +9,7 @@ Shelley helps researchers using [BioShell](https://github.com/AustralianBioCommo
 - **Tool Discovery**: Find bioinformatics tools by name or search by description
 - **Container Management**: Query available container versions from CVMFS
 - **Module Building**: Automatically generate Lmod modules for tools, individually or in batch
+- **Module Cleanup**: Cleanly uninstall a specific tool version
 - **Interactive CLI**: Guided REPL for exploring and installing tools
 
 ## Quick Start
@@ -42,6 +43,9 @@ shelley build samtools
 # Build a specific version
 shelley build samtools/1.21
 
+# Uninstall a specific version
+shelley clean samtools:1.21
+
 # Interactive mode
 shelley interactive
 ```
@@ -55,6 +59,7 @@ shelley interactive
 | How-to | [docs/how-to/install.md](docs/how-to/install.md) | Install/update on a VM or BioShell image |
 | How-to | [docs/how-to/find-and-search.md](docs/how-to/find-and-search.md) | find, search |
 | How-to | [docs/how-to/build-modules.md](docs/how-to/build-modules.md) | build and batch operations |
+| How-to | [docs/how-to/clean-modules.md](docs/how-to/clean-modules.md) | Uninstall a specific tool version |
 | How-to | [docs/how-to/maintain-corpus.md](docs/how-to/maintain-corpus.md) | Update data artifacts |
 | How-to | [docs/how-to/developer-setup.md](docs/how-to/developer-setup.md) | Dev environment and tests |
 | Reference | [docs/reference/cli.md](docs/reference/cli.md) | All CLI commands |
@@ -62,6 +67,7 @@ shelley interactive
 | Explanation | [docs/explanation/install-design.md](docs/explanation/install-design.md) | Why shelley installs with uv |
 | Explanation | [docs/explanation/search-design.md](docs/explanation/search-design.md) | Why the search is designed this way |
 | Explanation | [docs/explanation/build-design.md](docs/explanation/build-design.md) | Why the build is designed this way |
+| Explanation | [docs/explanation/clean-design.md](docs/explanation/clean-design.md) | Why the clean is designed this way |
 
 ## Architecture
 

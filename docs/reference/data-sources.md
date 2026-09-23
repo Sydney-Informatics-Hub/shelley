@@ -16,7 +16,8 @@ Paths involved in a `shelley build` run, in the order they are touched:
 | `/apps/shpc/wrappers/` | shpc | `root:root` `0755` (scripts `0755`) | shpc `wrapper_base` — the per-alias wrapper scripts a loaded module puts on `PATH` |
 | `/apps/shpc/containers/` | shpc | `root:root` `0755` | shpc `container_base` — near-empty, because `shpc install --keep-path` references the SIF in CVMFS instead of copying it |
 | `/apps/shpc/views/` | shpc | `root:root` `0755` | shpc `views_base` — unused by shelley, created so `shpc view` stays usable |
-| `/apps/local/` | `shelley build` | `root:root` `0755` (files `0644`) | Local shpc registry: `container.yaml` files for tool versions **absent** from the upstream shpc-registry, and for interactively curated aliases |
+| `/apps/local/<uri>/container.yaml` | `shelley build` | `root:root` `0644` | Local shpc registry entry: tags for tool versions **absent** from the upstream shpc-registry, plus a cache of upstream's own entry (written any time `shelley find`/`build` resolves versions). One file per tool, covering every tag — required by shpc's own registry lookup. See [clean-design.md](../explanation/clean-design.md) |
+| `/apps/local/<uri>/<version>/` | `shelley build` | `root:root` `0755` | Marker directory, one per locally-curated tag (absent upstream). Holds `aliases.yaml`, a snapshot of that version's own aliases — `container.yaml`'s `aliases` field is shared across every tag, so this is the only place an earlier version's aliases survive a later version's build. Invisible to shpc; shelley-only bookkeeping |
 | `/apps/Modules/modulefiles/<tool>/<version>.lua` | `shelley build` | symlink (mode not applicable) | Symlink into `/apps/shpc/modules/`; what `module avail` and `module load <tool>/<version>` resolve |
 
 ### Permissions model
