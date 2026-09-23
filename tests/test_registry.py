@@ -224,3 +224,44 @@ class TestEnsureLocalRegistryEntry:
         assert saved["docker"] == URI
         assert version in saved["tags"]
         assert saved["tags"][version] == "sha256:cafebabe"
+        # shpc's schema requires these; without them `shpc install` crashes with
+        # "'latest' is a required property" (see GitHub issue #22, the `last` tool).
+        assert saved["latest"] == {version: "sha256:cafebabe"}
+        assert saved["maintainer"]
+        assert saved["description"]
+
+    def test_heals_preexisting_incomplete_local_entry(self, builder, tmp_path):
+        """Regression test: a container.yaml left behind by an earlier failed
+        build (missing shpc's required latest/maintainer/description fields,
+        as happened for `last` in GitHub issue #22) must be repaired on the
+        next build, not just avoided for a brand-new entry.
+
+        curl -f leaves an existing --output file untouched on an HTTP error
+        (verified), so a stale incomplete local entry survives the upstream
+        fetch attempt and is reloaded as-is unless the code heals it.
+        """
+        version = "1654--h5814d7d_0"
+        container_path = str(tmp_path / f"last:{version}")
+        registry_dir = tmp_path / "quay.io/biocontainers/last"
+        registry_dir.mkdir(parents=True)
+        registry_yaml = registry_dir / "container.yaml"
+        registry_yaml.write_text(yaml.dump({
+            "docker": "quay.io/biocontainers/last",
+            "tags": {version: "sha256:186f57055d03ff51e8fb32fedb4a388d76aeea2691c56aac051de78671453fa6"},
+            "filter": [version],
+            "aliases": [{"name": "lastal", "command": "lastal"}],
+        }))
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_failure()), \
+             patch.object(builder, "_compute_sha256",
+                          return_value="186f57055d03ff51e8fb32fedb4a388d76aeea2691c56aac051de78671453fa6"):
+            builder._ensure_local_registry_entry(
+                "last", version, container_path, "quay.io/biocontainers/last",
+                local_registry=str(tmp_path),
+            )
+
+        saved = yaml.safe_load(registry_yaml.read_text())
+        assert saved["latest"]
+        assert saved["maintainer"]
+        assert saved["description"]
