@@ -1,9 +1,10 @@
 """Interactive command — guided REPL for shelley."""
 
 from .build import build_module
+from .clean import clean_module
 from .find import find_tool_sync
 from .search import search_tools
-from ..utils.args import parse_build_flags, parse_verbose
+from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
     console, ShelleyStyle, print_banner, print_rule,
@@ -59,5 +60,11 @@ def interactive_mode() -> None:
                 build_module(positional[0], interactive=interactive)
             else:
                 print_warning("Usage: build <tool_name>[/version] [-i|--interactive]")
+        elif cmd == "clean":
+            force, positional = parse_force_flag(parts[1:])
+            if positional:
+                clean_module(positional[0], force=force)
+            else:
+                print_warning("Usage: clean <tool>:<version> [-y]")
         else:
             print_warning(f"Unknown command: '{cmd}'. Type help for usage.")

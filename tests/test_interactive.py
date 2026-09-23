@@ -32,7 +32,8 @@ def _run(inputs: list, *, side_effect=None):
          patch(f"{_MODULE}.print_warning") as mock_warning, \
          patch(f"{_MODULE}.find_tool_sync") as mock_find, \
          patch(f"{_MODULE}.search_tools") as mock_search, \
-         patch(f"{_MODULE}.build_module") as mock_build:
+         patch(f"{_MODULE}.build_module") as mock_build, \
+         patch(f"{_MODULE}.clean_module") as mock_clean:
 
         mock_console.input = input_mock
 
@@ -43,6 +44,7 @@ def _run(inputs: list, *, side_effect=None):
             "find": mock_find,
             "search": mock_search,
             "build": mock_build,
+            "clean": mock_clean,
             "warning": mock_warning,
             "success": mock_success,
             "info": mock_info,
@@ -175,6 +177,26 @@ def test_build_interactive_flag():
 def test_build_missing_arg_warns():
     mocks = _run(["build", "exit"])
     mocks["build"].assert_not_called()
+    mocks["warning"].assert_called()
+
+
+# ---------------------------------------------------------------------------
+# clean
+# ---------------------------------------------------------------------------
+
+def test_clean_dispatches():
+    mocks = _run(["clean samtools:1.21", "exit"])
+    mocks["clean"].assert_called_once_with("samtools:1.21", force=False)
+
+
+def test_clean_force_flag_dispatches():
+    mocks = _run(["clean samtools:1.21 -y", "exit"])
+    mocks["clean"].assert_called_once_with("samtools:1.21", force=True)
+
+
+def test_clean_missing_arg_warns():
+    mocks = _run(["clean", "exit"])
+    mocks["clean"].assert_not_called()
     mocks["warning"].assert_called()
 
 

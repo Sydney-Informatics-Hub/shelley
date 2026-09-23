@@ -282,23 +282,45 @@ class CVMFSModuleBuilder:
         """
         Create or update a local shpc registry entry, returning the aliases written.
 
-        Downloads the upstream container.yaml as a base (preserving other version tags
-        and tool metadata) and adds the SHA256 tag for this version.  Aliases come from
-        the upstream entry (when ``in_upstream``) or from a guts diff of the SIF
-        otherwise; when ``interactive`` is set they are curated interactively first.
+        Merges into the existing local container.yaml when one is already present —
+        only downloads a fresh upstream copy as the base when no local file exists
+        yet, so tags added by earlier local-only builds of this same tool survive
+        (a fresh copy can't restore them, since they don't exist upstream). Aliases
+        come from the upstream entry (when ``in_upstream``) or from a guts diff of
+        the SIF otherwise; when ``interactive`` is set they are curated
+        interactively first.
+
+        Whenever the version is absent upstream, or its aliases were interactively
+        curated, also creates a marker directory at registry_dir/<version>/
+        containing an aliases.yaml snapshot of exactly this version's own aliases
+        plus the ``in_upstream`` flag. This is invisible to shpc — its filesystem
+        registry provider only ever looks for a file literally named container.yaml,
+        never a per-version subdirectory — but lets uninstall_module later tell
+        whether this specific tag was a genuine local addition (safe to delete from
+        the shared container.yaml) or an interactive edit of a tag that's still
+        legitimately upstream (marker removed, but the tag entry itself left alone).
+        The snapshot also matters because config["aliases"] is one shared field
+        across every tag in this file: building a second locally-curated version
+        overwrites it with that version's own aliases, which can genuinely differ a
+        lot from an older one's (e.g. star-fusion:1.0.0 only aliases STAR; newer
+        builds also alias salmon). Without the snapshot, an earlier version's
+        aliases would be unrecoverable the moment a later one is built.
         """
         registry_dir = Path(local_registry or gl.local_registry()) / uri
         registry_yaml = registry_dir / "container.yaml"
         ensure_shared_dir(registry_dir)
 
-        # Download upstream entry as a base (best-effort; tool may not be in upstream at all)
-        remote_url = (
-            f"https://raw.githubusercontent.com/singularityhub/shpc-registry/main/{uri}/container.yaml"
-        )
-        subprocess.run(
-            ["curl", "-fsSL", remote_url, "-o", str(registry_yaml)],
-            capture_output=True, text=True,
-        )
+        if not registry_yaml.exists():
+            # Download upstream entry as a base (best-effort; tool may not be in
+            # upstream at all). Skipped when a local file already exists so this
+            # doesn't clobber tags added by earlier local-only builds of this tool.
+            remote_url = (
+                f"https://raw.githubusercontent.com/singularityhub/shpc-registry/main/{uri}/container.yaml"
+            )
+            subprocess.run(
+                ["curl", "-fsSL", remote_url, "-o", str(registry_yaml)],
+                capture_output=True, text=True,
+            )
 
         config = _load_registry_config(uri, registry_yaml)
         if not config:
@@ -336,11 +358,27 @@ class CVMFSModuleBuilder:
         # unconditionally so every user's `shelley find` can consult the entry.
         share_file(registry_yaml)
 
+        if not in_upstream or interactive:
+            marker_dir = registry_dir / version
+            ensure_shared_dir(marker_dir)
+            aliases_snapshot = marker_dir / "aliases.yaml"
+            with open(aliases_snapshot, "w") as f:
+                yaml.dump({"version": version, "aliases": aliases, "in_upstream": in_upstream}, f,
+                          default_flow_style=False, sort_keys=False)
+            share_file(aliases_snapshot)
+
         return aliases
+
+    def _run_shpc_uninstall(self, uri_tag: str) -> Tuple[int, str]:
+        """Run `shpc uninstall --force <uri_tag>`. Returns (returncode, combined output)."""
+        result = subprocess.run(
+            _shpc_cmd("uninstall", "--force", uri_tag), capture_output=True, text=True,
+        )
+        return result.returncode, result.stdout + result.stderr
 
     def _shpc_uninstall(self, uri_tag: str) -> None:
         """Uninstall an existing shpc entry (best-effort; ignores errors)."""
-        subprocess.run(_shpc_cmd("uninstall", "--force", uri_tag), capture_output=True, text=True)
+        self._run_shpc_uninstall(uri_tag)
 
     def _shpc_module_base(self) -> Path:
         """Ask shpc where it installed the module.
@@ -475,6 +513,128 @@ class CVMFSModuleBuilder:
             ))
 
         return dest
+
+    def uninstall_module(self, tool_name: str, version: str) -> dict:
+        """
+        Uninstall a specific tool@version: the inverse of shpc_install.
+
+        Runs `shpc uninstall --force` for the shpc-managed module/wrapper/container
+        artifacts, and removes the Lmod modulefile symlink shelley creates directly
+        (shpc has no knowledge of it) — pruning its parent tool directory too, if
+        that was the last version installed for this tool.
+
+        local_registry()/<uri>/container.yaml is not exclusively "owned" by one
+        installed version the way the modulefile symlink is: _load_registry_config
+        also writes it as a cache of the *entire* upstream shpc-registry the first
+        time anything calls get_registry_tags (e.g. `shelley find`, or version
+        resolution during `shelley build`). While other versions of this tool are
+        still installed, its tags dict is only safe to prune when
+        _ensure_local_registry_entry left a registry_dir/<version>/ marker directory
+        (holding that version's own aliases.yaml snapshot) *and* that snapshot's
+        in_upstream flag is False, proving the tag was a genuine local addition
+        (absent upstream) rather than an interactive edit of a tag that's still
+        legitimately upstream — in that case the one tag is removed and the whole
+        marker directory (aliases snapshot included) is deleted with it. When the
+        marker's snapshot says in_upstream was True, or the marker predates that
+        field (missing snapshot, or no in_upstream key at all), the tag entry is
+        left alone: only the marker directory itself is removed. Without a marker
+        at all, container.yaml is left completely untouched.
+
+        Once this was the *last* installed version of the tool (tool_dir under
+        lmod_modules() ends up empty — the same check that decides whether to prune
+        it), the whole registry_dir is deleted outright instead: container.yaml,
+        however many tags it still has cached, and any marker directories. Nothing
+        shelley manages references that URI anymore at that point, so the marker/
+        tag bookkeeping above is moot — any upstream tags lost this way are simply
+        re-fetched fresh the next time the tool is looked up or built.
+
+        Does not raise if `shpc uninstall` fails (e.g. shpc's own tracking already
+        lost the entry) — shelley's own state is independent and still gets cleaned
+        up. Returns a report describing exactly what was removed, for the caller to
+        render:
+
+            {
+                "uri_tag": str,
+                "shpc_removed": bool,
+                "shpc_output": str,
+                "modulefile_removed": bool,
+                "registry_tag_removed": bool,
+                "registry_entry_deleted": bool,
+            }
+        """
+        uri = f"quay.io/biocontainers/{tool_name}"
+        uri_tag = f"{uri}:{version}"
+
+        returncode, output = self._run_shpc_uninstall(uri_tag)
+        shpc_removed = returncode == 0
+        if not shpc_removed:
+            log.warning("shpc uninstall reported rc=%s for %s: %s", returncode, uri_tag, output.strip())
+
+        tool_dir = self.lmod_modules_path / tool_name
+        dest = tool_dir / f"{version}.lua"
+        modulefile_removed = False
+        if dest.is_symlink() or dest.exists():
+            dest.unlink()
+            modulefile_removed = True
+
+        # "No versions left installed" must be detected even when this call's own
+        # modulefile was already missing (e.g. a previous partial clean) — so this
+        # is attempted whenever tool_dir exists, not only when dest did. A
+        # nonexistent tool_dir is deliberately NOT treated as "fully removed": by
+        # the time uninstall_module runs, clean_module has already resolved this
+        # version via _resolve_installed_version, which requires tool_dir to exist
+        # in the first place, so its absence here would only mean inconsistent
+        # state, not a confident "nothing left installed" signal.
+        tool_fully_removed = False
+        if tool_dir.is_dir():
+            try:
+                tool_dir.rmdir()  # only succeeds if truly empty
+                tool_fully_removed = True
+            except OSError:
+                pass  # other versions of this tool are still installed
+
+        registry_tag_removed = False
+        registry_entry_deleted = False
+        registry_dir = gl.local_registry() / uri
+
+        if tool_fully_removed:
+            # Delete the whole entry rather than running the per-tag logic below
+            # just to immediately discard its result — see docstring above.
+            if registry_dir.is_dir():
+                shutil.rmtree(registry_dir)
+                registry_entry_deleted = True
+        else:
+            marker_dir = registry_dir / version
+            if marker_dir.is_dir():
+                snapshot_path = marker_dir / "aliases.yaml"
+                marker_in_upstream = False
+                if snapshot_path.is_file():
+                    with open(snapshot_path) as f:
+                        marker_in_upstream = bool((yaml.safe_load(f) or {}).get("in_upstream", False))
+
+                if not marker_in_upstream:
+                    registry_yaml = registry_dir / "container.yaml"
+                    if registry_yaml.is_file():
+                        with open(registry_yaml) as f:
+                            config = yaml.safe_load(f) or {}
+                        tags = config.get("tags", {}) or {}
+                        if version in tags:
+                            del tags[version]
+                            config["tags"] = tags
+                            with open(registry_yaml, "w") as f:
+                                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+                            share_file(registry_yaml)
+                            registry_tag_removed = True
+                shutil.rmtree(marker_dir, ignore_errors=True)
+
+        return {
+            "uri_tag": uri_tag,
+            "shpc_removed": shpc_removed,
+            "shpc_output": output,
+            "modulefile_removed": modulefile_removed,
+            "registry_tag_removed": registry_tag_removed,
+            "registry_entry_deleted": registry_entry_deleted,
+        }
 
     def list_versions(self, tool_name: str) -> List[str]:
         """

@@ -224,3 +224,127 @@ class TestEnsureLocalRegistryEntry:
         assert saved["docker"] == URI
         assert version in saved["tags"]
         assert saved["tags"][version] == "sha256:cafebabe"
+
+    def test_preserves_earlier_local_tag_when_building_a_second_local_only_version(
+        self, builder, tmp_path,
+    ):
+        """Regression: a second locally-curated build of the same tool must not
+        clobber a tag added by an earlier local-only build — only fetch a fresh
+        upstream base when no local file exists yet."""
+        first_version = "1.10.1--0"
+        second_version = "1.8.4--0"
+        registry_yaml = tmp_path / URI / "container.yaml"
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
+             patch("shelley.builder.cvmfs_builder.extract_aliases", return_value=[]), \
+             patch.object(builder, "_compute_sha256", return_value="firstsha"):
+            builder._ensure_local_registry_entry(
+                "samtools", first_version, str(tmp_path / f"samtools:{first_version}"), URI,
+                local_registry=str(tmp_path), in_upstream=False,
+            )
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run") as mock_run, \
+             patch("shelley.builder.cvmfs_builder.extract_aliases", return_value=[]), \
+             patch.object(builder, "_compute_sha256", return_value="secondsha"):
+            builder._ensure_local_registry_entry(
+                "samtools", second_version, str(tmp_path / f"samtools:{second_version}"), URI,
+                local_registry=str(tmp_path), in_upstream=False,
+            )
+            curl_calls = [c for c in mock_run.call_args_list if "curl" in c.args[0]]
+            assert not curl_calls, "must not re-fetch upstream when a local file already exists"
+
+        saved = yaml.safe_load(registry_yaml.read_text())
+        assert saved["tags"][first_version] == "sha256:firstsha"
+        assert saved["tags"][second_version] == "sha256:secondsha"
+
+    def test_per_version_alias_snapshots_do_not_clobber_each_other(self, builder, tmp_path):
+        """Regression for the star-fusion case: config["aliases"] is one shared field,
+        so a second not-upstream build overwrites it with that version's own aliases.
+        Each version's own aliases.yaml snapshot must still be recoverable afterward."""
+        old_version, new_version = "1.0.0--0", "1.9.1--0"
+        old_aliases = [{"name": "STAR", "command": "STAR"}]
+        new_aliases = [{"name": "STAR", "command": "STAR"}, {"name": "salmon", "command": "salmon"}]
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
+             patch("shelley.builder.cvmfs_builder.extract_aliases", return_value=old_aliases), \
+             patch.object(builder, "_compute_sha256", return_value="oldsha"):
+            builder._ensure_local_registry_entry(
+                "samtools", old_version, str(tmp_path / f"samtools:{old_version}"), URI,
+                local_registry=str(tmp_path), in_upstream=False,
+            )
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run"), \
+             patch("shelley.builder.cvmfs_builder.extract_aliases", return_value=new_aliases), \
+             patch.object(builder, "_compute_sha256", return_value="newsha"):
+            builder._ensure_local_registry_entry(
+                "samtools", new_version, str(tmp_path / f"samtools:{new_version}"), URI,
+                local_registry=str(tmp_path), in_upstream=False,
+            )
+
+        # The shared page now only shows the newer build's aliases...
+        saved = yaml.safe_load((tmp_path / URI / "container.yaml").read_text())
+        assert saved["aliases"] == new_aliases
+
+        # ...but each version's own snapshot is still intact and distinct.
+        old_snapshot = yaml.safe_load((tmp_path / URI / old_version / "aliases.yaml").read_text())
+        new_snapshot = yaml.safe_load((tmp_path / URI / new_version / "aliases.yaml").read_text())
+        assert old_snapshot == {"version": old_version, "aliases": old_aliases, "in_upstream": False}
+        assert new_snapshot == {"version": new_version, "aliases": new_aliases, "in_upstream": False}
+
+    def test_creates_marker_directory_only_when_not_in_upstream(self, builder, tmp_path):
+        version = "1.21--h96c455f_1"
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
+             patch.object(builder, "_compute_sha256", return_value="deadbeef"):
+            builder._ensure_local_registry_entry(
+                "samtools", version, str(tmp_path / f"samtools:{version}"), URI,
+                local_registry=str(tmp_path), in_upstream=True,
+            )
+
+        assert not (tmp_path / URI / version).exists()
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
+             patch("shelley.builder.cvmfs_builder.extract_aliases",
+                   return_value=[{"name": "samtools", "command": "samtools"}]), \
+             patch.object(builder, "_compute_sha256", return_value="deadbeef"):
+            builder._ensure_local_registry_entry(
+                "samtools", "9.9--local", str(tmp_path / "samtools:9.9--local"), URI,
+                local_registry=str(tmp_path), in_upstream=False,
+            )
+
+        marker_dir = tmp_path / URI / "9.9--local"
+        assert marker_dir.is_dir()
+        snapshot = yaml.safe_load((marker_dir / "aliases.yaml").read_text())
+        assert snapshot == {
+            "version": "9.9--local",
+            "aliases": [{"name": "samtools", "command": "samtools"}],
+            "in_upstream": False,
+        }
+
+    def test_creates_marker_when_interactively_edited_even_if_in_upstream(self, builder, tmp_path):
+        """Regression: --interactive on a version that IS upstream must still be
+        versioned/markable, or shelley clean can never find or prune it and the
+        curated aliases can be silently clobbered by a later build of another
+        version (config["aliases"] is one field shared across every tag)."""
+        version = "1.21--h96c455f_1"
+
+        with patch("shelley.builder.cvmfs_builder.subprocess.run",
+                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
+             patch("shelley.builder.cvmfs_builder.edit_aliases_interactive",
+                   return_value=[{"name": "samtools", "command": "samtools"}]), \
+             patch.object(builder, "_compute_sha256", return_value="deadbeef"):
+            builder._ensure_local_registry_entry(
+                "samtools", version, str(tmp_path / f"samtools:{version}"), URI,
+                local_registry=str(tmp_path), in_upstream=True, interactive=True,
+            )
+
+        marker_dir = tmp_path / URI / version
+        assert marker_dir.is_dir(), (
+            "interactive edit of an in-upstream version must still be versioned"
+        )
+        snapshot = yaml.safe_load((marker_dir / "aliases.yaml").read_text())
+        assert snapshot["in_upstream"] is True

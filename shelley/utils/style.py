@@ -266,10 +266,44 @@ class ShelleyStyle:
             content,
             title="[status.success]Build Complete[/status.success]",
             box=ROUNDED,
-            border_style="success", 
+            border_style="success",
             padding=(1, 2)
         )
-    
+
+    @staticmethod
+    def create_clean_success(tool_name: str, version: str, report: Dict[str, Any]) -> Panel:
+        """Create a styled clean/uninstall success message."""
+        removed = []
+        if report.get("shpc_removed"):
+            removed.append("shpc module, wrappers and container artifacts")
+        if report.get("modulefile_removed"):
+            removed.append("Lmod modulefile symlink")
+        if report.get("registry_tag_removed"):
+            removed.append("local registry tag (was added locally, not upstream)")
+        if report.get("registry_entry_deleted"):
+            removed.append(
+                "local registry entry (last installed version — container.yaml and "
+                "any cached upstream tags were removed too)"
+            )
+        removed_text = "\n".join(f"  [muted]• {item}[/muted]" for item in removed) or \
+            "  [muted]• nothing further to remove[/muted]"
+
+        content = f"""[status.success]✅ Module Removed[/status.success]
+
+[header]Tool:[/header] [tool]{tool_name}[/tool]
+[header]Version:[/header] [version]{version}[/version]
+
+[header]Removed:[/header]
+{removed_text}"""
+
+        return Panel(
+            content,
+            title="[status.success]Clean Complete[/status.success]",
+            box=ROUNDED,
+            border_style="success",
+            padding=(1, 2)
+        )
+
     @staticmethod
     def create_build_info(tool_name: str, version: str, available_versions: List[str]) -> Panel:
         """Create build information panel for version selection."""
@@ -353,6 +387,8 @@ class ShelleyStyle:
             ("Search for RNA-seq tools", "shelley search 'RNA sequencing'"),
             ("Build latest version", "shelley build samtools"),
             ("Build specific version", "shelley build samtools/1.21"),
+            ("Uninstall a tool version", "shelley clean samtools:1.21"),
+            ("Uninstall without confirming", "shelley clean samtools:1.21 -y"),
             ("Interactive mode", "shelley interactive")
         ]
         

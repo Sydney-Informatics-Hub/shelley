@@ -9,10 +9,11 @@ import sys
 from pathlib import Path
 
 from ..commands.build import build_module
+from ..commands.clean import clean_module
 from ..commands.find import find_tool_sync
 from ..commands.interactive import interactive_mode
 from ..commands.search import search_tools
-from ..utils.args import parse_build_flags, parse_verbose
+from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.batch import batch_build_modules, read_tools_file
 from ..utils.style import (
@@ -74,6 +75,15 @@ def main() -> None:
                 sys.exit(1)
             sys.exit(batch_build_modules(tools))
         sys.exit(0 if build_module(arg, interactive=interactive) else 1)
+
+    if command == "clean":
+        force, positional = parse_force_flag(sys.argv[2:])
+        if not positional:
+            print_warning("Missing tool name or version")
+            print_info("Usage: [command]shelley clean <tool>:<version> [-y][/command]")
+            print_info("Example: [command]shelley clean samtools:1.21[/command]")
+            sys.exit(1)
+        sys.exit(0 if clean_module(positional[0], force=force) else 1)
 
     if command == "find":
         verbose, positional = parse_verbose(sys.argv[2:])
