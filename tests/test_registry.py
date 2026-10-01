@@ -297,19 +297,35 @@ class TestEnsureLocalRegistryEntry:
         registry_dir = tmp_path / "quay.io/biocontainers/last"
         registry_dir.mkdir(parents=True)
         registry_yaml = registry_dir / "container.yaml"
-        registry_yaml.write_text(yaml.dump({
-            "docker": "quay.io/biocontainers/last",
-            "tags": {version: "sha256:186f57055d03ff51e8fb32fedb4a388d76aeea2691c56aac051de78671453fa6"},
-            "filter": [version],
-            "aliases": [{"name": "lastal", "command": "lastal"}],
-        }))
+        registry_yaml.write_text(
+            yaml.dump(
+                {
+                    "docker": "quay.io/biocontainers/last",
+                    "tags": {
+                        version: "sha256:186f57055d03ff51e8fb32fedb4a388d76aeea2691c56aac051de78671453fa6"
+                    },
+                    "filter": [version],
+                    "aliases": [{"name": "lastal", "command": "lastal"}],
+                }
+            )
+        )
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_failure()), \
-             patch.object(builder, "_compute_sha256",
-                          return_value="186f57055d03ff51e8fb32fedb4a388d76aeea2691c56aac051de78671453fa6"):
+        with (
+            patch(
+                "shelley.builder.cvmfs_builder.subprocess.run",
+                return_value=_curl_failure(),
+            ),
+            patch.object(
+                builder,
+                "_compute_sha256",
+                return_value="186f57055d03ff51e8fb32fedb4a388d76aeea2691c56aac051de78671453fa6",
+            ),
+        ):
             builder._ensure_local_registry_entry(
-                "last", version, container_path, "quay.io/biocontainers/last",
+                "last",
+                version,
+                container_path,
+                "quay.io/biocontainers/last",
                 local_registry=str(tmp_path),
             )
 
