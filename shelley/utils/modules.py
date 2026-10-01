@@ -14,7 +14,7 @@ warns and continues, relying on whatever shpc/singularity are already on PATH.
 import os
 import shutil
 import subprocess
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..utils.globals import BUILD_MODULES
 from ..utils.style import print_info, print_warning

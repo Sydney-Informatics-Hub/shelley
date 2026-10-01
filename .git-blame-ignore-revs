@@ -4,3 +4,6 @@
 
 # STY: uv run ruff format .
 c6749921f92a8a9a1be42127240c88551e7c3089
+
+# STY: uv run ruff check --fix .
+d8aef4297fd6f785888cb7b1c89d7ff9c767fe55

@@ -1,19 +1,19 @@
 """Interactive command — guided REPL for shelley."""
 
-from .build import build_module
-from .find import find_tool_sync
-from .search import search_tools
 from ..utils.args import parse_build_flags, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
-    console,
     ShelleyStyle,
+    console,
     print_banner,
-    print_rule,
-    print_warning,
     print_info,
+    print_rule,
     print_success,
+    print_warning,
 )
+from .build import build_module
+from .find import find_tool_sync
+from .search import search_tools
 
 _COMMANDS = CORE_COMMANDS + [
     {"command": "help", "description": "Show this help table", "example": "help"},

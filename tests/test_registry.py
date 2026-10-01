@@ -3,17 +3,18 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
-import yaml
+from unittest.mock import MagicMock, mock_open, patch
+
 import pytest
+import yaml
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from shelley.builder.cvmfs_builder import (
+    CVMFSModuleBuilder,
     _load_registry_config,
     get_registry_tags,
-    CVMFSModuleBuilder,
 )
 
 URI = "quay.io/biocontainers/samtools"

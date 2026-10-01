@@ -13,12 +13,12 @@ from ..utils.globals import build_roots
 from ..utils.modules import load_build_modules
 from ..utils.perms import apply_build_umask, ensure_shared_layout
 from ..utils.style import (
-    console,
     ShelleyStyle,
-    print_info,
-    print_warning,
+    console,
     print_error,
+    print_info,
     print_rule,
+    print_warning,
 )
 
 

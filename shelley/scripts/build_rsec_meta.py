@@ -32,7 +32,7 @@ import tempfile
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from shelley.utils.globals import DATA_DIR
 
@@ -174,7 +174,7 @@ def _parse_functions(functions: Any) -> tuple[list[str], list[str], list[str]]:
     )
 
 
-def parse_biotools_json(path: Path) -> Optional[dict]:
+def parse_biotools_json(path: Path) -> dict | None:
     """Parse one *.biotools.json file into the entry schema; return None to skip."""
     try:
         with open(path, encoding="utf-8") as f:

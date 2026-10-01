@@ -6,27 +6,24 @@ Rich-based styling for Shelley following Australian BioCommons design guidelines
 Provides consistent colors, themes, and output formatting across the application.
 """
 
+from pathlib import Path
+from typing import Any
+
+from rich.align import Align
+from rich.box import DOUBLE, ROUNDED, SIMPLE
 from rich.console import Console
-from rich.theme import Theme
 from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-from rich.tree import Tree
 from rich.progress import (
+    BarColumn,
     Progress,
     SpinnerColumn,
     TextColumn,
-    BarColumn,
     TimeElapsedColumn,
 )
 from rich.status import Status
-from rich.rule import Rule
-from rich.columns import Columns
-from rich.align import Align
-from rich.box import ROUNDED, DOUBLE, SIMPLE, HEAVY
-from rich.style import Style
-from pathlib import Path
-from typing import List, Optional, Dict, Any, Tuple
+from rich.table import Table
+from rich.text import Text
+from rich.theme import Theme
 
 # Australian BioCommons Color Palette (Official Colors)
 BIOCOMMONS_COLORS = {
@@ -154,7 +151,7 @@ class ShelleyStyle:
         )
 
     @staticmethod
-    def create_help_table(commands: List[Dict[str, str]]) -> Table:
+    def create_help_table(commands: list[dict[str, str]]) -> Table:
         """Create a styled help table."""
         table = Table(
             title="[primary][bold]Available Commands[/bold][/primary]",
@@ -174,7 +171,7 @@ class ShelleyStyle:
         return table
 
     @staticmethod
-    def create_versions_table(tool_name: str, versions: List[str]) -> Table:
+    def create_versions_table(tool_name: str, versions: list[str]) -> Table:
         """Create a styled versions table."""
         table = Table(
             title=f"[primary][bold]Available Versions for[/bold][/primary] [primary][bold]{tool_name}[/bold][/primary]",
@@ -194,7 +191,7 @@ class ShelleyStyle:
 
     @staticmethod
     def create_versions_with_paths_table(
-        tool_name: str, version_path_pairs: List[Tuple[str, str]]
+        tool_name: str, version_path_pairs: list[tuple[str, str]]
     ) -> Table:
         """Create a styled versions table with full CVMFS paths."""
         table = Table(
@@ -214,7 +211,7 @@ class ShelleyStyle:
         return table
 
     @staticmethod
-    def create_tools_table(tools: List[Dict[str, Any]], limit: int = None) -> Table:
+    def create_tools_table(tools: list[dict[str, Any]], limit: int = None) -> Table:
         """Create a styled tools list table."""
         display_count = len(tools)
         if limit and len(tools) > limit:
@@ -267,7 +264,7 @@ class ShelleyStyle:
 
     @staticmethod
     def create_build_info(
-        tool_name: str, version: str, available_versions: List[str]
+        tool_name: str, version: str, available_versions: list[str]
     ) -> Panel:
         """Create build information panel for version selection."""
         versions_text = "\n".join(
@@ -365,7 +362,7 @@ class ShelleyStyle:
     @staticmethod
     def create_about_panel() -> Panel:
         """Create an about panel with version and credits."""
-        content = f"""[header]Shelley[/header] - [accent]BioCommons Edition[/accent]
+        content = """[header]Shelley[/header] - [accent]BioCommons Edition[/accent]
 
 [muted]A comprehensive bioinformatics tool finder and module builder[/muted]
 
@@ -423,7 +420,7 @@ class ShelleyStyle:
             style = "success"
             icon = "🎉"
         elif success > 0:
-            title = f"[status.warning]Partial Success[/status.warning]"
+            title = "[status.warning]Partial Success[/status.warning]"
             style = "warning"
             icon = "⚠️"
         else:

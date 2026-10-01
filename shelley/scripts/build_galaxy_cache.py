@@ -26,7 +26,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 from shelley.utils.globals import CVMFS_GALAXY_SINGULARITY_PATH, DATA_DIR
 
@@ -44,7 +44,7 @@ DEFAULT_CVMFS = Path(CVMFS_GALAXY_SINGULARITY_PATH)
 class CacheEntry(TypedDict):
     entry_name: str
     tool_name: str
-    tag: Optional[str]
+    tag: str | None
     path: str
     size_bytes: int
     mtime: float
@@ -54,8 +54,8 @@ class CacheDocument(TypedDict):
     generated_at: str
     cvmfs_root: str
     entry_count: int
-    entries: List[CacheEntry]
-    tool_names: List[str]
+    entries: list[CacheEntry]
+    tool_names: list[str]
 
 
 # ---------------------------------------------------------------------------

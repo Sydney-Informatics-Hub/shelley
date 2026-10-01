@@ -145,7 +145,7 @@ def test_run_shpc_install_cvmfs_works(builder, tool_build):
     arg1 = f"quay.io/biocontainers/{tool_build}"
     arg2 = f"/cvmfs/singularity.galaxyproject.org/all/{tool_build}"
     exitcode, _ = builder._run_shpc_install(arg1, arg2)
-    assert not exitcode, f"shpc install should work, possibly a registry path issue"
+    assert not exitcode, "shpc install should work, possibly a registry path issue"
 
 
 # ---------------------------------------------------------------------------

@@ -14,7 +14,6 @@ and is immediately understandable to anyone who can read a traceback.
 """
 
 import re
-from typing import Optional
 
 from shelley.utils.constants import STOP_WORDS
 
@@ -42,7 +41,7 @@ class MetadataSource:
         """Load entries from disk into self.entries. Returns self for chaining."""
         raise NotImplementedError(f"{self.__class__.__name__} must implement load()")
 
-    def search(self, query: str, limit: Optional[int] = None) -> list[str]:
+    def search(self, query: str, limit: int | None = None) -> list[str]:
         """Return tool names matching query, sorted alphabetically."""
         raise NotImplementedError(f"{self.__class__.__name__} must implement search()")
 

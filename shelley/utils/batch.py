@@ -7,8 +7,8 @@ from rich.table import Table
 
 from ..commands.build import build_module
 from .style import (
-    console,
     ShelleyStyle,
+    console,
     print_info,
     print_rule,
 )

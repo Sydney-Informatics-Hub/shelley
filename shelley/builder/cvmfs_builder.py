@@ -7,28 +7,29 @@ Builds Lmod module files for tools available in CVMFS.
 
 import hashlib
 import logging
+import re
 import shutil
 import subprocess
-import yaml
-from pathlib import Path
-from typing import List, Optional, Tuple
-import re
-import questionary
 from datetime import datetime
+from pathlib import Path
+
+import questionary
+import yaml
+
+from shelley.builder.guts_integration import (
+    edit_aliases_interactive,
+    extract_aliases,
+    normalize_aliases,
+)
+from shelley.builder.shpc_settings import ensure_shared_shpc_settings
+from shelley.utils import ShelleyStyle, console
 from shelley.utils import globals as gl
 from shelley.utils.globals import CVMFS_GALAXY_SINGULARITY_PATH
-from shelley.utils import console, ShelleyStyle
 from shelley.utils.perms import (
     ensure_shared_dir,
     ensure_traversable,
     harden_tree,
     share_file,
-)
-from shelley.builder.shpc_settings import ensure_shared_shpc_settings
-from shelley.builder.guts_integration import (
-    edit_aliases_interactive,
-    extract_aliases,
-    normalize_aliases,
 )
 
 log = logging.getLogger(__name__)
@@ -161,7 +162,7 @@ class CVMFSModuleBuilder:
             and self.cvmfs_singularity_path.is_dir()
         )
 
-    def _parse_version(self, version_str: str) -> Tuple[int, ...]:
+    def _parse_version(self, version_str: str) -> tuple[int, ...]:
         """
         Parse version string for semantic sorting.
 
@@ -187,11 +188,11 @@ class CVMFSModuleBuilder:
 
         return tuple(parts)
 
-    def _sort_versions(self, versions: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
+    def _sort_versions(self, versions: list[tuple[str, str]]) -> list[tuple[str, str]]:
         """Sort versions by semantic versioning, newest first."""
         return sorted(versions, key=lambda x: self._parse_version(x[1]), reverse=True)
 
-    def _get_available_tools(self, tool_name: str) -> List[Tuple[str, str]]:
+    def _get_available_tools(self, tool_name: str) -> list[tuple[str, str]]:
         """
         Get available versions of a tool from CVMFS.
 
@@ -219,7 +220,7 @@ class CVMFSModuleBuilder:
         except (OSError, PermissionError) as e:
             raise RuntimeError(f"Failed to read CVMFS directory: {e}")
 
-    def _get_latest_version(self, versions: List[Tuple[str, str]]) -> Tuple[str, str]:
+    def _get_latest_version(self, versions: list[tuple[str, str]]) -> tuple[str, str]:
         """
         Get the latest version from a list of versions.
 
@@ -259,7 +260,7 @@ class CVMFSModuleBuilder:
             ]
         )
 
-    def _run_shpc_install(self, uri_tag: str, container_path: str) -> Tuple[int, str]:
+    def _run_shpc_install(self, uri_tag: str, container_path: str) -> tuple[int, str]:
         """
         Run: shpc install <uri_tag> <container_path> --keep-path
 
@@ -522,7 +523,7 @@ class CVMFSModuleBuilder:
 
         return dest
 
-    def list_versions(self, tool_name: str) -> List[str]:
+    def list_versions(self, tool_name: str) -> list[str]:
         """
         List available versions of a tool without creating a module.
 
@@ -540,7 +541,7 @@ class CVMFSModuleBuilder:
         sorted_versions = self._sort_versions(versions)
         return [version for _, version in sorted_versions]
 
-    def list_versions_with_paths(self, tool_name: str) -> List[Tuple[str, str]]:
+    def list_versions_with_paths(self, tool_name: str) -> list[tuple[str, str]]:
         """
         List available versions of a tool with their full CVMFS paths.
 
@@ -559,9 +560,9 @@ class CVMFSModuleBuilder:
     def _select_version_interactively(
         self,
         tool_name: str,
-        matches: List[Tuple[str, str]],
-        labels: Optional[List[str]] = None,
-    ) -> Tuple[str, str]:
+        matches: list[tuple[str, str]],
+        labels: list[str] | None = None,
+    ) -> tuple[str, str]:
         """
         Prompt the user to pick one build when multiple exist for the same short version.
 
@@ -590,8 +591,8 @@ class CVMFSModuleBuilder:
         return selected
 
     def search_tool_version(
-        self, tool_name: str, requested_version: Optional[str] = None
-    ) -> Tuple[str, str]:
+        self, tool_name: str, requested_version: str | None = None
+    ) -> tuple[str, str]:
         """
         Searches for a tool name to the requested version or the latest version if not provided.
         Also handles the case of multiple matching versions.

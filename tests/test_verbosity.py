@@ -3,7 +3,6 @@
 from shelley.utils.args import parse_build_flags, parse_verbose
 from shelley.utils.cache import compute_build_entries
 
-
 # ---------------------------------------------------------------------------
 # parse_verbose
 # ---------------------------------------------------------------------------

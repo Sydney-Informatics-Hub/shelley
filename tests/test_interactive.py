@@ -1,8 +1,6 @@
 """Tests for shelley/commands/interactive.py — interactive REPL loop."""
 
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from shelley.commands.interactive import interactive_mode
 

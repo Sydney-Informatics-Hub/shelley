@@ -11,13 +11,10 @@ thread that has no running event loop.
 """
 
 import asyncio
-import warnings
 
-import pytest
 import questionary
 
 from shelley.utils.render import paginate as _paginate
-
 
 # ---------------------------------------------------------------------------
 # Pure behaviour — no questionary invoked (single page or empty)

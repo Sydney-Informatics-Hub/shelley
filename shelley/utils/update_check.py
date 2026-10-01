@@ -21,7 +21,6 @@ import re
 import time
 import urllib.request
 from pathlib import Path
-from typing import Optional
 
 from .. import __version__
 
@@ -53,7 +52,7 @@ def _cache_path() -> Path:
     return Path(base) / "shelley" / "update_check.json"
 
 
-def _read_cache() -> Optional[str]:
+def _read_cache() -> str | None:
     """Return the cached 'latest' version if the cache is fresh, else None."""
     try:
         data = json.loads(_cache_path().read_text())
@@ -64,7 +63,7 @@ def _read_cache() -> Optional[str]:
     return None
 
 
-def _write_cache(latest: Optional[str]) -> None:
+def _write_cache(latest: str | None) -> None:
     try:
         path = _cache_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -73,7 +72,7 @@ def _write_cache(latest: Optional[str]) -> None:
         pass
 
 
-def fetch_main_version() -> Optional[str]:
+def fetch_main_version() -> str | None:
     """Fetch and parse __version__ from shelley/__init__.py on the main branch.
 
     Returns the version string, or None on any network/parse error.
@@ -102,7 +101,7 @@ def _is_newer(latest: str, installed: str) -> bool:
         return latest != installed
 
 
-def check_for_update() -> Optional[str]:
+def check_for_update() -> str | None:
     """Return the newer version string if main is ahead, else None.
 
     Cached for a day and silent on any failure, so callers can invoke it

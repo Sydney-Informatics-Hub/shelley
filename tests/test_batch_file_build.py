@@ -1,14 +1,12 @@
 """Tests for file-input dispatch in `shelley build`."""
 
 import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from shelley.utils.batch import read_tools_file as _read_tools_file
 from shelley.client.cli import main
-
+from shelley.utils.batch import read_tools_file as _read_tools_file
 
 # ---------------------------------------------------------------------------
 # _read_tools_file unit tests

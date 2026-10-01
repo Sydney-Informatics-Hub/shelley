@@ -3,7 +3,6 @@
 import math
 
 import questionary
-
 from rich.box import ROUNDED
 from rich.table import Table
 

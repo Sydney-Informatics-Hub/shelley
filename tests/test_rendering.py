@@ -2,7 +2,6 @@
 """Test the improved interactive mode rendering."""
 
 import sys
-import os
 from pathlib import Path
 
 # Add the project root to Python path

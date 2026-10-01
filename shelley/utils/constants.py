@@ -80,7 +80,6 @@ STOP_WORDS = {
         "our",
         "his",
         "her",
-        "their",
         "me",
         "him",
         "them",
