@@ -79,10 +79,10 @@ shelley/
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Access to CVMFS repositories (typically `/cvmfs/singularity.galaxyproject.org/`)
 - Lmod (for module management)
-- Singularity/Apptainer (for container execution)
+- Singularity (for container execution)
 
 ## License
 

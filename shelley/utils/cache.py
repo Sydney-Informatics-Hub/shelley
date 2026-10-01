@@ -3,14 +3,14 @@
 import gzip
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from shelley.utils.globals import DATA_DIR
 
 
 def _format_mtime(mtime: float) -> str:
     """Format a unix timestamp as YYYY-MM-DD (UTC)."""
-    return datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d")
+    return datetime.fromtimestamp(mtime, tz=UTC).strftime("%Y-%m-%d")
 
 
 def _version_key(tag: str) -> tuple:
@@ -43,13 +43,19 @@ def load_versions_from_cache(tool_name: str) -> list[tuple[str, str, float]] | N
         data = json.load(f)
 
     tool_lower = tool_name.lower()
-    variations = {tool_lower, tool_lower.replace("-", "_"), tool_lower.replace("_", "-")}
+    variations = {
+        tool_lower,
+        tool_lower.replace("-", "_"),
+        tool_lower.replace("_", "-"),
+    }
     entries = [e for e in data["entries"] if e["tool_name"].lower() in variations]
     entries.sort(key=lambda e: _version_key(e["tag"]), reverse=True)
     return [(e["tag"], e["path"], e["mtime"]) for e in entries]
 
 
-def compute_version_entries(tool_id: str, triples: list[tuple[str, str, float]]) -> list[dict]:
+def compute_version_entries(
+    tool_id: str, triples: list[tuple[str, str, float]]
+) -> list[dict]:
     """Deduplicate (tag, path, mtime) triples, keeping one row per short version.
 
     The date reported for a version is the most recent mtime across all of that
@@ -65,10 +71,15 @@ def compute_version_entries(tool_id: str, triples: list[tuple[str, str, float]])
             latest_mtime[short] = mtime
         elif mtime > latest_mtime[short]:
             latest_mtime[short] = mtime
-    return [{"version": short, "date": _format_mtime(latest_mtime[short])} for short in order]
+    return [
+        {"version": short, "date": _format_mtime(latest_mtime[short])}
+        for short in order
+    ]
 
 
-def compute_build_entries(tool_id: str, triples: list[tuple[str, str, float]]) -> list[dict]:
+def compute_build_entries(
+    tool_id: str, triples: list[tuple[str, str, float]]
+) -> list[dict]:
     """Return one row per individual container build, sorted by version then build date.
 
     Unlike ``compute_version_entries``, this keeps every individual container build

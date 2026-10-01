@@ -37,6 +37,7 @@ def restore_umask():
 # apply_build_umask
 # ---------------------------------------------------------------------------
 
+
 def test_apply_build_umask_sets_022_and_returns_previous(restore_umask):
     os.umask(0o077)
     previous = apply_build_umask()
@@ -50,6 +51,7 @@ def test_apply_build_umask_sets_022_and_returns_previous(restore_umask):
 # harden_tree
 # ---------------------------------------------------------------------------
 
+
 def _restrictive_tree(root: Path) -> dict[str, Path]:
     """Build a tree that mimics an shpc module dir created under `umask 077`."""
     module_dir = root / "quay.io" / "biocontainers" / "samtools" / "1.21"
@@ -61,13 +63,24 @@ def _restrictive_tree(root: Path) -> dict[str, Path]:
     wrapper = bin_dir / "samtools"
     wrapper.write_text("#!/bin/bash\n")
 
-    for d in (root, root / "quay.io", root / "quay.io" / "biocontainers",
-              module_dir.parent, module_dir, bin_dir):
+    for d in (
+        root,
+        root / "quay.io",
+        root / "quay.io" / "biocontainers",
+        module_dir.parent,
+        module_dir,
+        bin_dir,
+    ):
         os.chmod(d, 0o700)
     os.chmod(lua, 0o600)
     os.chmod(wrapper, 0o700)  # shpc marks wrapper scripts owner-executable
 
-    return {"module_dir": module_dir, "bin_dir": bin_dir, "lua": lua, "wrapper": wrapper}
+    return {
+        "module_dir": module_dir,
+        "bin_dir": bin_dir,
+        "lua": lua,
+        "wrapper": wrapper,
+    }
 
 
 def test_harden_tree_opens_dirs_and_files(tmp_path):
@@ -91,7 +104,9 @@ def test_harden_tree_propagates_owner_exec_to_group_and_other(tmp_path):
 
     harden_tree(root)
 
-    assert mode_of(t["wrapper"]) == 0o755, "wrapper scripts must stay executable, for everyone"
+    assert mode_of(t["wrapper"]) == 0o755, (
+        "wrapper scripts must stay executable, for everyone"
+    )
     assert mode_of(t["lua"]) == 0o644, "a non-executable file must not gain +x"
 
 
@@ -151,7 +166,10 @@ def test_harden_tree_on_symlink_root_is_noop(tmp_path):
 # ensure_shared_dir / ensure_traversable
 # ---------------------------------------------------------------------------
 
-def test_ensure_shared_dir_is_0755_under_restrictive_umask(tmp_path, monkeypatch, restore_umask):
+
+def test_ensure_shared_dir_is_0755_under_restrictive_umask(
+    tmp_path, monkeypatch, restore_umask
+):
     monkeypatch.setenv("SHELLEY_SHPC_BASE", str(tmp_path / "shpc"))
     os.umask(0o077)
 
@@ -175,7 +193,9 @@ def test_ensure_traversable_opens_intermediate_dirs(tmp_path, monkeypatch):
 
     current = leaf
     while True:
-        assert mode_of(current) & 0o055 == 0o055, f"{current} is not group/other traversable"
+        assert mode_of(current) & 0o055 == 0o055, (
+            f"{current} is not group/other traversable"
+        )
         if current == gl.shpc_base():
             break
         current = current.parent
@@ -225,7 +245,10 @@ def test_share_file_sets_0644_and_ignores_symlinks(tmp_path):
 # ensure_shared_layout
 # ---------------------------------------------------------------------------
 
-def test_ensure_shared_layout_creates_every_shared_dir(tmp_path, monkeypatch, restore_umask):
+
+def test_ensure_shared_layout_creates_every_shared_dir(
+    tmp_path, monkeypatch, restore_umask
+):
     monkeypatch.setenv("SHELLEY_SHPC_BASE", str(tmp_path / "shpc"))
     monkeypatch.setenv("SHELLEY_LOCAL_REGISTRY", str(tmp_path / "local"))
     monkeypatch.setenv("SHELLEY_LMOD_MODULES_PATH", str(tmp_path / "modulefiles"))

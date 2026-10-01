@@ -7,7 +7,10 @@ from rich.table import Table
 
 from ..commands.build import build_module
 from .style import (
-    console, ShelleyStyle, print_info, print_rule,
+    ShelleyStyle,
+    console,
+    print_info,
+    print_rule,
 )
 
 
@@ -38,11 +41,13 @@ def batch_build_modules(tools: list[str]) -> int:
     in batch mode; each tool builds non-interactively.
     """
     if not tools:
-        console.print(ShelleyStyle.create_info_panel(
-            "No tools specified",
-            "Pass a file of tool specs to build in batch:\n\n"
-            "[command]shelley build tools.txt[/command]",
-        ))
+        console.print(
+            ShelleyStyle.create_info_panel(
+                "No tools specified",
+                "Pass a file of tool specs to build in batch:\n\n"
+                "[command]shelley build tools.txt[/command]",
+            )
+        )
         return 0
 
     console.clear()
@@ -69,7 +74,9 @@ def batch_build_modules(tools: list[str]) -> int:
     results: list[tuple[str, bool, str]] = []
 
     for i, tool in enumerate(tools, 1):
-        console.print(f"\n[header]Building {i}/{total_count}:[/header] [tool]{tool}[/tool]")
+        console.print(
+            f"\n[header]Building {i}/{total_count}:[/header] [tool]{tool}[/tool]"
+        )
         if build_module(tool):
             success_count += 1
             results.append((tool, True, "Success"))
@@ -95,17 +102,21 @@ def batch_build_modules(tools: list[str]) -> int:
     console.print(results_table)
 
     if success_count == total_count:
-        console.print(ShelleyStyle.create_info_panel(
-            "All Modules Built Successfully! 🎉",
-            f"Successfully built {success_count}/{total_count} modules.\n\nNext steps:\n"
-            "• [command]module avail[/command] - See available modules\n"
-            "• [command]module load <tool>/<version>[/command] - Load a module",
-        ))
+        console.print(
+            ShelleyStyle.create_info_panel(
+                "All Modules Built Successfully! 🎉",
+                f"Successfully built {success_count}/{total_count} modules.\n\nNext steps:\n"
+                "• [command]module avail[/command] - See available modules\n"
+                "• [command]module load <tool>/<version>[/command] - Load a module",
+            )
+        )
         return 0
 
-    console.print(ShelleyStyle.create_warning_panel(
-        "Some Modules Failed",
-        f"Successfully built {success_count}/{total_count} modules. "
-        "Check errors above for failed builds.",
-    ))
+    console.print(
+        ShelleyStyle.create_warning_panel(
+            "Some Modules Failed",
+            f"Successfully built {success_count}/{total_count} modules. "
+            "Check errors above for failed builds.",
+        )
+    )
     return 1

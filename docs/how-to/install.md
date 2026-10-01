@@ -176,7 +176,7 @@ uvx --from git+https://github.com/Sydney-Informatics-Hub/shelley shelley find fa
 ## Python version
 
 `uv` creates a sandboxed Python environment that does not affect your system
-Python. shelley requires Python 3.10 or later; uv selects the highest compatible
+Python. shelley requires Python 3.11 or later; uv selects the highest compatible
 version it finds, or downloads one automatically. To pin a specific version, add
 `--python`:
 

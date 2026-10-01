@@ -7,11 +7,10 @@ CVMFS_PATH = Path("/cvmfs/singularity.galaxyproject.org/all")
 
 
 def pytest_configure(config):
+    config.addinivalue_line("markers", "cvmfs: requires a live CVMFS mount")
     config.addinivalue_line(
-        "markers", "cvmfs: requires a live CVMFS mount"
-    )
-    config.addinivalue_line(
-        "markers", "network: requires outbound network access (curl to GitHub shpc-registry)"
+        "markers",
+        "network: requires outbound network access (curl to GitHub shpc-registry)",
     )
     config.addinivalue_line(
         "markers", "shpc: requires the shpc package to be importable"

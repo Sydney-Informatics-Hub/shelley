@@ -40,6 +40,7 @@ def _install_tree(module_base: Path) -> Path:
 
 def _fake_run(module_base: Path, calls: list | None = None):
     """subprocess.run side effect covering shpc install / uninstall / config."""
+
     def run(cmd, **_):
         if calls is not None:
             calls.append(list(cmd))
@@ -48,6 +49,7 @@ def _fake_run(module_base: Path, calls: list | None = None):
         m.returncode = 0
         m.stdout = str(module_base) if "module_base" in cmd else "Module was created.\n"
         return m
+
     return run
 
 
@@ -58,6 +60,7 @@ def _upstream_config():
 # ---------------------------------------------------------------------------
 # shpc is always pinned to the shared settings file
 # ---------------------------------------------------------------------------
+
 
 def test_shpc_cmd_pins_the_shared_settings_file():
     cmd = _shpc_cmd("install", "quay.io/biocontainers/samtools:1.21")
@@ -81,10 +84,16 @@ def test_every_shpc_call_in_an_install_carries_the_settings_file(builder, tmp_pa
     _install_tree(module_base)
     calls: list[list[str]] = []
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base, calls)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()):
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base, calls),
+        ),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+    ):
         builder.shpc_install(TOOL, VERSION)
 
     shpc_calls = [c for c in calls if "shpc" in c[0]]
@@ -97,6 +106,7 @@ def test_every_shpc_call_in_an_install_carries_the_settings_file(builder, tmp_pa
 # No chown: artifacts stay root-owned and are hardened instead
 # ---------------------------------------------------------------------------
 
+
 def test_install_never_chowns_the_tree(builder, tmp_path, monkeypatch):
     """Handing the tree to $SUDO_USER is what made builds single-user."""
     module_base = tmp_path / "shpc_modules"
@@ -104,15 +114,22 @@ def test_install_never_chowns_the_tree(builder, tmp_path, monkeypatch):
     calls: list[list[str]] = []
     monkeypatch.setenv("SUDO_USER", "ubuntu")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base, calls)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()), \
-         patch("os.getuid", return_value=0):
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base, calls),
+        ),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+        patch("os.getuid", return_value=0),
+    ):
         builder.shpc_install(TOOL, VERSION)
 
-    assert not any("chown" in os.path.basename(c[0]) for c in calls), \
+    assert not any("chown" in os.path.basename(c[0]) for c in calls), (
         f"a chown was still spawned: {calls}"
+    )
 
 
 def test_install_hardens_this_tools_subtrees_only(builder, tmp_path):
@@ -120,11 +137,17 @@ def test_install_hardens_this_tools_subtrees_only(builder, tmp_path):
     module_base = tmp_path / "shpc_modules"
     _install_tree(module_base)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()), \
-         patch("shelley.builder.cvmfs_builder.harden_tree") as mock_harden:
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base),
+        ),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+        patch("shelley.builder.cvmfs_builder.harden_tree") as mock_harden,
+    ):
         builder.shpc_install(TOOL, VERSION)
 
     hardened = {Path(c.args[0]) for c in mock_harden.call_args_list}
@@ -146,10 +169,16 @@ def test_install_hardens_the_lmod_default_version_file(builder, tmp_path):
     dotversion.write_text('set ModulesVersion "x"\n')
     os.chmod(dotversion, 0o600)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()):
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base),
+        ),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+    ):
         builder.shpc_install(TOOL, VERSION)
 
     assert stat.S_IMODE(dotversion.stat().st_mode) == 0o644
@@ -166,14 +195,22 @@ def test_install_makes_the_module_world_readable(builder, tmp_path):
     os.chmod(wrapper, 0o700)
     os.chmod(src.parent, 0o700)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()):
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base),
+        ),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+    ):
         dest = builder.shpc_install(TOOL, VERSION)
 
     assert stat.S_IMODE(src.stat().st_mode) == 0o644
-    assert stat.S_IMODE(wrapper.stat().st_mode) == 0o755, "wrappers must stay executable"
+    assert stat.S_IMODE(wrapper.stat().st_mode) == 0o755, (
+        "wrappers must stay executable"
+    )
     assert stat.S_IMODE(src.parent.stat().st_mode) == 0o755
     assert stat.S_IMODE(dest.parent.stat().st_mode) == 0o755, "the modulefiles dir too"
 
@@ -184,11 +221,17 @@ def test_module_symlink_is_created_and_not_chmodded_through(builder, tmp_path):
     src = _install_tree(module_base)
     os.chmod(src, 0o644)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()), \
-         patch("shelley.builder.cvmfs_builder.share_file") as mock_share_file:
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base),
+        ),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+        patch("shelley.builder.cvmfs_builder.share_file") as mock_share_file,
+    ):
         dest = builder.shpc_install(TOOL, VERSION)
 
     assert dest.is_symlink()
@@ -199,6 +242,7 @@ def test_module_symlink_is_created_and_not_chmodded_through(builder, tmp_path):
 # ---------------------------------------------------------------------------
 # module_base resolution
 # ---------------------------------------------------------------------------
+
 
 def test_module_base_falls_back_when_shpc_cannot_report_it(builder, tmp_path):
     """A failed `config get` must not raise after a successful install."""
@@ -215,31 +259,50 @@ def test_module_base_falls_back_when_shpc_cannot_report_it(builder, tmp_path):
             m.stdout = "Module was created.\n"
         return m
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=run), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config",
-               return_value=_upstream_config()):
+    with (
+        patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=run),
+        patch(
+            "shelley.builder.cvmfs_builder._load_registry_config",
+            return_value=_upstream_config(),
+        ),
+    ):
         dest = builder.shpc_install(TOOL, VERSION)
 
-    assert dest.resolve() == (
-        gl.shpc_module_base() / "quay.io" / "biocontainers" / TOOL / VERSION / "module.lua"
-    ).resolve()
+    assert (
+        dest.resolve()
+        == (
+            gl.shpc_module_base()
+            / "quay.io"
+            / "biocontainers"
+            / TOOL
+            / VERSION
+            / "module.lua"
+        ).resolve()
+    )
 
 
 # ---------------------------------------------------------------------------
 # The local registry entry
 # ---------------------------------------------------------------------------
 
+
 def test_local_container_yaml_is_world_readable(builder, tmp_path):
     module_base = tmp_path / "shpc_modules"
     _install_tree(module_base)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(module_base)), \
-         patch("shelley.builder.cvmfs_builder._load_registry_config", return_value={}), \
-         patch("shelley.builder.cvmfs_builder.extract_aliases",
-               return_value=[{"name": TOOL, "command": f"/usr/local/bin/{TOOL}"}]), \
-         patch.object(builder, "_compute_sha256", return_value="deadbeef"), \
-         patch("shelley.builder.cvmfs_builder.console"):
+    with (
+        patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=_fake_run(module_base),
+        ),
+        patch("shelley.builder.cvmfs_builder._load_registry_config", return_value={}),
+        patch(
+            "shelley.builder.cvmfs_builder.extract_aliases",
+            return_value=[{"name": TOOL, "command": f"/usr/local/bin/{TOOL}"}],
+        ),
+        patch.object(builder, "_compute_sha256", return_value="deadbeef"),
+        patch("shelley.builder.cvmfs_builder.console"),
+    ):
         builder.shpc_install(TOOL, VERSION)
 
     written = gl.local_registry() / URI / "container.yaml"
@@ -260,6 +323,7 @@ def test_registering_the_local_registry_does_not_shell_out(builder):
 # ---------------------------------------------------------------------------
 # The sudo probe
 # ---------------------------------------------------------------------------
+
 
 def test_needs_sudo_when_a_build_root_is_missing(tmp_path, monkeypatch):
     """First run on a fresh machine: /apps/shpc does not exist yet."""
@@ -305,10 +369,18 @@ def test_sudo_reexec_forwards_the_shelley_overrides(monkeypatch):
 # find: a module symlinked into an unreadable tree is not "installed"
 # ---------------------------------------------------------------------------
 
+
 def test_find_reports_a_resolvable_modulefile_as_installed():
     from shelley.commands.find import module_is_installed
 
-    target = gl.shpc_module_base() / "quay.io" / "biocontainers" / TOOL / VERSION / "module.lua"
+    target = (
+        gl.shpc_module_base()
+        / "quay.io"
+        / "biocontainers"
+        / TOOL
+        / VERSION
+        / "module.lua"
+    )
     target.parent.mkdir(parents=True)
     target.write_text("-- module\n")
     link_dir = gl.lmod_modules() / TOOL
@@ -328,7 +400,9 @@ def test_find_does_not_report_a_dangling_modulefile_as_installed():
 
     link_dir = gl.lmod_modules() / TOOL
     link_dir.mkdir(parents=True)
-    (link_dir / f"{VERSION}.lua").symlink_to("/home/someone-else/shpc/modules/module.lua")
+    (link_dir / f"{VERSION}.lua").symlink_to(
+        "/home/someone-else/shpc/modules/module.lua"
+    )
 
     assert module_is_installed(TOOL, "1.21") is False
 

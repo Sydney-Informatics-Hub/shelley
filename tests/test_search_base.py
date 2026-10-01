@@ -19,6 +19,7 @@ def source():
 # _normalise
 # ---------------------------------------------------------------------------
 
+
 def test_normalise_lowercases(source):
     assert source._normalise("RNA") == ["rna"]
 
@@ -38,6 +39,7 @@ def test_normalise_splits_on_whitespace(source):
 # ---------------------------------------------------------------------------
 # _expand_tokens
 # ---------------------------------------------------------------------------
+
 
 def test_expand_tokens_keeps_original(source):
     assert "rna-seq" in source._expand_tokens(["rna-seq"])
@@ -64,6 +66,7 @@ def test_expand_tokens_skips_empty(source):
 # ---------------------------------------------------------------------------
 # _flatten_edam
 # ---------------------------------------------------------------------------
+
 
 def test_flatten_edam_plain_list(source):
     assert source._flatten_edam(["Mapping", "Alignment"]) == ["Mapping", "Alignment"]
@@ -92,6 +95,7 @@ def test_flatten_edam_empty_list(source):
 # _load_stopwords
 # ---------------------------------------------------------------------------
 
+
 def test_load_stopwords_returns_set(source):
     assert isinstance(source._load_stopwords(), set)
 
@@ -106,6 +110,7 @@ def test_load_stopwords_contains_common_words(source):
 # Interface methods raise NotImplementedError
 # ---------------------------------------------------------------------------
 
+
 def test_load_raises(source):
     with pytest.raises(NotImplementedError, match="MetadataSource"):
         source.load()
@@ -119,6 +124,7 @@ def test_search_raises(source):
 # ---------------------------------------------------------------------------
 # __len__
 # ---------------------------------------------------------------------------
+
 
 def test_len_empty(source):
     assert len(source) == 0

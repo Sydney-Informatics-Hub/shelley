@@ -7,13 +7,19 @@ REPL uses it as-is.
 
 # Commands available in both the CLI and the interactive REPL.
 CORE_COMMANDS = [
-    {"command": "find <tool> [-v]",
-     "description": "Find a tool; -v adds CVMFS container paths",
-     "example": "find fastqc"},
-    {"command": "search <description>",
-     "description": "Search for tools by function",
-     "example": "search quality control"},
-    {"command": r"build <tool\[/version]> [-i]",
-     "description": "Build Lmod module for tool; -i/--interactive to curate aliases",
-     "example": "build samtools/1.21"},
+    {
+        "command": "find <tool> [-v]",
+        "description": "Find a tool; -v adds CVMFS container paths",
+        "example": "find fastqc",
+    },
+    {
+        "command": "search <description>",
+        "description": "Search for tools by function",
+        "example": "search quality control",
+    },
+    {
+        "command": r"build <tool\[/version]> [-i]",
+        "description": "Build Lmod module for tool; -i/--interactive to curate aliases",
+        "example": "build samtools/1.21",
+    },
 ]
