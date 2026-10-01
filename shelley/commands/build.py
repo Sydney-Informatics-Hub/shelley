@@ -208,9 +208,7 @@ def list_cvmfs_versions(tool_name: str) -> None:
     builder = CVMFSModuleBuilder()
 
     try:
-        with ShelleyStyle.create_status(
-            f"Scanning CVMFS for {tool_name} versions"
-        ):
+        with ShelleyStyle.create_status(f"Scanning CVMFS for {tool_name} versions"):
             version_path_pairs = builder.list_versions_with_paths(tool_name)
 
         if not version_path_pairs:

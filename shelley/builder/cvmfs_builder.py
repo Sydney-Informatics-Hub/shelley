@@ -218,7 +218,7 @@ class CVMFSModuleBuilder:
 
             return containers
         except (OSError, PermissionError) as e:
-            raise RuntimeError(f"Failed to read CVMFS directory: {e}")
+            raise RuntimeError(f"Failed to read CVMFS directory: {e}") from e
 
     def _get_latest_version(self, versions: list[tuple[str, str]]) -> tuple[str, str]:
         """
@@ -577,7 +577,9 @@ class CVMFSModuleBuilder:
 
         choices = [
             questionary.Choice(title=label, value=match)
-            for label, match in zip(labels, matches, strict=True) # iterables must be the same length
+            for label, match in zip(
+                labels, matches, strict=True
+            )  # iterables must be the same length
         ]
 
         selected = questionary.select(
