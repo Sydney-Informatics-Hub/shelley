@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `print_about()` and `ShelleyStyle.create_about_panel()` from `shelley.utils`. They were
   unused and raised `NameError` if called.
+- Support for Python 3.10. `shelley` now requires Python 3.11 or later.
 
 ## [0.3.0] - 2026-07-31
 
