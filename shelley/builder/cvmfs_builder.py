@@ -577,7 +577,7 @@ class CVMFSModuleBuilder:
 
         choices = [
             questionary.Choice(title=label, value=match)
-            for label, match in zip(labels, matches)
+            for label, match in zip(labels, matches, strict=True) # iterables must be the same length
         ]
 
         selected = questionary.select(

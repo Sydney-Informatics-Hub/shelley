@@ -245,7 +245,7 @@ class ShelleyStyle:
         content = f"""[status.success]✅ Module Built Successfully![/status.success]
 
 [header]Tool:[/header] [tool]{tool_name}[/tool]
-[header]Version:[/header] [version]{version}[/version]  
+[header]Version:[/header] [version]{version}[/version]
 [header]Module Path:[/header] [path]{module_path}[/path]
 
 [header]To load this module:[/header]

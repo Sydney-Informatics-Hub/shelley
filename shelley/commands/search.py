@@ -8,7 +8,7 @@ from ..utils.style import ShelleyStyle, console
 
 def search_tools(query: str) -> None:
     """Search the RSEC corpus directly (no MCP server needed)."""
-    with ShelleyStyle.create_status(f"Searching for: {query}") as status:
+    with ShelleyStyle.create_status(f"Searching for: {query}"):
         try:
             source = RsecSource().load()
         except FileNotFoundError:
