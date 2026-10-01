@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `shelley clean` removes built modules.
+- Support `build` for tools with no shpc registry [BioShell/#22](https://github.com/AustralianBioCommons/BioShell/issues/22)
 
 ### Changed
 
