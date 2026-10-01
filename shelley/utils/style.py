@@ -263,7 +263,7 @@ class ShelleyStyle:
         )
 
     @staticmethod
-    def create_clean_success(tool_name: str, version: str, report: Dict[str, Any]) -> Panel:
+    def create_clean_success(tool_name: str, version: str, report: dict[str, Any]) -> Panel:
         """Create a styled clean/uninstall success message."""
         removed = []
         if report.get("shpc_removed"):

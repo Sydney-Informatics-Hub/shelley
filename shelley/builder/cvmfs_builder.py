@@ -339,13 +339,16 @@ class CVMFSModuleBuilder:
         registry_yaml = registry_dir / "container.yaml"
         ensure_shared_dir(registry_dir)
 
-        # Download upstream entry as a base (best-effort; tool may not be in upstream at all)
-        remote_url = f"https://raw.githubusercontent.com/singularityhub/shpc-registry/main/{uri}/container.yaml"
-        subprocess.run(
-            ["curl", "-fsSL", remote_url, "-o", str(registry_yaml)],
-            capture_output=True,
-            text=True,
-        )
+        if not registry_yaml.exists():
+            # Download upstream entry as a base (best-effort; tool may not be in
+            # upstream at all). Skipped when a local file already exists so this
+            # doesn't clobber tags added by earlier local-only builds of this tool.
+            remote_url = f"https://raw.githubusercontent.com/singularityhub/shpc-registry/main/{uri}/container.yaml"
+            subprocess.run(
+                ["curl", "-fsSL", remote_url, "-o", str(registry_yaml)],
+                capture_output=True,
+                text=True,
+            )
 
         config = _load_registry_config(uri, registry_yaml)
         if not config:
@@ -397,7 +400,7 @@ class CVMFSModuleBuilder:
 
         return aliases
 
-    def _run_shpc_uninstall(self, uri_tag: str) -> Tuple[int, str]:
+    def _run_shpc_uninstall(self, uri_tag: str) -> tuple[int, str]:
         """Run `shpc uninstall --force <uri_tag>`. Returns (returncode, combined output)."""
         result = subprocess.run(
             _shpc_cmd("uninstall", "--force", uri_tag), capture_output=True, text=True,
@@ -680,7 +683,7 @@ class CVMFSModuleBuilder:
             "registry_entry_deleted": registry_entry_deleted,
         }
 
-    def list_versions(self, tool_name: str) -> List[str]:
+    def list_versions(self, tool_name: str) -> list[str]:
         """
         List available versions of a tool without creating a module.
 

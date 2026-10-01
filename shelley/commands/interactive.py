@@ -1,6 +1,6 @@
 """Interactive command — guided REPL for shelley."""
 
-from ..utils.args import parse_build_flags, parse_verbose
+from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
     ShelleyStyle,
@@ -12,6 +12,7 @@ from ..utils.style import (
     print_warning,
 )
 from .build import build_module
+from .clean import clean_module
 from .find import find_tool_sync
 from .search import search_tools
 
