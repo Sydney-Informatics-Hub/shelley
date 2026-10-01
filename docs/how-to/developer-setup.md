@@ -49,6 +49,8 @@ The test suite has two groups:
 
 Every push to a pull request runs general unit tests automatically using `uv run pytest`. CVMFS tests are skipped — the CVMFS filesystem is not available in GitHub Actions.
 
+A separate `lint` job runs ruff on every pull request — see [Linting and formatting](#linting-and-formatting).
+
 ### Running locally (BioShell)
 
 Run from inside a BioShell session where `/cvmfs/singularity.galaxyproject.org/all` is mounted — `cvmfs`-marked tests enable automatically when the path exists:
@@ -59,6 +61,53 @@ uv run pytest -v --tb=short               # verbose with short tracebacks
 uv run pytest tests/test_cvmfs_builder.py # single file
 uv run pytest -m "not network"            # exclude network tests when offline
 ```
+
+## Linting and formatting
+
+Linting and formatting keeps the codebase consistent and tidy across all contributors, and help catch bugs early. In the long run, it will help focus code reviews to functional changes.
+
+The project uses [ruff](https://docs.astral.sh/ruff/) for both linting and formatting.
+It ships in the `dev` extra, so `uv sync --extra dev` installs it.
+
+```bash
+uv run ruff check .            # lint
+uv run ruff check --fix .      # lint and apply safe autofixes
+uv run ruff format .           # format in place
+uv run ruff format --check .   # report unformatted files without changing them
+```
+
+CI runs `ruff check` and `ruff format --check` on every pull request and fails if
+either reports anything, so run `uv run ruff check --fix . && uv run ruff format .`
+before pushing.
+
+Configuration lives under `[tool.ruff]` in [`pyproject.toml`](../../pyproject.toml).
+The rule set is pinned explicitly (`select`) rather than relying on ruff's defaults,
+which change between releases; ruff itself is bounded to one minor version for the
+same reason. Line length (`E501`) is not linted — `ruff format` handles it.
+
+For editor integration, the
+[Ruff VS Code extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+picks up the `pyproject.toml` configuration automatically.
+
+### Ignoring bulk changes in `git blame`
+
+[`.git-blame-ignore-revs`](../../.git-blame-ignore-revs) lists commits that `git blame`
+should skip, so lines keep pointing at the commit that last changed their meaning
+rather than the one that reformatted them. GitHub applies it automatically; to apply
+it locally, run once:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+Add a commit to this file only if it is a **bulk, mechanical, behaviour-free**
+change — a full reformat, or a reformat after bumping ruff to a new minor version.
+Do not add small style tidy-ups, or any commit that mixes formatting with logic
+changes (skipping it would hide the logic from blame too); keep those separate.
+Since CI enforces formatting, standalone `STY` commits should be rare.
+
+A listed commit must keep its hash all the way into `dev` and `main`, so merge its
+PR with a merge commit — not squash or rebase — or add the final hash after merging.
 
 ## Preparing a release
 
@@ -124,6 +173,8 @@ On `dev`:
    uv build                                  # builds shelley-<version>.{whl,tar.gz}
    uv run shelley --version                  # should print the new version
    uv run --extra dev pytest -m "not cvmfs"  # tests green
+   uv run --extra dev ruff check .           # lint clean
+   uv run --extra dev ruff format --check .  # formatting clean
    ```
    `pytest` lives in the `dev` extra, so it needs `--extra dev` (or a prior
    `uv sync --extra dev`, which is what CI does) — plain `uv run pytest` fails to
