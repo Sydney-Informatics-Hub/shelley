@@ -14,7 +14,7 @@ bioinformatics software from CVMFS repositories.
 # See docs/how-to/developer-setup.md ("Preparing a release").
 __version__ = "0.3.0-dev"
 
-from .client.cli import main as cli_main
 from .builder.cvmfs_builder import CVMFSModuleBuilder
+from .client.cli import main as cli_main
 
 __all__ = ["cli_main", "CVMFSModuleBuilder"]

@@ -1,8 +1,6 @@
 """Tests for shelley/commands/interactive.py — interactive REPL loop."""
 
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from shelley.commands.interactive import interactive_mode
 
@@ -24,17 +22,17 @@ def _run(inputs: list, *, side_effect=None):
     else:
         input_mock = MagicMock(side_effect=inputs)
 
-    with patch(f"{_MODULE}.console") as mock_console, \
-         patch(f"{_MODULE}.print_banner"), \
-         patch(f"{_MODULE}.print_rule"), \
-         patch(f"{_MODULE}.print_info") as mock_info, \
-         patch(f"{_MODULE}.print_success") as mock_success, \
-         patch(f"{_MODULE}.print_warning") as mock_warning, \
-         patch(f"{_MODULE}.find_tool_sync") as mock_find, \
-         patch(f"{_MODULE}.search_tools") as mock_search, \
-         patch(f"{_MODULE}.build_module") as mock_build, \
-         patch(f"{_MODULE}.clean_module") as mock_clean:
-
+    with (
+        patch(f"{_MODULE}.console") as mock_console,
+        patch(f"{_MODULE}.print_banner"),
+        patch(f"{_MODULE}.print_rule"),
+        patch(f"{_MODULE}.print_info") as mock_info,
+        patch(f"{_MODULE}.print_success") as mock_success,
+        patch(f"{_MODULE}.print_warning") as mock_warning,
+        patch(f"{_MODULE}.find_tool_sync") as mock_find,
+        patch(f"{_MODULE}.search_tools") as mock_search,
+        patch(f"{_MODULE}.build_module") as mock_build,
+    ):
         mock_console.input = input_mock
 
         interactive_mode()
@@ -54,6 +52,7 @@ def _run(inputs: list, *, side_effect=None):
 # ---------------------------------------------------------------------------
 # Exit conditions
 # ---------------------------------------------------------------------------
+
 
 def test_exit():
     mocks = _run(["exit"])
@@ -86,6 +85,7 @@ def test_eof_exits_cleanly():
 # Empty / whitespace input
 # ---------------------------------------------------------------------------
 
+
 def test_empty_input_skipped():
     """Blank lines are ignored — no command dispatched."""
     mocks = _run(["", "exit"])
@@ -99,6 +99,7 @@ def test_empty_input_skipped():
 # help
 # ---------------------------------------------------------------------------
 
+
 def test_help_shows_table():
     """help command calls console.print without raising."""
     mocks = _run(["help", "exit"])
@@ -108,6 +109,7 @@ def test_help_shows_table():
 # ---------------------------------------------------------------------------
 # find
 # ---------------------------------------------------------------------------
+
 
 def test_find_dispatches():
     mocks = _run(["find samtools", "exit"])
@@ -144,6 +146,7 @@ def test_find_missing_arg_warns():
 # search
 # ---------------------------------------------------------------------------
 
+
 def test_search_dispatches():
     mocks = _run(["search alignment", "exit"])
     mocks["search"].assert_called_once_with("alignment")
@@ -163,6 +166,7 @@ def test_search_missing_arg_warns():
 # ---------------------------------------------------------------------------
 # build
 # ---------------------------------------------------------------------------
+
 
 def test_build_dispatches():
     mocks = _run(["build samtools", "exit"])
@@ -204,6 +208,7 @@ def test_clean_missing_arg_warns():
 # unknown command
 # ---------------------------------------------------------------------------
 
+
 def test_unknown_command_warns():
     mocks = _run(["blah", "exit"])
     mocks["warning"].assert_called()
@@ -213,6 +218,7 @@ def test_unknown_command_warns():
 # ---------------------------------------------------------------------------
 # Markup safety — regression for MarkupError on [/ver] in build command string
 # ---------------------------------------------------------------------------
+
 
 def test_command_table_renders_without_markup_error():
     """_COMMANDS must not contain unescaped Rich markup (e.g. [/ver] as a closing tag)."""

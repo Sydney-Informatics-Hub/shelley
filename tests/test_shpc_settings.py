@@ -19,7 +19,13 @@ from shelley.builder.shpc_settings import (
 from shelley.utils import globals as gl
 from shelley.utils.perms import ensure_shared_layout
 
-OVERRIDE_KEYS = {"module_base", "container_base", "wrapper_base", "views_base", "registry"}
+OVERRIDE_KEYS = {
+    "module_base",
+    "container_base",
+    "wrapper_base",
+    "views_base",
+    "registry",
+}
 
 
 @pytest.fixture
@@ -35,6 +41,7 @@ def shared_base(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # desired_settings
 # ---------------------------------------------------------------------------
+
 
 def test_only_the_override_keys_are_written(shared_base):
     assert set(desired_settings()) == OVERRIDE_KEYS
@@ -79,6 +86,7 @@ def test_registry_omits_a_missing_local_registry(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # ensure_shared_shpc_settings
 # ---------------------------------------------------------------------------
+
 
 def test_writes_the_settings_file(shared_base):
     path = ensure_shared_shpc_settings()
@@ -141,6 +149,7 @@ def test_raises_when_the_base_is_not_writable(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # The partial file must actually be valid to the installed shpc
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.shpc
 def test_shpc_accepts_the_partial_file_and_honours_the_override(shared_base):

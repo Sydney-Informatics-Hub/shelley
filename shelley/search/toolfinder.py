@@ -8,12 +8,11 @@ so the search algorithm is the same — _flatten_edam() does the format bridging
 """
 
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
-from shelley.utils.globals import DATA_DIR
 from shelley.search.base import MetadataSource
+from shelley.utils.globals import DATA_DIR
 
 TOOLFINDER_DATA_PATH = DATA_DIR / "toolfinder_meta.yaml"
 
@@ -43,7 +42,7 @@ class ToolfinderSource(MetadataSource):
             self.entries = yaml.safe_load(f)
         return self
 
-    def search(self, query: str, limit: Optional[int] = None) -> list[str]:
+    def search(self, query: str, limit: int | None = None) -> list[str]:
         """
         Same algorithm as RsecSource.search() — see that docstring for the steps.
 

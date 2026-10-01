@@ -26,9 +26,7 @@ def _payload(versions):
         },
         "containers": {
             "available": True,
-            "all_versions": [
-                {"version": v, "date": "2024-01-01"} for v in versions
-            ],
+            "all_versions": [{"version": v, "date": "2024-01-01"} for v in versions],
             "total_versions": len(versions),
             "builds": None,
         },

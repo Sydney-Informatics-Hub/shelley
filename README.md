@@ -85,10 +85,10 @@ shelley/
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Access to CVMFS repositories (typically `/cvmfs/singularity.galaxyproject.org/`)
 - Lmod (for module management)
-- Singularity/Apptainer (for container execution)
+- Singularity (for container execution)
 
 ## License
 
@@ -110,3 +110,7 @@ We thank [Vanessa Sochat](https://orcid.org/0000-0002-4387-3819) for
 [Singularity Registry HPC (shpc)](https://github.com/singularityhub/singularity-hpc)
 and for guidance on [container-guts](https://github.com/singularityhub/guts), on
 which shelley builds.
+
+We'd also like to thank Eden Zhang (SIH) for developing the shelley ascii;
+Johan Gustafsson (Australian BioCommons), Mike Lynch, Senhui Guo, and Sebastian
+Haan (SIH) for valuable discussion around installation and tool metadata.
