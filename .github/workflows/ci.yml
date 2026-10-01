@@ -1,8 +1,8 @@
-name: Lint with ruff
+name: CI
 
 on:
   push:
-    branches-ignore: [main]
+    branches: [main]
   pull_request:
 
 jobs:

@@ -5,6 +5,20 @@ All notable changes to shelley are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Development tooling now uses [ruff](https://docs.astral.sh/ruff/) for linting and
+  formatting, replacing the unused `black` and `flake8` in the `dev` extra. CI enforces
+  `ruff check` and `ruff format --check` on every pull request. The codebase was
+  reformatted once to match; see `docs/how-to/developer-setup.md`.
+
+### Removed
+
+- `print_about()` and `ShelleyStyle.create_about_panel()` from `shelley.utils`. They were
+  unused and raised `NameError` if called.
+
 ## [0.3.0] - 2026-07-31
 
 Multi-user module builds.
@@ -120,6 +134,7 @@ First tagged release.
 - Installation guide covering system-wide (`uv tool install` into `/opt`),
   per-user, and `uvx` (experimental) paths.
 
+[Unreleased]: https://github.com/Sydney-Informatics-Hub/shelley/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.1.0

@@ -3,14 +3,14 @@
 import gzip
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from shelley.utils.globals import DATA_DIR
 
 
 def _format_mtime(mtime: float) -> str:
     """Format a unix timestamp as YYYY-MM-DD (UTC)."""
-    return datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d")
+    return datetime.fromtimestamp(mtime, tz=UTC).strftime("%Y-%m-%d")
 
 
 def _version_key(tag: str) -> tuple:

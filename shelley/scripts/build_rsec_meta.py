@@ -30,7 +30,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -257,7 +257,7 @@ def write_artifact(
     out_path: Path,
 ) -> None:
     doc = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "source": repo_url,
         "source_ref": ref,
         "source_commit": source_commit,

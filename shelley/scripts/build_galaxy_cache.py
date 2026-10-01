@@ -24,7 +24,7 @@ import gzip
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypedDict
 
@@ -110,7 +110,7 @@ def scan_entries(cvmfs_path: Path) -> list[CacheEntry]:
 def write_artifact(entries: list[CacheEntry], cvmfs_root: Path, out_path: Path) -> None:
     tool_names = sorted({e["tool_name"] for e in entries})
     doc: CacheDocument = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "cvmfs_root": str(cvmfs_root),
         "entry_count": len(entries),
         "entries": entries,

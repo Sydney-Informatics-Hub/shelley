@@ -64,7 +64,7 @@ uv run pytest -m "not network"            # exclude network tests when offline
 
 ## Linting and formatting
 
-Linting and formatting keeps the codebase consistent and tidy across all contributors, and help catch bugs early. In the long run, it will help focus code reviews to functional changes.
+Linting and formatting keep the codebase consistent and tidy across all contributors, and help catch bugs early. In the long run, it will help focus code reviews on functional changes.
 
 The project uses [ruff](https://docs.astral.sh/ruff/) for both linting and formatting.
 It ships in the `dev` extra, so `uv sync --extra dev` installs it.
