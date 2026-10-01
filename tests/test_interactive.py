@@ -189,6 +189,7 @@ def test_build_missing_arg_warns():
 # clean
 # ---------------------------------------------------------------------------
 
+
 def test_clean_dispatches():
     mocks = _run(["clean samtools:1.21", "exit"])
     mocks["clean"].assert_called_once_with("samtools:1.21", force=False)

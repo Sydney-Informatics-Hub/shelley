@@ -259,11 +259,13 @@ class ShelleyStyle:
             title="[status.success]Build Complete[/status.success]",
             box=ROUNDED,
             border_style="success",
-            padding=(1, 2)
+            padding=(1, 2),
         )
 
     @staticmethod
-    def create_clean_success(tool_name: str, version: str, report: dict[str, Any]) -> Panel:
+    def create_clean_success(
+        tool_name: str, version: str, report: dict[str, Any]
+    ) -> Panel:
         """Create a styled clean/uninstall success message."""
         removed = []
         if report.get("shpc_removed"):
@@ -277,8 +279,10 @@ class ShelleyStyle:
                 "local registry entry (last installed version — container.yaml and "
                 "any cached upstream tags were removed too)"
             )
-        removed_text = "\n".join(f"  [muted]• {item}[/muted]" for item in removed) or \
-            "  [muted]• nothing further to remove[/muted]"
+        removed_text = (
+            "\n".join(f"  [muted]• {item}[/muted]" for item in removed)
+            or "  [muted]• nothing further to remove[/muted]"
+        )
 
         content = f"""[status.success]✅ Module Removed[/status.success]
 
@@ -293,7 +297,7 @@ class ShelleyStyle:
             title="[status.success]Clean Complete[/status.success]",
             box=ROUNDED,
             border_style="success",
-            padding=(1, 2)
+            padding=(1, 2),
         )
 
     @staticmethod
@@ -387,7 +391,7 @@ class ShelleyStyle:
             ("Build specific version", "shelley build samtools/1.21"),
             ("Uninstall a tool version", "shelley clean samtools:1.21"),
             ("Uninstall without confirming", "shelley clean samtools:1.21 -y"),
-            ("Interactive mode", "shelley interactive")
+            ("Interactive mode", "shelley interactive"),
         ]
 
         for use_case, command in examples:

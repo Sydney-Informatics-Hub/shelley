@@ -394,8 +394,16 @@ class CVMFSModuleBuilder:
             ensure_shared_dir(marker_dir)
             aliases_snapshot = marker_dir / "aliases.yaml"
             with open(aliases_snapshot, "w") as f:
-                yaml.dump({"version": version, "aliases": aliases, "in_upstream": in_upstream}, f,
-                          default_flow_style=False, sort_keys=False)
+                yaml.dump(
+                    {
+                        "version": version,
+                        "aliases": aliases,
+                        "in_upstream": in_upstream,
+                    },
+                    f,
+                    default_flow_style=False,
+                    sort_keys=False,
+                )
             share_file(aliases_snapshot)
 
         return aliases
@@ -403,7 +411,9 @@ class CVMFSModuleBuilder:
     def _run_shpc_uninstall(self, uri_tag: str) -> tuple[int, str]:
         """Run `shpc uninstall --force <uri_tag>`. Returns (returncode, combined output)."""
         result = subprocess.run(
-            _shpc_cmd("uninstall", "--force", uri_tag), capture_output=True, text=True,
+            _shpc_cmd("uninstall", "--force", uri_tag),
+            capture_output=True,
+            text=True,
         )
         return result.returncode, result.stdout + result.stderr
 
@@ -615,7 +625,12 @@ class CVMFSModuleBuilder:
         returncode, output = self._run_shpc_uninstall(uri_tag)
         shpc_removed = returncode == 0
         if not shpc_removed:
-            log.warning("shpc uninstall reported rc=%s for %s: %s", returncode, uri_tag, output.strip())
+            log.warning(
+                "shpc uninstall reported rc=%s for %s: %s",
+                returncode,
+                uri_tag,
+                output.strip(),
+            )
 
         tool_dir = self.lmod_modules_path / tool_name
         dest = tool_dir / f"{version}.lua"
@@ -657,7 +672,9 @@ class CVMFSModuleBuilder:
                 marker_in_upstream = False
                 if snapshot_path.is_file():
                     with open(snapshot_path) as f:
-                        marker_in_upstream = bool((yaml.safe_load(f) or {}).get("in_upstream", False))
+                        marker_in_upstream = bool(
+                            (yaml.safe_load(f) or {}).get("in_upstream", False)
+                        )
 
                 if not marker_in_upstream:
                     registry_yaml = registry_dir / "container.yaml"
@@ -669,7 +686,9 @@ class CVMFSModuleBuilder:
                             del tags[version]
                             config["tags"] = tags
                             with open(registry_yaml, "w") as f:
-                                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+                                yaml.dump(
+                                    config, f, default_flow_style=False, sort_keys=False
+                                )
                             share_file(registry_yaml)
                             registry_tag_removed = True
                 shutil.rmtree(marker_dir, ignore_errors=True)

@@ -10,7 +10,7 @@ from ..commands.build import needs_sudo, reexec_command, sudo_env_args
 from ..commands.find import list_installed_versions
 from ..utils.modules import load_build_modules
 from ..utils.perms import apply_build_umask
-from ..utils.style import console, ShelleyStyle, print_info, print_warning, print_error
+from ..utils.style import ShelleyStyle, console, print_error, print_info, print_warning
 
 
 def _parse_tool_spec(tool_spec: str) -> tuple[str, str | None]:
@@ -35,11 +35,15 @@ def _resolve_installed_version(tool_name: str, version_spec: str) -> str:
     version with two installed hash-suffixed builds).
     """
     installed = list_installed_versions(tool_name)
-    matches = [v for v in installed if v == version_spec or v.split("--", 1)[0] == version_spec]
+    matches = [
+        v for v in installed if v == version_spec or v.split("--", 1)[0] == version_spec
+    ]
     if len(matches) == 1:
         return matches[0]
     if not matches:
-        raise ValueError(f"Version '{version_spec}' is not installed for '{tool_name}'.")
+        raise ValueError(
+            f"Version '{version_spec}' is not installed for '{tool_name}'."
+        )
     raise ValueError(
         f"'{version_spec}' matches more than one installed build of '{tool_name}': "
         f"{', '.join(matches)}. Specify the full version string."
@@ -47,7 +51,9 @@ def _resolve_installed_version(tool_name: str, version_spec: str) -> str:
 
 
 def _not_installed_panel(
-    tool_name: str, requested_version: str | None, detail: str | None = None,
+    tool_name: str,
+    requested_version: str | None,
+    detail: str | None = None,
 ) -> Panel:
     """Error panel for 'no version given' and 'version not installed', listing what is."""
     installed = list_installed_versions(tool_name)
@@ -62,9 +68,14 @@ def _not_installed_panel(
         suggestion = f"'{tool_name}' has no installed versions to clean."
 
     if requested_version is None:
-        message = f"shelley clean requires an explicit version, e.g. {tool_name}:<version>."
+        message = (
+            f"shelley clean requires an explicit version, e.g. {tool_name}:<version>."
+        )
     else:
-        message = detail or f"Version '{requested_version}' is not installed for '{tool_name}'."
+        message = (
+            detail
+            or f"Version '{requested_version}' is not installed for '{tool_name}'."
+        )
 
     return ShelleyStyle.create_error_panel("Not Installed", message, suggestion)
 
@@ -111,8 +122,14 @@ def clean_module(tool_spec: str, force: bool = False) -> bool:
             return False
 
         cmd = [
-            "sudo", "-E", "env", *sudo_env_args(),
-            *launcher, "clean", f"{tool_name}:{version}", "-y",
+            "sudo",
+            "-E",
+            "env",
+            *sudo_env_args(),
+            *launcher,
+            "clean",
+            f"{tool_name}:{version}",
+            "-y",
         ]
         try:
             print_info(f"Running with elevated privileges: clean {tool_name}:{version}")
@@ -133,18 +150,23 @@ def clean_module(tool_spec: str, force: bool = False) -> bool:
         with ShelleyStyle.create_status(f"Removing {tool_name}/{version}"):
             report = builder.uninstall_module(tool_name, version)
     except OSError as e:
-        console.print(ShelleyStyle.create_error_panel(
-            "Clean Failed", str(e),
-            "Check write access to the shared build directories",
-        ))
+        console.print(
+            ShelleyStyle.create_error_panel(
+                "Clean Failed",
+                str(e),
+                "Check write access to the shared build directories",
+            )
+        )
         return False
 
     if not report["shpc_removed"]:
-        console.print(ShelleyStyle.create_warning_panel(
-            "shpc uninstall reported an issue",
-            f"{report['uri_tag']}: {(report['shpc_output'] or '').strip() or 'non-zero exit'} "
-            "— the Lmod modulefile symlink was still cleaned up.",
-        ))
+        console.print(
+            ShelleyStyle.create_warning_panel(
+                "shpc uninstall reported an issue",
+                f"{report['uri_tag']}: {(report['shpc_output'] or '').strip() or 'non-zero exit'} "
+                "— the Lmod modulefile symlink was still cleaned up.",
+            )
+        )
 
     console.print(ShelleyStyle.create_clean_success(tool_name, version, report))
     return True

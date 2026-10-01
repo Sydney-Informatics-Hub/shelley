@@ -14,7 +14,6 @@ from ..commands.find import find_tool_sync
 from ..commands.interactive import interactive_mode
 from ..commands.search import search_tools
 from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
-from ..utils.commands import CORE_COMMANDS
 from ..utils.batch import batch_build_modules, read_tools_file
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (

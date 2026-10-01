@@ -13,11 +13,13 @@ sys.path.insert(0, str(project_root))
 
 from shelley.builder.cvmfs_builder import CVMFSModuleBuilder
 from shelley.commands.clean import (
-    _not_installed_panel, _resolve_installed_version, clean_module,
+    _not_installed_panel,
+    _resolve_installed_version,
+    clean_module,
 )
 from shelley.commands.find import list_installed_versions
 from shelley.utils import globals as gl
-from shelley.utils.style import console, ShelleyStyle
+from shelley.utils.style import ShelleyStyle, console
 
 TOOL, VERSION = "samtools", "1.21--h96c455f_1"
 URI = f"quay.io/biocontainers/{TOOL}"
@@ -26,6 +28,7 @@ URI_TAG = f"{URI}:{VERSION}"
 
 def _fake_run(returncode: int = 0, output: str = "", calls: list | None = None):
     """subprocess.run side effect covering `shpc uninstall`."""
+
     def run(cmd, **_):
         if calls is not None:
             calls.append(list(cmd))
@@ -34,6 +37,7 @@ def _fake_run(returncode: int = 0, output: str = "", calls: list | None = None):
         m.stdout = output
         m.stderr = ""
         return m
+
     return run
 
 
@@ -64,12 +68,15 @@ def _touch_modulefile(tool: str, version: str) -> Path:
 # CVMFSModuleBuilder.uninstall_module
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def builder(tmp_path) -> CVMFSModuleBuilder:
     return CVMFSModuleBuilder(lmod_modules=str(tmp_path / "modulefiles"))
 
 
-def test_uninstall_removes_modulefile_symlink_and_calls_shpc_uninstall(builder, tmp_path):
+def test_uninstall_removes_modulefile_symlink_and_calls_shpc_uninstall(
+    builder, tmp_path
+):
     link_dir = builder.lmod_modules_path / TOOL
     link_dir.mkdir(parents=True)
     target = tmp_path / "module.lua"
@@ -78,8 +85,10 @@ def test_uninstall_removes_modulefile_symlink_and_calls_shpc_uninstall(builder, 
     link.symlink_to(target)
 
     calls: list[list[str]] = []
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(0, "Module was uninstalled.\n", calls)):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run",
+        side_effect=_fake_run(0, "Module was uninstalled.\n", calls),
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["shpc_removed"] is True
@@ -95,8 +104,10 @@ def test_uninstall_dangling_symlink_only(builder):
     link = link_dir / f"{VERSION}.lua"
     link.symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run",
-               side_effect=_fake_run(1, "not found in module_base\n")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run",
+        side_effect=_fake_run(1, "not found in module_base\n"),
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["shpc_removed"] is False
@@ -110,7 +121,9 @@ def test_uninstall_prunes_the_now_empty_tool_directory(builder):
     link_dir.mkdir(parents=True)
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         builder.uninstall_module(TOOL, VERSION)
 
     assert not link_dir.exists()
@@ -123,7 +136,9 @@ def test_uninstall_keeps_the_tool_directory_when_other_versions_remain(builder):
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
     (link_dir / f"{other_version}.lua").symlink_to(link_dir / "also-missing.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         builder.uninstall_module(TOOL, VERSION)
 
     assert link_dir.is_dir()
@@ -137,7 +152,9 @@ def test_uninstall_never_touches_the_local_registry_cache(builder):
     registry_yaml = _registry_yaml({VERSION: "sha256:aaa", "1.20--abc": "sha256:bbb"})
     before = registry_yaml.read_text()
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         builder.uninstall_module(TOOL, VERSION)
 
     assert registry_yaml.read_text() == before
@@ -152,7 +169,9 @@ def test_uninstall_prunes_the_tag_when_a_marker_directory_proves_it_was_local(bu
     marker_dir = gl.local_registry() / URI / VERSION
     marker_dir.mkdir(parents=True)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_tag_removed"] is True
@@ -175,7 +194,9 @@ def test_uninstall_removes_marker_but_keeps_upstream_tag(builder):
         yaml.dump({"version": VERSION, "aliases": [], "in_upstream": True})
     )
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert not marker_dir.exists()
@@ -190,7 +211,9 @@ def test_uninstall_marker_present_but_no_container_yaml_is_a_noop(builder):
     marker_dir = gl.local_registry() / URI / VERSION
     marker_dir.mkdir(parents=True)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_tag_removed"] is False
@@ -201,17 +224,21 @@ def test_uninstall_deletes_whole_registry_entry_when_last_version_cleaned(builde
     """Regression for the real star-fusion case: container.yaml still had genuine
     upstream-cached tags for other versions, and no marker directory at all, yet
     once the tool has zero installed versions left the whole entry must go."""
-    registry_yaml = _registry_yaml({
-        VERSION: "sha256:aaa",
-        "1.20--abc": "sha256:bbb",
-        "1.19--def": "sha256:ccc",
-    })
+    registry_yaml = _registry_yaml(
+        {
+            VERSION: "sha256:aaa",
+            "1.20--abc": "sha256:bbb",
+            "1.19--def": "sha256:ccc",
+        }
+    )
     registry_dir = registry_yaml.parent
     link_dir = builder.lmod_modules_path / TOOL
     link_dir.mkdir(parents=True)
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_entry_deleted"] is True
@@ -233,7 +260,9 @@ def test_uninstall_deletes_whole_registry_entry_including_marker_dir(builder):
     link_dir.mkdir(parents=True)
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_entry_deleted"] is True
@@ -253,19 +282,25 @@ def test_uninstall_keeps_registry_entry_when_sibling_versions_remain(builder):
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
     (link_dir / f"{other_version}.lua").symlink_to(link_dir / "also-missing.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_entry_deleted"] is False
     assert registry_yaml.read_text() == before
 
 
-def test_uninstall_registry_entry_deletion_is_noop_when_directory_never_existed(builder):
+def test_uninstall_registry_entry_deletion_is_noop_when_directory_never_existed(
+    builder,
+):
     link_dir = builder.lmod_modules_path / TOOL
     link_dir.mkdir(parents=True)
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_entry_deleted"] is False
@@ -281,14 +316,18 @@ def test_uninstall_deletes_registry_entry_directory_with_no_container_yaml(build
     link_dir.mkdir(parents=True)
     (link_dir / f"{VERSION}.lua").symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["registry_entry_deleted"] is True
     assert not registry_dir.exists()
 
 
-def test_uninstall_detects_last_version_even_when_this_calls_own_modulefile_already_missing(builder):
+def test_uninstall_detects_last_version_even_when_this_calls_own_modulefile_already_missing(
+    builder,
+):
     """tool_dir is otherwise empty but this version's own .lua was never there
     (e.g. a previous partial clean) — must still be detected as the last version."""
     registry_yaml = _registry_yaml({VERSION: "sha256:aaa"})
@@ -296,7 +335,9 @@ def test_uninstall_detects_last_version_even_when_this_calls_own_modulefile_alre
     link_dir = builder.lmod_modules_path / TOOL
     link_dir.mkdir(parents=True)
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(0, "")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["modulefile_removed"] is False
@@ -312,7 +353,9 @@ def test_uninstall_removes_shelley_state_even_when_shpc_uninstall_fails(builder)
     link = link_dir / f"{VERSION}.lua"
     link.symlink_to(link_dir / "does-not-exist.lua")
 
-    with patch("shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(1, "boom")):
+    with patch(
+        "shelley.builder.cvmfs_builder.subprocess.run", side_effect=_fake_run(1, "boom")
+    ):
         report = builder.uninstall_module(TOOL, VERSION)
 
     assert report["shpc_removed"] is False
@@ -323,6 +366,7 @@ def test_uninstall_removes_shelley_state_even_when_shpc_uninstall_fails(builder)
 # ---------------------------------------------------------------------------
 # Version resolution against what's actually installed
 # ---------------------------------------------------------------------------
+
 
 def test_resolve_installed_version_matches_short_and_full():
     _touch_modulefile(TOOL, "1.22--hdfd78af_0")
@@ -367,22 +411,28 @@ def test_not_installed_panel_lists_installed_versions():
 # clean_module end to end
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def mock_clean_builder():
     """Patch CVMFSModuleBuilder inside clean.py with a mock instance (no sudo needed)."""
     fake_builder = MagicMock(spec=CVMFSModuleBuilder)
     fake_builder.uninstall_module.return_value = {
-        "uri_tag": URI_TAG, "shpc_removed": True, "shpc_output": "",
-        "modulefile_removed": True, "registry_tag_removed": False,
+        "uri_tag": URI_TAG,
+        "shpc_removed": True,
+        "shpc_output": "",
+        "modulefile_removed": True,
+        "registry_tag_removed": False,
         "registry_entry_deleted": False,
     }
 
-    with patch("shelley.commands.clean.CVMFSModuleBuilder", return_value=fake_builder), \
-         patch("shelley.commands.clean.ShelleyStyle.create_status") as mock_status, \
-         patch("shelley.commands.clean.console"), \
-         patch("shelley.commands.clean.load_build_modules"), \
-         patch("shelley.commands.clean.apply_build_umask"), \
-         patch("shelley.commands.clean.needs_sudo", return_value=False):
+    with (
+        patch("shelley.commands.clean.CVMFSModuleBuilder", return_value=fake_builder),
+        patch("shelley.commands.clean.ShelleyStyle.create_status") as mock_status,
+        patch("shelley.commands.clean.console"),
+        patch("shelley.commands.clean.load_build_modules"),
+        patch("shelley.commands.clean.apply_build_umask"),
+        patch("shelley.commands.clean.needs_sudo", return_value=False),
+    ):
         mock_status.return_value.__enter__ = MagicMock(return_value=None)
         mock_status.return_value.__exit__ = MagicMock(return_value=False)
         yield fake_builder
@@ -400,11 +450,15 @@ def test_clean_module_happy_path_removes_everything(mock_clean_builder):
 def test_clean_module_warns_when_shpc_uninstall_reports_failure(mock_clean_builder):
     _touch_modulefile(TOOL, VERSION)
     mock_clean_builder.uninstall_module.return_value = {
-        "uri_tag": URI_TAG, "shpc_removed": False, "shpc_output": "boom",
+        "uri_tag": URI_TAG,
+        "shpc_removed": False,
+        "shpc_output": "boom",
         "modulefile_removed": True,
     }
 
-    with patch("shelley.commands.clean.ShelleyStyle.create_warning_panel") as mock_warning:
+    with patch(
+        "shelley.commands.clean.ShelleyStyle.create_warning_panel"
+    ) as mock_warning:
         result = clean_module(f"{TOOL}:{VERSION}", force=True)
 
     assert result is True
@@ -466,10 +520,14 @@ def test_clean_module_reexecs_under_sudo_with_force_and_resolved_full_version():
     the elevated child is always invoked with -y."""
     _touch_modulefile(TOOL, VERSION)
 
-    with patch("shelley.commands.clean.needs_sudo", return_value=True), \
-         patch("shelley.commands.clean.reexec_command",
-               return_value=[sys.executable, "-m", "shelley"]), \
-         patch("shelley.commands.clean.subprocess.run") as mock_run:
+    with (
+        patch("shelley.commands.clean.needs_sudo", return_value=True),
+        patch(
+            "shelley.commands.clean.reexec_command",
+            return_value=[sys.executable, "-m", "shelley"],
+        ),
+        patch("shelley.commands.clean.subprocess.run") as mock_run,
+    ):
         mock_run.return_value = MagicMock(returncode=0)
         result = clean_module(f"{TOOL}:1.21", force=True)
 
@@ -483,13 +541,16 @@ def test_clean_module_reexecs_under_sudo_with_force_and_resolved_full_version():
 # "Unknown Command" the way bare `shelley build` currently does.
 # ---------------------------------------------------------------------------
 
+
 def test_cli_clean_missing_args_exits_with_usage(monkeypatch):
     from shelley.client.cli import main
 
     monkeypatch.setattr(sys, "argv", ["shelley", "clean"])
 
-    with patch("shelley.client.cli.clean_module") as mock_clean, \
-         patch("shelley.client.cli.console"):
+    with (
+        patch("shelley.client.cli.clean_module") as mock_clean,
+        patch("shelley.client.cli.console"),
+    ):
         with pytest.raises(SystemExit) as exc:
             main()
 
@@ -514,10 +575,13 @@ def test_cli_clean_dispatches_to_clean_module(monkeypatch):
 # ShelleyStyle.create_clean_success rendering
 # ---------------------------------------------------------------------------
 
+
 def test_create_clean_success_mentions_registry_entry_deleted():
     report = {
-        "shpc_removed": True, "modulefile_removed": True,
-        "registry_tag_removed": False, "registry_entry_deleted": True,
+        "shpc_removed": True,
+        "modulefile_removed": True,
+        "registry_tag_removed": False,
+        "registry_entry_deleted": True,
     }
 
     with console.capture() as cap:
@@ -528,8 +592,10 @@ def test_create_clean_success_mentions_registry_entry_deleted():
 
 def test_create_clean_success_still_mentions_registry_tag_removed():
     report = {
-        "shpc_removed": True, "modulefile_removed": True,
-        "registry_tag_removed": True, "registry_entry_deleted": False,
+        "shpc_removed": True,
+        "modulefile_removed": True,
+        "registry_tag_removed": True,
+        "registry_entry_deleted": False,
     }
 
     with console.capture() as cap:
