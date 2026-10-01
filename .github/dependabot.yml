@@ -1,0 +1,24 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: monthly 
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: MAINT
+
+  - package-ecosystem: uv
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
+    commit-message:
+      prefix: MAINT

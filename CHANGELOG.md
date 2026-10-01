@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `shelley clean` removes built modules.
 - Support `build` for tools with no shpc registry [BioShell/#22](https://github.com/AustralianBioCommons/BioShell/issues/22)
+- Dependabot opens monthly, grouped PRs into `dev` for GitHub Actions and `uv.lock`
+  updates; see `docs/how-to/developer-setup.md`.
 
 ### Changed
 

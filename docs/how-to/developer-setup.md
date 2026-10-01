@@ -109,6 +109,42 @@ Since CI enforces formatting, standalone `STY` commits should be rare.
 A listed commit must keep its hash all the way into `dev` and `main`, so merge its
 PR with a merge commit — not squash or rebase — or add the final hash after merging.
 
+## Dependency updates (Dependabot)
+
+[Dependabot](https://docs.github.com/en/code-security/dependabot) opens PRs to keep
+dependencies current. It is configured in
+[`.github/dependabot.yml`](../../.github/dependabot.yml) and covers:
+
+| Ecosystem | What it bumps |
+|---|---|
+| `github-actions` | The SHA-pinned actions in `.github/workflows/`, along with their `# vX.Y.Z` comments |
+| `uv` | Package versions in `uv.lock` |
+
+Updates are checked **monthly** and **grouped**, so expect at most one PR per
+ecosystem per month rather than one per package. PRs target **`dev`**, like
+feature work, and reach `main` at the next release. Commit messages use the
+`MAINT` prefix.
+
+Dependabot reads its config from the default branch (`main`), so changes to
+`dependabot.yml` take effect only after a release merges them there.
+
+### Reviewing a Dependabot PR
+
+1. Let CI run. Lint and tests run on every PR, so a green run is the main signal.
+2. For action bumps, skim the action's release notes for breaking changes,
+   especially across major versions.
+3. For `uv` bumps, check whether the PR touches `pyproject.toml` as well as
+   `uv.lock`. Dependabot may widen a version bound, such as ruff's one-minor-version
+   pin. A ruff minor bump can change formatting, so take it as a deliberate
+   change with its own reformat commit (see
+   [Ignoring bulk changes in `git blame`](#ignoring-bulk-changes-in-git-blame))
+   rather than merging it as routine.
+4. Merge into `dev` with a merge commit.
+
+`container-guts` is installed from a git **branch** (`[tool.uv.sources]` in
+`pyproject.toml`), not a released version, so Dependabot may not track it reliably.
+To pick up upstream changes, run `uv lock --upgrade-package container-guts` manually.
+
 ## Preparing a release
 
 ### Branch model
