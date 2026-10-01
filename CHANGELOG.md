@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support `build` for tools with no shpc registry [BioShell/#22](https://github.com/AustralianBioCommons/BioShell/issues/22)
 - Dependabot opens monthly, grouped PRs into `dev` for GitHub Actions and `uv.lock`
   updates; see `docs/how-to/developer-setup.md`.
+- Release workflow: pushing a `vX.Y.Z` tag on `main` checks that the versions and
+  CHANGELOG match, builds and smoke-tests the wheel, and creates the GitHub release
+  with the wheel and sdist attached. See `docs/how-to/developer-setup.md`.
 
 ### Changed
 

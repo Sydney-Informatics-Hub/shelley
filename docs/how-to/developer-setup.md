@@ -77,8 +77,8 @@ uv run ruff format --check .   # report unformatted files without changing them
 ```
 
 CI runs `ruff check` and `ruff format --check` on every pull request and fails if
-either reports anything, so run `uv run ruff check --fix . && uv run ruff format .`
-before pushing.
+either reports anything, so **run `uv run ruff check --fix . && uv run ruff format .`
+before pushing.**
 
 Configuration lives under `[tool.ruff]` in [`pyproject.toml`](../../pyproject.toml).
 The rule set is pinned explicitly (`select`) rather than relying on ruff's defaults,
@@ -225,4 +225,44 @@ On `main`, after merge:
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-6. Create the GitHub release from the tag, pasting the CHANGELOG entry as notes.
+6. Pushing the tag triggers the [release workflow](#release-workflow), which creates
+   the GitHub release. Check that the run in the **Actions** tab passes and the release
+   appears under **Releases**.
+
+### Release workflow
+
+[`.github/workflows/release.yml`](../../.github/workflows/release.yml) runs on every
+pushed `v*` tag. It stops at the first failing check, so nothing is published
+unless all of them pass:
+
+| Step | Fails if |
+|---|---|
+| Tag is on `main` | The tagged commit is not in `main`'s history |
+| Versions match tag | `__version__` in `shelley/__init__.py` or `version` in `CITATION.cff` differs from the tag (without the `v`) |
+| Release notes | `CHANGELOG.md` has no `## [X.Y.Z]` section; its body becomes the release notes |
+| Build | `uv build` fails |
+| Smoke test | The built wheel, installed into a clean venv away from the checkout, cannot run `shelley --version` or `shelley find fastqc`. This catches packaging mistakes, such as data files missing from the wheel, that tests run from the source tree cannot |
+| Create release | The release already exists |
+
+The release is titled with the tag and has the wheel and sdist attached.
+
+The smoke test installs `container-guts` from the
+[`singularity` branch of our fork](https://github.com/Sydney-Informatics-Hub/guts/tree/singularity),
+matching `[tool.uv.sources]` in `pyproject.toml`. The wheel only declares a bare
+`container-guts`, which on PyPI resolves to upstream, so if the source in
+`pyproject.toml` changes, update the workflow too.
+
+#### If the workflow fails
+
+Fix the problem on `dev`, merge it to `main` again, then move the tag to the new
+commit:
+
+```bash
+git checkout main && git pull
+git push origin :refs/tags/vX.Y.Z   # delete the remote tag
+git tag -f vX.Y.Z                   # re-tag the current main
+git push origin vX.Y.Z
+```
+
+This is only safe while no GitHub release exists for the tag. If one was created,
+delete it first (`gh release delete vX.Y.Z`), or release a new patch version instead.
