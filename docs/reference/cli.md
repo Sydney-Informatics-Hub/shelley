@@ -66,6 +66,48 @@ Requires `shpc` on PATH and CVMFS mounted.
 
 ---
 
+## `clean`
+
+```bash
+shelley clean <tool>:<version> [-y]
+```
+
+| Argument | Type | Required | Format |
+|---|---|---|---|
+| `tool:version` | string | Yes | `<tool>:<version>` or `<tool>/<version>` — an explicit version is required; a full or short version string (e.g. `1.21` or `1.21--h96c455f_1`) is accepted as long as it resolves to exactly one installed build |
+| `-y` | flag | No | Skip the confirmation prompt |
+
+Uninstalls a specific installed tool version — the inverse of `build`. Removes the
+`shpc`-managed module, wrappers and container artifacts, and the Lmod modulefile
+symlink under `/apps/Modules/modulefiles/` (pruning the tool's directory too if that
+was the last installed version). Prompts for confirmation before removing anything
+unless `-y` is passed. Prompts for sudo if the shared directories are not writable.
+
+Running with no version, or a version that isn't installed, lists every currently
+installed version of that tool instead of uninstalling anything:
+
+```bash
+shelley clean samtools
+```
+```
+❌ shelley clean requires an explicit version, e.g. samtools:<version>.
+
+Suggestion:
+Currently installed versions of 'samtools':
+  • 1.21--h96c455f_1
+
+Re-run with one of these, e.g.:
+shelley clean samtools:1.21--h96c455f_1
+```
+
+**Returns:** Clean status output, listing exactly what was removed.
+
+See [docs/how-to/clean-modules.md](../how-to/clean-modules.md) for details, and
+[docs/explanation/clean-design.md](../explanation/clean-design.md) for why the local
+registry (`/apps/local/`) is deliberately left alone in most cases.
+
+---
+
 ## `interactive`
 
 ```bash
@@ -75,9 +117,10 @@ shelley interactive
 Starts a REPL session. Available commands inside the REPL:
 
 ```
-find <tool_name> [-v|-vv]
+find <tool_name> [-v]
 search <description>
 build <tool_spec>
+clean <tool>:<version> [-y]
 help
 quit / exit
 ```

@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `shelley clean` removes built modules.
+
 ### Changed
 
+- Local registries are now built in versioned subdirectories for `shelley clean` to
+  correctly uninstall tool versions.
 - Development tooling now uses [ruff](https://docs.astral.sh/ruff/) for linting and
   formatting, replacing the unused `black` and `flake8` in the `dev` extra. CI enforces
   `ruff check` and `ruff format --check` on every pull request. The codebase was

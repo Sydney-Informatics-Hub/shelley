@@ -30,6 +30,19 @@ def module_is_installed(tool_id: str, version: str) -> bool:
     return any(p.is_file() for p in (lmod_modules() / tool_id).glob(f"{version}*.lua"))
 
 
+def list_installed_versions(tool_id: str) -> list[str]:
+    """Every version with a modulefile under lmod_modules()/tool_id, dangling or not.
+
+    Unlike module_is_installed, this does not require the symlink to resolve — a
+    dangling modulefile is exactly the kind of leftover `shelley clean` should be able
+    to target, and should still be listed when helping a user pick a version to clean.
+    """
+    tool_dir = lmod_modules() / tool_id
+    if not tool_dir.is_dir():
+        return []
+    return sorted(p.stem for p in tool_dir.glob("*.lua"))
+
+
 def find_tool_sync(tool_name: str, verbose: bool = False) -> None:
     """Find a tool by name using RSEC + CVMFS cache (no MCP server needed).
 

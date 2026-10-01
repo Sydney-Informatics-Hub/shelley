@@ -83,8 +83,18 @@ module load samtools
 samtools --version
 ```
 
+## Step 5 — Remove a module
+
+When you no longer need a version, remove it with `clean`. It requires an explicit
+version, and asks for confirmation before removing anything:
+
+```bash
+shelley clean samtools:1.19
+```
+
 ## Next steps
 
 - [docs/how-to/find-and-search.md](../how-to/find-and-search.md) — tips and all options for `find` and `search`
 - [docs/how-to/build-modules.md](../how-to/build-modules.md) — building multiple modules at once
+- [docs/how-to/clean-modules.md](../how-to/clean-modules.md) — removing modules
 - [docs/reference/cli.md](../reference/cli.md) — complete command reference
