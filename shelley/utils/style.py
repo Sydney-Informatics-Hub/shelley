@@ -360,33 +360,6 @@ class ShelleyStyle:
         return table
 
     @staticmethod
-    def create_about_panel() -> Panel:
-        """Create an about panel with version and credits."""
-        content = """[header]Shelley[/header] - [accent]BioCommons Edition[/accent]
-
-[muted]A comprehensive bioinformatics tool finder and module builder[/muted]
-
-[header]Features:[/header]
-• [info]Find tools by name or functionality[/info]
-• [info]Build Lmod modules from CVMFS containers[/info]  
-• [info]Batch processing for multiple tools[/info]
-• [info]Interactive command mode[/info]
-
-[header]Powered by:[/header]
-• [muted]Australian BioCommons[/muted]
-• [muted]CVMFS Singularity Containers[/muted]
-• [muted]Model Context Protocol (MCP)[/muted]
-"""
-
-        return Panel(
-            content,
-            title=f"[primary][bold]{title}[/bold][/primary]",
-            box=ROUNDED,
-            border_style="primary",
-            padding=(1, 2),
-        )
-
-    @staticmethod
     def create_version_info() -> str:
         """Get version information for display."""
         # Single source of truth: shelley/__init__.py:__version__ (pyproject
@@ -502,8 +475,3 @@ def print_update_notice():
                 padding=(1, 2),
             )
         )
-
-
-def print_about():
-    """Print about information."""
-    console.print(ShelleyStyle.create_about_panel())
