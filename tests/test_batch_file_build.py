@@ -14,6 +14,7 @@ from shelley.client.cli import main
 # _read_tools_file unit tests
 # ---------------------------------------------------------------------------
 
+
 def test_read_normal(tmp_path):
     f = tmp_path / "tools.txt"
     f.write_text("samtools\nfastqc\nbowtie2\n")
@@ -23,12 +24,7 @@ def test_read_normal(tmp_path):
 def test_read_strips_comments_and_blanks(tmp_path):
     f = tmp_path / "tools.txt"
     f.write_text(
-        "# header\n"
-        "samtools\n"
-        "\n"
-        "fastqc  # pinned\n"
-        "  # inline-only line\n"
-        "bowtie2\n"
+        "# header\nsamtools\n\nfastqc  # pinned\n  # inline-only line\nbowtie2\n"
     )
     assert _read_tools_file(f) == ["samtools", "fastqc", "bowtie2"]
 
@@ -54,14 +50,17 @@ def test_read_missing_raises(tmp_path):
 # main() dispatch tests
 # ---------------------------------------------------------------------------
 
+
 def test_main_file_arg_calls_batch(tmp_path, monkeypatch):
     """File arg → batch_build_modules called with parsed tools; build_module not called."""
     f = tmp_path / "tools.txt"
     f.write_text("samtools\nfastqc\n")
     monkeypatch.setattr(sys, "argv", ["shelley", "build", str(f)])
 
-    with patch("shelley.client.cli.batch_build_modules", return_value=0) as mock_batch, \
-         patch("shelley.client.cli.build_module") as mock_single:
+    with (
+        patch("shelley.client.cli.batch_build_modules", return_value=0) as mock_batch,
+        patch("shelley.client.cli.build_module") as mock_single,
+    ):
         with pytest.raises(SystemExit) as exc:
             main()
         assert exc.value.code == 0
@@ -73,8 +72,10 @@ def test_main_non_file_arg_calls_single(monkeypatch):
     """Non-file arg → build_module called unchanged; batch_build_modules not called."""
     monkeypatch.setattr(sys, "argv", ["shelley", "build", "samtools"])
 
-    with patch("shelley.client.cli.build_module", return_value=True) as mock_single, \
-         patch("shelley.client.cli.batch_build_modules") as mock_batch:
+    with (
+        patch("shelley.client.cli.build_module", return_value=True) as mock_single,
+        patch("shelley.client.cli.batch_build_modules") as mock_batch,
+    ):
         with pytest.raises(SystemExit) as exc:
             main()
         assert exc.value.code == 0
@@ -88,9 +89,11 @@ def test_main_empty_file_exits_1_with_warning(tmp_path, monkeypatch):
     f.write_text("# nothing\n\n")
     monkeypatch.setattr(sys, "argv", ["shelley", "build", str(f)])
 
-    with patch("shelley.client.cli.batch_build_modules") as mock_batch, \
-         patch("shelley.client.cli.build_module") as mock_single, \
-         patch("shelley.client.cli.print_warning") as mock_warn:
+    with (
+        patch("shelley.client.cli.batch_build_modules") as mock_batch,
+        patch("shelley.client.cli.build_module") as mock_single,
+        patch("shelley.client.cli.print_warning") as mock_warn,
+    ):
         with pytest.raises(SystemExit) as exc:
             main()
         assert exc.value.code == 1

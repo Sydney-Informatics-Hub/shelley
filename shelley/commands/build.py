@@ -13,7 +13,12 @@ from ..utils.globals import build_roots
 from ..utils.modules import load_build_modules
 from ..utils.perms import apply_build_umask, ensure_shared_layout
 from ..utils.style import (
-    console, ShelleyStyle, print_info, print_warning, print_error, print_rule,
+    console,
+    ShelleyStyle,
+    print_info,
+    print_warning,
+    print_error,
+    print_rule,
 )
 
 
@@ -27,7 +32,9 @@ def needs_sudo() -> bool:
     """
     if os.geteuid() == 0:
         return False
-    return any(not root.exists() or not os.access(root, os.W_OK) for root in build_roots())
+    return any(
+        not root.exists() or not os.access(root, os.W_OK) for root in build_roots()
+    )
 
 
 def sudo_env_args() -> list[str]:
@@ -38,7 +45,9 @@ def sudo_env_args() -> list[str]:
     them already, but it requires SETENV privilege and sudoers policy can deny it.
     """
     args = [f"PATH={os.environ['PATH']}"]
-    args += [f"{k}={v}" for k, v in sorted(os.environ.items()) if k.startswith("SHELLEY_")]
+    args += [
+        f"{k}={v}" for k, v in sorted(os.environ.items()) if k.startswith("SHELLEY_")
+    ]
     return args
 
 
@@ -89,8 +98,13 @@ def build_module(tool_spec: str, interactive: bool = False) -> bool:
             return False
 
         cmd = [
-            "sudo", "-E", "env", *sudo_env_args(),
-            *launcher, "build", tool_spec,
+            "sudo",
+            "-E",
+            "env",
+            *sudo_env_args(),
+            *launcher,
+            "build",
+            tool_spec,
         ]
         if interactive:
             cmd.append("--interactive")
@@ -127,12 +141,14 @@ def build_module(tool_spec: str, interactive: bool = False) -> bool:
         ensure_shared_layout()
         ensure_shared_shpc_settings()
     except (OSError, RuntimeError) as e:
-        console.print(ShelleyStyle.create_error_panel(
-            title="Build Failed",
-            message=str(e),
-            suggestion="Check write access to the shared build directories, or set "
-                       "SHELLEY_SHPC_BASE to a writable location",
-        ))
+        console.print(
+            ShelleyStyle.create_error_panel(
+                title="Build Failed",
+                message=str(e),
+                suggestion="Check write access to the shared build directories, or set "
+                "SHELLEY_SHPC_BASE to a writable location",
+            )
+        )
         return False
 
     builder = CVMFSModuleBuilder()
@@ -145,19 +161,30 @@ def build_module(tool_spec: str, interactive: bool = False) -> bool:
         else:
             tool_name, requested_version = tool_spec, None
 
-        final_tool, final_version = builder.search_tool_version(tool_name, requested_version)
+        final_tool, final_version = builder.search_tool_version(
+            tool_name, requested_version
+        )
 
         with ShelleyStyle.create_status(f"Building module for {tool_spec}") as status:
             module_file = builder.shpc_install(
-                final_tool, final_version, interactive=interactive, status=status,
+                final_tool,
+                final_version,
+                interactive=interactive,
+                status=status,
             )
             available_versions = builder.list_versions(tool_name)
 
         if requested_version is None and len(available_versions) > 1:
-            console.print(ShelleyStyle.create_build_info(final_tool, final_version, available_versions))
+            console.print(
+                ShelleyStyle.create_build_info(
+                    final_tool, final_version, available_versions
+                )
+            )
             print_rule()
 
-        console.print(ShelleyStyle.create_build_success(final_tool, final_version, module_file))
+        console.print(
+            ShelleyStyle.create_build_success(final_tool, final_version, module_file)
+        )
         return True
 
     except Exception as e:
@@ -168,7 +195,11 @@ def build_module(tool_spec: str, interactive: bool = False) -> bool:
         if re.search(r"^Version .* not found for", msg):
             suggestion = ""
 
-        console.print(ShelleyStyle.create_error_panel(title=title, message=msg, suggestion=suggestion))
+        console.print(
+            ShelleyStyle.create_error_panel(
+                title=title, message=msg, suggestion=suggestion
+            )
+        )
         return False
 
 
@@ -177,21 +208,31 @@ def list_cvmfs_versions(tool_name: str) -> None:
     builder = CVMFSModuleBuilder()
 
     try:
-        with ShelleyStyle.create_status(f"Scanning CVMFS for {tool_name} versions") as status:
+        with ShelleyStyle.create_status(
+            f"Scanning CVMFS for {tool_name} versions"
+        ) as status:
             version_path_pairs = builder.list_versions_with_paths(tool_name)
 
         if not version_path_pairs:
-            console.print(ShelleyStyle.create_error_panel(
-                "No Versions Found",
-                f"No versions of '{tool_name}' found in CVMFS",
-                "Check the tool name spelling or try a different tool",
-            ))
+            console.print(
+                ShelleyStyle.create_error_panel(
+                    "No Versions Found",
+                    f"No versions of '{tool_name}' found in CVMFS",
+                    "Check the tool name spelling or try a different tool",
+                )
+            )
         else:
-            console.print(ShelleyStyle.create_versions_with_paths_table(tool_name, version_path_pairs))
+            console.print(
+                ShelleyStyle.create_versions_with_paths_table(
+                    tool_name, version_path_pairs
+                )
+            )
 
     except Exception as e:
-        console.print(ShelleyStyle.create_error_panel(
-            "CVMFS Access Error",
-            str(e),
-            "Ensure CVMFS is mounted at /cvmfs/singularity.galaxyproject.org/",
-        ))
+        console.print(
+            ShelleyStyle.create_error_panel(
+                "CVMFS Access Error",
+                str(e),
+                "Ensure CVMFS is mounted at /cvmfs/singularity.galaxyproject.org/",
+            )
+        )

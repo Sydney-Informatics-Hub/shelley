@@ -33,14 +33,17 @@ def test_no_module_system_warns_and_continues(monkeypatch):
 def test_successful_load_mutates_environ(monkeypatch):
     """Lmod python output is exec'd, mutating os.environ."""
     monkeypatch.setenv("LMOD_CMD", "/fake/lmod")
-    fake = MagicMock(returncode=0, stdout="os.environ['SHELLEY_TEST_LOADED'] = '1'\n", stderr="")
+    fake = MagicMock(
+        returncode=0, stdout="os.environ['SHELLEY_TEST_LOADED'] = '1'\n", stderr=""
+    )
     with patch.object(modules.subprocess, "run", return_value=fake) as run:
         os.environ.pop("SHELLEY_TEST_LOADED", None)
         assert load_build_modules(["shpc", "singularity"]) is True
         assert os.environ.get("SHELLEY_TEST_LOADED") == "1"
         run.assert_called_once_with(
             ["/fake/lmod", "python", "load", "shpc", "singularity"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
     os.environ.pop("SHELLEY_TEST_LOADED", None)
 

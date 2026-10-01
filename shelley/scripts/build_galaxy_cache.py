@@ -40,6 +40,7 @@ DEFAULT_CVMFS = Path(CVMFS_GALAXY_SINGULARITY_PATH)
 # Schema
 # ---------------------------------------------------------------------------
 
+
 class CacheEntry(TypedDict):
     entry_name: str
     tool_name: str
@@ -60,6 +61,7 @@ class CacheDocument(TypedDict):
 # ---------------------------------------------------------------------------
 # Scan
 # ---------------------------------------------------------------------------
+
 
 def scan_entries(cvmfs_path: Path) -> list[CacheEntry]:
     """Scan a CVMFS 'all' directory into CacheEntry records.
@@ -104,6 +106,7 @@ def scan_entries(cvmfs_path: Path) -> list[CacheEntry]:
 # Output
 # ---------------------------------------------------------------------------
 
+
 def write_artifact(entries: list[CacheEntry], cvmfs_root: Path, out_path: Path) -> None:
     tool_names = sorted({e["tool_name"] for e in entries})
     doc: CacheDocument = {
@@ -123,16 +126,21 @@ def write_artifact(entries: list[CacheEntry], cvmfs_root: Path, out_path: Path) 
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Build Galaxy Singularity container cache artifact for shelley find/search."
     )
     parser.add_argument(
-        "--cvmfs-root", type=Path, default=DEFAULT_CVMFS,
+        "--cvmfs-root",
+        type=Path,
+        default=DEFAULT_CVMFS,
         help=f"CVMFS 'all' directory to scan (default: {DEFAULT_CVMFS})",
     )
     parser.add_argument(
-        "--out", type=Path, default=DEFAULT_OUT,
+        "--out",
+        type=Path,
+        default=DEFAULT_OUT,
         help=f"Output path (default: {DEFAULT_OUT})",
     )
     parser.add_argument("-v", "--verbose", action="store_true")

@@ -6,12 +6,17 @@ from .search import search_tools
 from ..utils.args import parse_build_flags, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
-    console, ShelleyStyle, print_banner, print_rule,
-    print_warning, print_info, print_success,
+    console,
+    ShelleyStyle,
+    print_banner,
+    print_rule,
+    print_warning,
+    print_info,
+    print_success,
 )
 
 _COMMANDS = CORE_COMMANDS + [
-    {"command": "help", "description": "Show this help table",  "example": "help"},
+    {"command": "help", "description": "Show this help table", "example": "help"},
     {"command": "exit", "description": "Exit interactive mode", "example": "exit"},
 ]
 

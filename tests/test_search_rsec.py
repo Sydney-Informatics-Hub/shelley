@@ -54,6 +54,7 @@ def tiny_artifact(tmp_path) -> Path:
 # Metadata
 # ---------------------------------------------------------------------------
 
+
 def test_name():
     assert RsecSource.name == "rsec"
 
@@ -70,6 +71,7 @@ def test_custom_data_path(tmp_path):
 # ---------------------------------------------------------------------------
 # load()
 # ---------------------------------------------------------------------------
+
 
 def test_load_populates_entries(tiny_artifact):
     source = RsecSource(data_path=tiny_artifact).load()
@@ -91,6 +93,7 @@ def test_load_entries_have_expected_keys(tiny_artifact):
 # __len__ with injected entries
 # ---------------------------------------------------------------------------
 
+
 def test_len_after_injection():
     source = RsecSource()
     source.entries = ENTRIES
@@ -104,6 +107,7 @@ def test_len_empty():
 # ---------------------------------------------------------------------------
 # search()
 # ---------------------------------------------------------------------------
+
 
 def test_search_returns_list():
     source = RsecSource()

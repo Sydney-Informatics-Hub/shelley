@@ -30,9 +30,7 @@ from .. import __version__
 # canonical repo or default branch ever changes, change it here.
 REPO = "Sydney-Informatics-Hub/shelley"
 BRANCH = "main"
-MAIN_INIT_URL = (
-    f"https://raw.githubusercontent.com/{REPO}/{BRANCH}/shelley/__init__.py"
-)
+MAIN_INIT_URL = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}/shelley/__init__.py"
 # The rendered docs page the upgrade command lives on (clickable in the notice).
 DOCS_URL = (
     f"https://github.com/{REPO}/blob/{BRANCH}/docs/how-to/install.md"

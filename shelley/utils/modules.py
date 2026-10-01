@@ -50,7 +50,8 @@ def load_build_modules(names: Sequence[str] = BUILD_MODULES) -> bool:
 
     result = subprocess.run(
         [lmod_cmd, "python", "load", *names],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         print_warning(

@@ -40,8 +40,7 @@ SYSTEM_UV = "/opt/uv/uv"
 
 # Where to point users when the upgrade can't run automatically.
 DOCS_URL = (
-    "https://github.com/Sydney-Informatics-Hub/shelley"
-    "/blob/main/docs/how-to/install.md"
+    "https://github.com/Sydney-Informatics-Hub/shelley/blob/main/docs/how-to/install.md"
 )
 
 

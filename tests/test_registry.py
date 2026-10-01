@@ -27,6 +27,7 @@ REMOTE_CONFIG = {
     "aliases": [],
 }
 
+
 def _curl_success(config: dict):
     """Return a fake subprocess.run result that looks like a successful curl."""
     m = MagicMock()
@@ -51,6 +52,7 @@ def builder(tmp_path):
 # _load_registry_config
 # ---------------------------------------------------------------------------
 
+
 class TestLoadRegistryConfig:
     def test_loads_local_file_without_curl(self, tmp_path):
         local_yaml = tmp_path / URI / "container.yaml"
@@ -66,8 +68,10 @@ class TestLoadRegistryConfig:
     def test_fetches_remote_when_no_local_file(self, tmp_path):
         local_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(REMOTE_CONFIG)):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            return_value=_curl_success(REMOTE_CONFIG),
+        ):
             config = _load_registry_config(URI, local_yaml)
 
         assert config["tags"] == REMOTE_CONFIG["tags"]
@@ -75,8 +79,10 @@ class TestLoadRegistryConfig:
     def test_saves_remote_config_to_disk(self, tmp_path):
         local_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(REMOTE_CONFIG)):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            return_value=_curl_success(REMOTE_CONFIG),
+        ):
             _load_registry_config(URI, local_yaml)
 
         assert local_yaml.exists()
@@ -86,8 +92,9 @@ class TestLoadRegistryConfig:
     def test_returns_empty_dict_when_remote_fails(self, tmp_path):
         local_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_failure()):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run", return_value=_curl_failure()
+        ):
             config = _load_registry_config(URI, local_yaml)
 
         assert config == {}
@@ -95,8 +102,10 @@ class TestLoadRegistryConfig:
     def test_returns_empty_dict_when_curl_raises(self, tmp_path):
         local_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   side_effect=OSError("curl not found")):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            side_effect=OSError("curl not found"),
+        ):
             config = _load_registry_config(URI, local_yaml)
 
         assert config == {}
@@ -104,9 +113,13 @@ class TestLoadRegistryConfig:
     def test_returns_config_even_when_disk_write_forbidden(self, tmp_path):
         local_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(REMOTE_CONFIG)), \
-             patch("builtins.open", side_effect=[PermissionError, mock_open()()]):
+        with (
+            patch(
+                "shelley.builder.cvmfs_builder.subprocess.run",
+                return_value=_curl_success(REMOTE_CONFIG),
+            ),
+            patch("builtins.open", side_effect=[PermissionError, mock_open()()]),
+        ):
             # PermissionError on write should be swallowed; config still returned
             config = _load_registry_config(URI, local_yaml)
 
@@ -116,12 +129,18 @@ class TestLoadRegistryConfig:
         """force_upstream=True bypasses the local cache and fetches from GitHub."""
         local_yaml = tmp_path / URI / "container.yaml"
         local_yaml.parent.mkdir(parents=True)
-        stale_config = {"docker": URI, "tags": {"stale--tag_0": "sha256:000"}, "aliases": []}
+        stale_config = {
+            "docker": URI,
+            "tags": {"stale--tag_0": "sha256:000"},
+            "aliases": [],
+        }
         local_yaml.write_text(yaml.dump(stale_config))
 
         upstream_config = {**REMOTE_CONFIG}
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(upstream_config)) as mock_run:
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            return_value=_curl_success(upstream_config),
+        ) as mock_run:
             config = _load_registry_config(URI, local_yaml, force_upstream=True)
 
         mock_run.assert_called_once()
@@ -132,8 +151,10 @@ class TestLoadRegistryConfig:
         """force_upstream=True does not overwrite the local cache file."""
         local_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(REMOTE_CONFIG)):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            return_value=_curl_success(REMOTE_CONFIG),
+        ):
             _load_registry_config(URI, local_yaml, force_upstream=True)
 
         assert not local_yaml.exists()
@@ -143,9 +164,12 @@ class TestLoadRegistryConfig:
 # get_registry_tags
 # ---------------------------------------------------------------------------
 
+
 class TestGetRegistryTags:
     def test_returns_tag_keys_from_local_file(self, tmp_path):
-        local_yaml = tmp_path / "quay.io" / "biocontainers" / "samtools" / "container.yaml"
+        local_yaml = (
+            tmp_path / "quay.io" / "biocontainers" / "samtools" / "container.yaml"
+        )
         local_yaml.parent.mkdir(parents=True)
         local_yaml.write_text(yaml.dump(REMOTE_CONFIG))
 
@@ -154,32 +178,44 @@ class TestGetRegistryTags:
         assert tags == set(REMOTE_CONFIG["tags"].keys())
 
     def test_returns_tag_keys_from_remote(self, tmp_path):
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(REMOTE_CONFIG)):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            return_value=_curl_success(REMOTE_CONFIG),
+        ):
             tags = get_registry_tags("samtools", local_registry=str(tmp_path))
 
         assert "1.21--h96c455f_1" in tags
         assert "1.20--h50ea8bc_0" in tags
 
     def test_returns_empty_set_when_unreachable(self, tmp_path):
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_failure()):
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run", return_value=_curl_failure()
+        ):
             tags = get_registry_tags("samtools", local_registry=str(tmp_path))
 
         assert tags == set()
 
     def test_upstream_only_skips_local_cache(self, tmp_path):
         """upstream_only=True ignores a locally-cached file and fetches from GitHub."""
-        local_yaml = tmp_path / "quay.io" / "biocontainers" / "samtools" / "container.yaml"
+        local_yaml = (
+            tmp_path / "quay.io" / "biocontainers" / "samtools" / "container.yaml"
+        )
         local_yaml.parent.mkdir(parents=True)
-        stale_config = {"docker": URI, "tags": {"stale--tag_0": "sha256:000"}, "aliases": []}
+        stale_config = {
+            "docker": URI,
+            "tags": {"stale--tag_0": "sha256:000"},
+            "aliases": [],
+        }
         local_yaml.write_text(yaml.dump(stale_config))
 
         upstream_config = {**REMOTE_CONFIG}
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success(upstream_config)):
-            tags = get_registry_tags("samtools", local_registry=str(tmp_path),
-                                     upstream_only=True)
+        with patch(
+            "shelley.builder.cvmfs_builder.subprocess.run",
+            return_value=_curl_success(upstream_config),
+        ):
+            tags = get_registry_tags(
+                "samtools", local_registry=str(tmp_path), upstream_only=True
+            )
 
         assert "stale--tag_0" not in tags
         assert "1.21--h96c455f_1" in tags
@@ -189,17 +225,25 @@ class TestGetRegistryTags:
 # _ensure_local_registry_entry
 # ---------------------------------------------------------------------------
 
+
 class TestEnsureLocalRegistryEntry:
     def test_adds_tag_and_sha256_when_version_missing(self, builder, tmp_path):
         registry_yaml = tmp_path / URI / "container.yaml"
         version = "1.21--h96c455f_1"
         container_path = str(tmp_path / f"samtools:{version}")
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []})), \
-             patch.object(builder, "_compute_sha256", return_value="deadbeef"):
+        with (
+            patch(
+                "shelley.builder.cvmfs_builder.subprocess.run",
+                return_value=_curl_success({"docker": URI, "tags": {}, "aliases": []}),
+            ),
+            patch.object(builder, "_compute_sha256", return_value="deadbeef"),
+        ):
             builder._ensure_local_registry_entry(
-                "samtools", version, container_path, URI,
+                "samtools",
+                version,
+                container_path,
+                URI,
                 local_registry=str(tmp_path),
             )
 
@@ -212,11 +256,18 @@ class TestEnsureLocalRegistryEntry:
         container_path = str(tmp_path / f"samtools:{version}")
         registry_yaml = tmp_path / URI / "container.yaml"
 
-        with patch("shelley.builder.cvmfs_builder.subprocess.run",
-                   return_value=_curl_failure()), \
-             patch.object(builder, "_compute_sha256", return_value="cafebabe"):
+        with (
+            patch(
+                "shelley.builder.cvmfs_builder.subprocess.run",
+                return_value=_curl_failure(),
+            ),
+            patch.object(builder, "_compute_sha256", return_value="cafebabe"),
+        ):
             builder._ensure_local_registry_entry(
-                "samtools", version, container_path, URI,
+                "samtools",
+                version,
+                container_path,
+                URI,
                 local_registry=str(tmp_path),
             )
 

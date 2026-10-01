@@ -31,9 +31,7 @@ ENTRIES = [
         "id": "samtools",
         "name": "SAMtools",
         "description": "Tools for manipulating SAM/BAM alignment files",
-        "edam-operations": [
-            {"term": "Sequence alignment", "formats": ["SAM", "BAM"]}
-        ],
+        "edam-operations": [{"term": "Sequence alignment", "formats": ["SAM", "BAM"]}],
         "edam-topics": [{"term": "Mapping"}],
     },
 ]
@@ -51,6 +49,7 @@ def tiny_yaml(tmp_path) -> Path:
 # Metadata
 # ---------------------------------------------------------------------------
 
+
 def test_name():
     assert ToolfinderSource.name == "toolfinder"
 
@@ -67,6 +66,7 @@ def test_custom_data_path(tmp_path):
 # ---------------------------------------------------------------------------
 # load()
 # ---------------------------------------------------------------------------
+
 
 def test_load_populates_entries(tiny_yaml):
     source = ToolfinderSource(data_path=tiny_yaml).load()
@@ -88,6 +88,7 @@ def test_load_entries_have_expected_keys(tiny_yaml):
 # __len__ with injected entries
 # ---------------------------------------------------------------------------
 
+
 def test_len_after_injection():
     source = ToolfinderSource()
     source.entries = ENTRIES
@@ -101,6 +102,7 @@ def test_len_empty():
 # ---------------------------------------------------------------------------
 # search()
 # ---------------------------------------------------------------------------
+
 
 def test_search_returns_list():
     source = ToolfinderSource()
