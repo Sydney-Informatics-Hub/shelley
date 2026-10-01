@@ -30,9 +30,9 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from shelley.utils.globals import DATA_DIR
 
@@ -47,12 +47,23 @@ DEFAULT_REF = "master"
 # Fetch helpers
 # ---------------------------------------------------------------------------
 
+
 def _fetch_sparse_clone(repo_url: str, ref: str, workdir: Path) -> Path:
     clone_dir = workdir / "content"
     log.info("Sparse-cloning %s@%s ...", repo_url, ref)
     subprocess.run(
-        ["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
-         "--branch", ref, repo_url, str(clone_dir)],
+        [
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            "--filter=blob:none",
+            "--sparse",
+            "--branch",
+            ref,
+            repo_url,
+            str(clone_dir),
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -76,7 +87,11 @@ def _fetch_tarball(repo_url: str, ref: str, workdir: Path) -> Path:
     extract_dir.mkdir(parents=True, exist_ok=True)
     log.info("Extracting data/ from tarball ...")
     with tarfile.open(archive_path, "r:gz") as tf:
-        members = [m for m in tf.getmembers() if "/data/" in m.name and m.name.endswith(".biotools.json")]
+        members = [
+            m
+            for m in tf.getmembers()
+            if "/data/" in m.name and m.name.endswith(".biotools.json")
+        ]
         tf.extractall(path=extract_dir, members=members, filter="data")
 
     for candidate in extract_dir.glob("*/data"):
@@ -100,7 +115,9 @@ def _source_commit(data_dir: Path) -> str:
     try:
         result = subprocess.run(
             ["git", "-C", str(data_dir.parent), "rev-parse", "HEAD"],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         return result.stdout.strip()
     except Exception:
@@ -110,6 +127,7 @@ def _source_commit(data_dir: Path) -> str:
 # ---------------------------------------------------------------------------
 # Parsing helpers
 # ---------------------------------------------------------------------------
+
 
 def _flatten_terms(items: Any) -> list[str]:
     """Extract EDAM term strings from a list of {term, uri} dicts or plain strings."""
@@ -156,7 +174,7 @@ def _parse_functions(functions: Any) -> tuple[list[str], list[str], list[str]]:
     )
 
 
-def parse_biotools_json(path: Path) -> Optional[dict]:
+def parse_biotools_json(path: Path) -> dict | None:
     """Parse one *.biotools.json file into the entry schema; return None to skip."""
     try:
         with open(path, encoding="utf-8") as f:
@@ -204,8 +222,14 @@ def build_entries(data_dir: Path) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 ASSESSED_FIELDS = [
-    "name", "description", "homepage", "license",
-    "edam-operations", "edam-topics", "edam-inputs", "edam-outputs",
+    "name",
+    "description",
+    "homepage",
+    "license",
+    "edam-operations",
+    "edam-topics",
+    "edam-inputs",
+    "edam-outputs",
 ]
 
 
@@ -223,6 +247,7 @@ def assess_coverage(entries: list[dict]) -> dict[str, float]:
 # Output
 # ---------------------------------------------------------------------------
 
+
 def write_artifact(
     entries: list[dict],
     coverage: dict[str, float],
@@ -232,7 +257,7 @@ def write_artifact(
     out_path: Path,
 ) -> None:
     doc = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "source": repo_url,
         "source_ref": ref,
         "source_commit": source_commit,
@@ -250,6 +275,7 @@ def write_artifact(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _print_assessment(entries: list[dict], coverage: dict[str, float]) -> None:
     print(f"\nField coverage ({len(entries)} entries):")
     print(f"  {'Field':<22} {'Coverage':>9}")
@@ -264,27 +290,36 @@ def main() -> None:
         description="Build RSEC bio.tools metadata artifact for shelley search."
     )
     parser.add_argument(
-        "--repo-url", default=REPO_URL,
+        "--repo-url",
+        default=REPO_URL,
         help=f"GitHub repo URL (default: {REPO_URL})",
     )
     parser.add_argument(
-        "--ref", default=DEFAULT_REF,
+        "--ref",
+        default=DEFAULT_REF,
         help=f"Branch/tag to fetch (default: {DEFAULT_REF})",
     )
     parser.add_argument(
-        "--method", choices=["sparse-clone", "tarball"], default="sparse-clone",
+        "--method",
+        choices=["sparse-clone", "tarball"],
+        default="sparse-clone",
         help="Fetch method; sparse-clone falls back to tarball on failure (default: sparse-clone)",
     )
     parser.add_argument(
-        "--out", type=Path, default=DEFAULT_OUT,
+        "--out",
+        type=Path,
+        default=DEFAULT_OUT,
         help=f"Output path (default: {DEFAULT_OUT})",
     )
     parser.add_argument(
-        "--workdir", type=Path, default=None,
+        "--workdir",
+        type=Path,
+        default=None,
         help="Persistent temp directory — if omitted, a temp dir is created and cleaned up",
     )
     parser.add_argument(
-        "--assess", action="store_true",
+        "--assess",
+        action="store_true",
         help="Print field-coverage report and exit without writing the artifact",
     )
     parser.add_argument("-v", "--verbose", action="store_true")

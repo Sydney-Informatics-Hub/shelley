@@ -62,6 +62,7 @@ def test_path_independent_of_package_location(tmp_path, monkeypatch):
 # reexec_command — must re-run *this* shelley, not whatever is on PATH
 # ---------------------------------------------------------------------------
 
+
 def test_reexec_uses_the_running_interpreter():
     assert reexec_command() == [sys.executable, "-m", "shelley"]
 
@@ -83,8 +84,9 @@ def test_reexec_falls_back_to_path_when_package_is_unimportable(tmp_path, monkey
     launcher = tmp_path / "shelley"
     _make_executable(launcher)
     monkeypatch.setenv("PATH", str(tmp_path))
-    monkeypatch.setattr("shelley.commands.build.importlib.util.find_spec",
-                        lambda name: None)
+    monkeypatch.setattr(
+        "shelley.commands.build.importlib.util.find_spec", lambda name: None
+    )
 
     assert reexec_command() == [str(launcher)]
 
@@ -93,7 +95,8 @@ def test_python_m_shelley_is_actually_runnable():
     """`-m shelley` needs shelley/__main__.py; without it the re-exec would fail."""
     result = subprocess.run(
         [sys.executable, "-m", "shelley", "--version"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
 
     assert result.returncode == 0, result.stderr

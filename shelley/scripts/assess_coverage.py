@@ -23,14 +23,28 @@ RSEC_FILE = DATA_DIR / "rsec_meta.json.gz"
 TF_FILE = DATA_DIR / "toolfinder_meta.yaml"
 
 TF_FIELDS = [
-    "id", "name", "description", "biotools", "biocontainers",
-    "edam-operations", "edam-topics", "edam-inputs", "edam-outputs",
-    "homepage", "license",
+    "id",
+    "name",
+    "description",
+    "biotools",
+    "biocontainers",
+    "edam-operations",
+    "edam-topics",
+    "edam-inputs",
+    "edam-outputs",
+    "homepage",
+    "license",
 ]
 
 RSEC_FIELDS = [
-    "name", "description", "homepage", "license",
-    "edam-operations", "edam-topics", "edam-inputs", "edam-outputs",
+    "name",
+    "description",
+    "homepage",
+    "license",
+    "edam-operations",
+    "edam-topics",
+    "edam-inputs",
+    "edam-outputs",
 ]
 
 

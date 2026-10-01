@@ -19,7 +19,6 @@ from __future__ import annotations
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from ..utils.style import (
     ShelleyStyle,
@@ -40,8 +39,7 @@ SYSTEM_UV = "/opt/uv/uv"
 
 # Where to point users when the upgrade can't run automatically.
 DOCS_URL = (
-    "https://github.com/Sydney-Informatics-Hub/shelley"
-    "/blob/main/docs/how-to/install.md"
+    "https://github.com/Sydney-Informatics-Hub/shelley/blob/main/docs/how-to/install.md"
 )
 
 
@@ -54,7 +52,7 @@ def _is_system_install() -> bool:
     return str(Path(__file__).resolve()).startswith(SYSTEM_TOOL_DIR)
 
 
-def _find_uv() -> Optional[str]:
+def _find_uv() -> str | None:
     """Absolute path to the uv executable, or None if it can't be located.
 
     Prefers uv on PATH; falls back to the BioShell system location

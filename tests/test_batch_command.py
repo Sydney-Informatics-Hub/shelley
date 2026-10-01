@@ -1,7 +1,6 @@
 """Verify that batch_build_modules is correctly wired after moving to utils.batch."""
 
 import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest

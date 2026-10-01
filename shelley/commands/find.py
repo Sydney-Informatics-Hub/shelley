@@ -30,6 +30,19 @@ def module_is_installed(tool_id: str, version: str) -> bool:
     return any(p.is_file() for p in (lmod_modules() / tool_id).glob(f"{version}*.lua"))
 
 
+def list_installed_versions(tool_id: str) -> list[str]:
+    """Every version with a modulefile under lmod_modules()/tool_id, dangling or not.
+
+    Unlike module_is_installed, this does not require the symlink to resolve — a
+    dangling modulefile is exactly the kind of leftover `shelley clean` should be able
+    to target, and should still be listed when helping a user pick a version to clean.
+    """
+    tool_dir = lmod_modules() / tool_id
+    if not tool_dir.is_dir():
+        return []
+    return sorted(p.stem for p in tool_dir.glob("*.lua"))
+
+
 def find_tool_sync(tool_name: str, verbose: bool = False) -> None:
     """Find a tool by name using RSEC + CVMFS cache (no MCP server needed).
 
@@ -46,8 +59,10 @@ def find_tool_sync(tool_name: str, verbose: bool = False) -> None:
 
     meta = None
     for entry in source.entries:
-        if (entry.get("id", "").lower() == query_lower or
-                entry.get("name", "").lower() == query_lower):
+        if (
+            entry.get("id", "").lower() == query_lower
+            or entry.get("name", "").lower() == query_lower
+        ):
             meta = entry
             break
 
@@ -62,7 +77,8 @@ def find_tool_sync(tool_name: str, verbose: bool = False) -> None:
     if not found:
         entry_map = {
             e["id"].lower(): (e.get("name") or e["id"], e.get("description") or "")
-            for e in source.entries if e.get("id")
+            for e in source.entries
+            if e.get("id")
         }
         suggestions = [
             entry_map[m]
@@ -93,13 +109,16 @@ def find_tool_sync(tool_name: str, verbose: bool = False) -> None:
             "outputs": source._flatten_edam(meta.get("edam-outputs")),
         }
 
-    _render_find_tool({
-        "query": clean_name,
-        "found": found,
-        "suggestions": suggestions,
-        "tool": tool_payload,
-        "containers": containers_payload,
-    }, verbose=verbose)
+    _render_find_tool(
+        {
+            "query": clean_name,
+            "found": found,
+            "suggestions": suggestions,
+            "tool": tool_payload,
+            "containers": containers_payload,
+        },
+        verbose=verbose,
+    )
 
 
 def _render_find_tool(payload: dict, verbose: bool = False) -> None:
@@ -117,11 +136,13 @@ def _render_find_tool(payload: dict, verbose: bool = False) -> None:
             )
             print_find_hint()
         else:
-            console.print(ShelleyStyle.create_error_panel(
-                "Tool Not Found",
-                f"No tool or container matching '{query}' was found.",
-                "Try: shelley search <description>",
-            ))
+            console.print(
+                ShelleyStyle.create_error_panel(
+                    "Tool Not Found",
+                    f"No tool or container matching '{query}' was found.",
+                    "Try: shelley search <description>",
+                )
+            )
         return
 
     tool = payload.get("tool")
@@ -130,24 +151,38 @@ def _render_find_tool(payload: dict, verbose: bool = False) -> None:
     lines = []
     if tool:
         if tool.get("description"):
-            lines.append(f"[header]Description[/header]\n[muted]{tool['description']}[/muted]\n")
+            lines.append(
+                f"[header]Description[/header]\n[muted]{tool['description']}[/muted]\n"
+            )
         if tool.get("homepage"):
-            lines.append(f"[header]Homepage[/header]    [info]{tool['homepage']}[/info]\n")
+            lines.append(
+                f"[header]Homepage[/header]    [info]{tool['homepage']}[/info]\n"
+            )
         if tool.get("operations"):
-            lines.append(f"[header]Operations[/header]  [muted]{', '.join(tool['operations'])}[/muted]\n")
+            lines.append(
+                f"[header]Operations[/header]  [muted]{', '.join(tool['operations'])}[/muted]\n"
+            )
         if tool.get("inputs"):
-            lines.append(f"[header]Inputs[/header]      [muted]{', '.join(tool['inputs'])}[/muted]\n")
+            lines.append(
+                f"[header]Inputs[/header]      [muted]{', '.join(tool['inputs'])}[/muted]\n"
+            )
         if tool.get("outputs"):
-            lines.append(f"[header]Outputs[/header]     [muted]{', '.join(tool['outputs'])}[/muted]\n")
+            lines.append(
+                f"[header]Outputs[/header]     [muted]{', '.join(tool['outputs'])}[/muted]\n"
+            )
 
     title_name = tool.get("name") if tool else query
-    console.print(Panel(
-        "\n".join(lines) if lines else "[muted]No metadata available for this tool.[/muted]",
-        title=f"[tool]{title_name}[/tool]",
-        box=ROUNDED,
-        border_style="primary",
-        padding=(1, 2),
-    ))
+    console.print(
+        Panel(
+            "\n".join(lines)
+            if lines
+            else "[muted]No metadata available for this tool.[/muted]",
+            title=f"[tool]{title_name}[/tool]",
+            box=ROUNDED,
+            border_style="primary",
+            padding=(1, 2),
+        )
+    )
 
     lines.append("\n")
 
@@ -207,16 +242,22 @@ def _render_find_tool(payload: dict, verbose: bool = False) -> None:
             builds = containers["builds"]
 
             def render_page(page_items, page, total_pages, total_count):
-                page_info = f" — page {page + 1} of {total_pages}" if total_pages > 1 else ""
-                console.print(build_paths_table(
-                    page_items,
-                    f"[header]Available Builds ({total_count} total){page_info}[/header]",
-                ))
+                page_info = (
+                    f" — page {page + 1} of {total_pages}" if total_pages > 1 else ""
+                )
+                console.print(
+                    build_paths_table(
+                        page_items,
+                        f"[header]Available Builds ({total_count} total){page_info}[/header]",
+                    )
+                )
 
             paginate(builds, render_page)
         else:
             shown_versions = all_versions[:5]
-            table = build_versions_table(shown_versions, "[header]Available Versions[/header]")
+            table = build_versions_table(
+                shown_versions, "[header]Available Versions[/header]"
+            )
             if total > len(shown_versions):
                 table.add_row(
                     f"[muted]+ {total - len(shown_versions)} more[/muted]",
@@ -239,15 +280,19 @@ def _render_find_tool(payload: dict, verbose: bool = False) -> None:
                 f"\n\nTo install a specific version of {title_name}, run:\n\n"
                 f"[command]shelley build {query_lower}/{latest_version}[/command]"
             )
-        console.print(Panel(
-            install_text,
-            title="[header]Install[/header]",
-            box=ROUNDED,
-            border_style="info",
-            padding=(0, 2),
-        ))
+        console.print(
+            Panel(
+                install_text,
+                title="[header]Install[/header]",
+                box=ROUNDED,
+                border_style="info",
+                padding=(0, 2),
+            )
+        )
     else:
-        console.print(ShelleyStyle.create_warning_panel(
-            "No Containers Available",
-            "No Singularity containers found for this tool in CVMFS.",
-        ))
+        console.print(
+            ShelleyStyle.create_warning_panel(
+                "No Containers Available",
+                "No Singularity containers found for this tool in CVMFS.",
+            )
+        )
