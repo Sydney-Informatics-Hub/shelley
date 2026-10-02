@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Monthly data refresh workflow: regenerates `rsec_meta.json.gz` and 
   `galaxy_singularity_cache.json.gz`, and opens a PR into
   `dev` when their content changes. See `docs/how-to/maintain-corpus.md`.
+- Test coverage reporting with `pytest-cov` (in the `dev` extra). CI prints coverage
+  for every test run and adds a summary table to the run's page. See
+  `docs/how-to/developer-setup.md`.
 
 ### Changed
 

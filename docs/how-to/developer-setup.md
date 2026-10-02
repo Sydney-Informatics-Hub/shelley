@@ -51,6 +51,8 @@ Every push to a pull request runs general unit tests automatically using `uv run
 
 A separate `lint` job runs ruff on every pull request — see [Linting and formatting](#linting-and-formatting).
 
+Every test job also measures coverage — see [Test coverage](#test-coverage).
+
 ### Running locally (BioShell)
 
 Run from inside a BioShell session where `/cvmfs/singularity.galaxyproject.org/all` is mounted — `cvmfs`-marked tests enable automatically when the path exists:
@@ -61,6 +63,31 @@ uv run pytest -v --tb=short               # verbose with short tracebacks
 uv run pytest tests/test_cvmfs_builder.py # single file
 uv run pytest -m "not network"            # exclude network tests when offline
 ```
+
+### Test coverage
+
+Test coverage reports which parts of the codebase that are, or are not, 
+accounted for by unit tests. [pytest-cov](https://pytest-cov.readthedocs.io/) ships in the `dev` extra. Coverage is
+off by default; add `--cov` to measure it:
+
+```bash
+uv run pytest --cov                        # table of files below 100 %, with missing lines
+uv run pytest --cov --cov-report=html      # browsable report in htmlcov/index.html
+uv run pytest --cov -m "not cvmfs"         # match what CI measures
+```
+
+Configuration lives under `[tool.coverage.*]` in
+[`pyproject.toml`](../../pyproject.toml). Coverage measures the `shelley` package
+and includes branches, so a partly taken `if` counts as partly covered. The report
+leaves out fully covered files.
+
+In CI, every test job prints the coverage table in its log, and the Python 3.12
+job adds it to the run's summary page (**Actions** → the run → **Summary**). CVMFS
+tests are skipped in CI, so the code they exercise shows as uncovered there even
+though it is tested on BioShell.
+
+Coverage is reported but not enforced. A PR that lowers it does not fail. Use the
+report to spot untested code in the files a PR changes.
 
 ## Linting and formatting
 
