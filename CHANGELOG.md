@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test coverage reporting with `pytest-cov` (in the `dev` extra). CI prints coverage
   for every test run and adds a summary table to the run's page. See
   `docs/how-to/developer-setup.md`.
+- README badges for CI status, latest release, supported Python, licence, ruff and uv.
+- Release docs cover Zenodo archiving and DOIs, and why shelley is not yet on PyPI.
+  See `docs/how-to/developer-setup.md`.
 
 ### Changed
 

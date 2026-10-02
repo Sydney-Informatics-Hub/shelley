@@ -301,7 +301,83 @@ matching `[tool.uv.sources]` in `pyproject.toml`. The wheel only declares a bare
 `container-guts`, which on PyPI resolves to upstream, so if the source in
 `pyproject.toml` changes, update the workflow too.
 
-#### Not published to PyPI (yet)
+#### If the workflow fails
+
+Fix the problem on `dev`, merge it to `main` again, then move the tag to the new
+commit:
+
+```bash
+git checkout main && git pull
+git push origin :refs/tags/vX.Y.Z   # delete the remote tag
+git tag -f vX.Y.Z                   # re-tag the current main
+git push origin vX.Y.Z
+```
+
+This is only safe while no GitHub release exists for the tag. If one was created,
+delete it first (`gh release delete vX.Y.Z`), or release a new patch version instead.
+
+### Zenodo archiving and DOIs
+
+[Zenodo](https://zenodo.org) archives each GitHub release and gives it a DOI, so
+papers can cite the exact version of shelley they used. It is separate from
+package distribution ([PyPI](#not-published-to-pypi-yet)): Zenodo is for
+citing a release, PyPI is for installing it.
+
+| | Zenodo | PyPI |
+|---|---|---|
+| Purpose | Permanent archive and DOI, for citation | `pip install` / `uv tool install` |
+| Stores | A zip of the source at the tag | The built wheel and sdist |
+| Metadata from | `CITATION.cff` | `pyproject.toml` |
+| Triggered by | A GitHub webhook when a release is published | A publish job in `release.yml` |
+| Undo | None: records are permanent; only new versions can be added | Versions can be yanked, never re-uploaded |
+
+Zenodo needs no change to `release.yml`. The rule that a release created with
+`GITHUB_TOKEN` triggers nothing applies only to other Actions workflows, not to
+webhooks, so the release the workflow creates is archived like any other.
+
+Zenodo takes its metadata (authors and ORCIDs, title, abstract, licence, version)
+from [`CITATION.cff`](../../CITATION.cff). That is one more reason the
+release workflow checks its `version` against the tag. Do not add a `.zenodo.json`:
+it would take precedence over `CITATION.cff`, giving two sources to keep in sync.
+
+There are two kinds of DOI:
+
+- **Concept DOI.** Always resolves to the latest version. Use it in the README badge
+  and when referring to shelley in general.
+- **Version DOI.** One per release. Use it to cite a specific version, for example in
+  a paper's methods section.
+
+#### One-time setup
+
+1. Sign in to [Zenodo](https://zenodo.org) with GitHub, open **GitHub** in the account
+   menu, and switch on `Sydney-Informatics-Hub/shelley`. If the repository is not
+   listed, an organisation owner must first grant the Zenodo OAuth app access to
+   `Sydney-Informatics-Hub` (GitHub **Settings → Applications → Authorized OAuth
+   Apps → Zenodo**).
+2. Enable it **before** pushing the next tag. Zenodo archives only releases
+   published after it is switched on; earlier releases are not backfilled.
+
+#### After the first archived release
+
+1. Check the record on Zenodo: authors, ORCIDs, licence and version should match
+   `CITATION.cff`.
+2. Add the **concept DOI** to `CITATION.cff`, so GitHub's **Cite this repository**
+   shows it:
+   ```yaml
+   identifiers:
+     - type: doi
+       value: 10.5281/zenodo.NNNNNNN
+       description: Concept DOI (all versions)
+   ```
+3. Add the DOI badge to the badge row at the top of the README. Zenodo's record
+   page shows the exact Markdown under **Badge**:
+   ```markdown
+   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.NNNNNNN.svg)](https://doi.org/10.5281/zenodo.NNNNNNN)
+   ```
+
+From then on every release is archived automatically and needs no extra steps.
+
+### Not published to PyPI (yet)
 
 Releases go to GitHub only; users install with `uv tool install git+…` (see the
 [install guide](install.md)). shelley is not on PyPI because `shelley build`
@@ -318,18 +394,3 @@ Once the Singularity support is merged into
    [trusted publishing](https://docs.pypi.org/trusted-publishers/). It must be a job
    in the same workflow: a release created with `GITHUB_TOKEN` does not trigger
    other workflows, so a separate `on: release` workflow would never run.
-
-#### If the workflow fails
-
-Fix the problem on `dev`, merge it to `main` again, then move the tag to the new
-commit:
-
-```bash
-git checkout main && git pull
-git push origin :refs/tags/vX.Y.Z   # delete the remote tag
-git tag -f vX.Y.Z                   # re-tag the current main
-git push origin vX.Y.Z
-```
-
-This is only safe while no GitHub release exists for the tag. If one was created,
-delete it first (`gh release delete vX.Y.Z`), or release a new patch version instead.

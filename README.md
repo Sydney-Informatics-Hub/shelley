@@ -1,5 +1,12 @@
 # Shelley
 
+[![CI](https://github.com/Sydney-Informatics-Hub/shelley/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Sydney-Informatics-Hub/shelley/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Sydney-Informatics-Hub/shelley)](https://github.com/Sydney-Informatics-Hub/shelley/releases/latest)
+[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FSydney-Informatics-Hub%2Fshelley%2Fmain%2Fpyproject.toml)](pyproject.toml)
+[![License](https://img.shields.io/github/license/Sydney-Informatics-Hub/shelley)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
 **A bioinformatics tool finder and module builder for CVMFS-hosted containers on [BioShell](https://github.com/Sydney-Informatics-Hub/bioimage)**
 
 Shelley helps researchers using [BioShell](https://github.com/AustralianBioCommons/BioShell) virtual machine images on Nectar research cloud platforms discover, query, and deploy bioinformatics software from CVMFS (CernVM File System) repositories. It provides both interactive and programmatic interfaces for finding tools, building Lmod modules, and managing containerised workflows.
