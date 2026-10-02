@@ -79,7 +79,7 @@ jobs:
             echo
             cat "$RUNNER_TEMP/summary.md"
             echo
-            echo "Sources that failed to refresh: ${{ steps.toolfinder.outcome != 'success' && 'toolfinder ' || '' }}${{ steps.rsec.outcome != 'success' && 'rsec ' || '' }}${{ steps.galaxy.outcome != 'success' && 'galaxy' || '' }}"
+            echo "Sources that failed to refresh: ${{ steps.rsec.outcome != 'success' && 'rsec ' || '' }}${{ steps.galaxy.outcome != 'success' && 'galaxy' || '' }}"
             echo
             echo "> CI does not run automatically on PRs opened by this workflow. Close and reopen the PR to trigger it."
             echo

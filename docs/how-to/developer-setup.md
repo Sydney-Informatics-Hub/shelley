@@ -229,8 +229,12 @@ On `dev`:
 1. Bump the version (follow [SemVer](https://semver.org/)): `__version__` in
    `shelley/__init__.py` (the source `pyproject.toml` reads), plus the `version`
    and `date-released` fields in `CITATION.cff`.
-2. Update `CHANGELOG.md`: rename the `Unreleased` section to the new version with
-   today's date, and add the release link at the bottom.
+2. Update `CHANGELOG.md`:
+   - Rename the `Unreleased` section to `## [X.Y.Z] - YYYY-MM-DD`, using today's date.
+     The release workflow looks for this exact heading.
+   - Update the link references at the bottom: point `[Unreleased]` at
+     `compare/vX.Y.Z...HEAD`, and add a `[X.Y.Z]` line linking to
+     `releases/tag/vX.Y.Z`.
 3. Confirm the build and version resolve:
    ```bash
    uv build                                  # builds shelley-<version>.{whl,tar.gz}
@@ -242,19 +246,37 @@ On `dev`:
    `pytest` lives in the `dev` extra, so it needs `--extra dev` (or a prior
    `uv sync --extra dev`, which is what CI does) — plain `uv run pytest` fails to
    spawn.
-4. Commit and open a PR into `main`; merge once CI passes.
+4. Dry-run the release workflow's checks. A mismatch found after tagging means
+   [moving the tag](#if-the-workflow-fails), so catch it here:
+   ```bash
+   tag=X.Y.Z
+   grep -n "__version__" shelley/__init__.py        # must equal $tag
+   grep -n "^version:" CITATION.cff                 # must equal $tag
+   grep -n "^## \[$tag\]" CHANGELOG.md              # must exist
+   ```
+5. Commit and open a PR from `dev` into `main`. Merge it with a merge commit once
+   CI passes.
+
+   Merging is what users see: the [update check](#update-check) reads `__version__`
+   on `main`, so existing installs are prompted to upgrade within a day. Tag
+   straight after merging so the GitHub release exists by the time they do.
 
 On `main`, after merge:
 
-5. Tag and push:
+6. Tag and push:
    ```bash
    git checkout main && git pull
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-6. Pushing the tag triggers the [release workflow](#release-workflow), which creates
+7. Pushing the tag triggers the [release workflow](#release-workflow), which creates
    the GitHub release. Check that the run in the **Actions** tab passes and the release
-   appears under **Releases**.
+   appears under **Releases**, with the wheel and sdist attached.
+
+Back on `dev`:
+
+8. Add an empty `## [Unreleased]` section above the new release in `CHANGELOG.md`,
+   ready for the next change.
 
 ### Release workflow
 
@@ -278,6 +300,24 @@ The smoke test installs `container-guts` from the
 matching `[tool.uv.sources]` in `pyproject.toml`. The wheel only declares a bare
 `container-guts`, which on PyPI resolves to upstream, so if the source in
 `pyproject.toml` changes, update the workflow too.
+
+#### Not published to PyPI (yet)
+
+Releases go to GitHub only; users install with `uv tool install git+…` (see the
+[install guide](install.md)). shelley is not on PyPI because `shelley build`
+needs the Singularity support in our `container-guts` fork. The `container-guts`
+on PyPI is upstream, without it, and PyPI does not allow dependencies on git URLs.
+A PyPI install would therefore get upstream guts, and `shelley build` would break.
+
+Once the Singularity support is merged into
+[singularityhub/guts](https://github.com/singularityhub/guts) and released on PyPI:
+
+1. Depend on `container-guts>=<that version>` and remove `[tool.uv.sources]`.
+2. Drop the git pin from the smoke test, so it installs what PyPI users get.
+3. Add a publish job to `release.yml`, after the release job, using
+   [trusted publishing](https://docs.pypi.org/trusted-publishers/). It must be a job
+   in the same workflow: a release created with `GITHUB_TOKEN` does not trigger
+   other workflows, so a separate `on: release` workflow would never run.
 
 #### If the workflow fails
 
