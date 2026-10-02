@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release workflow: pushing a `vX.Y.Z` tag on `main` checks that the versions and
   CHANGELOG match, builds and smoke-tests the wheel, and creates the GitHub release
   with the wheel and sdist attached. See `docs/how-to/developer-setup.md`.
+- Monthly data refresh workflow: regenerates `rsec_meta.json.gz` and 
+  `galaxy_singularity_cache.json.gz`, and opens a PR into
+  `dev` when their content changes. See `docs/how-to/maintain-corpus.md`.
 
 ### Changed
 
@@ -31,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `print_about()` and `ShelleyStyle.create_about_panel()` from `shelley.utils`. They were
   unused and raised `NameError` if called.
 - Support for Python 3.10. `shelley` now requires Python 3.11 or later.
+
+### Fixed
+
+- `docs/how-to/maintain-corpus.md` pointed to a removed script for regenerating the
+  Galaxy cache; it now uses `shelley-build-galaxy`.
 
 ## [0.3.0] - 2026-07-31
 
