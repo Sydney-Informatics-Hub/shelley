@@ -1,0 +1,9 @@
+# Bulk-formatting commits to skip in `git blame`.
+# GitHub applies this file automatically. Locally, run once:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# STY: uv run ruff format .
+c6749921f92a8a9a1be42127240c88551e7c3089
+
+# STY: uv run ruff check --fix .
+1fc4da3b55337e1d8d38fcd85155d2bdf4b857a6

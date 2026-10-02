@@ -1,0 +1,99 @@
+name: Refresh data
+
+on:
+  schedule:
+    - cron: "0 18 1 * *"  # 18:00 UTC on the 1st, i.e. early morning on the 2nd in Sydney
+  workflow_dispatch:
+
+concurrency:
+  group: refresh-data
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write       # push the refresh branch
+      pull-requests: write  # open the PR
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: dev
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+
+      - name: Install dependencies
+        run: uv sync --python 3.12
+
+      # Each source is refreshed independently: one failing upstream should not
+      # block the others. Builders write to $RUNNER_TEMP and are moved into place
+      # only on success, so a failed run never leaves a partial file behind.
+      - name: Refresh rsec_meta.json.gz
+        id: rsec
+        continue-on-error: true
+        run: |
+          uv run shelley-build-rsec --out "$RUNNER_TEMP/rsec_meta.json.gz"
+          mv "$RUNNER_TEMP/rsec_meta.json.gz" shelley/data/rsec_meta.json.gz
+
+      - name: Mount CVMFS
+        id: cvmfs
+        continue-on-error: true
+        uses: cvmfs-contrib/github-action-cvmfs@72f2a8d366043978d6aebee154bc9ed321c2f2a8 # v5.6
+        with:
+          cvmfs_repositories: singularity.galaxyproject.org
+
+      - name: Refresh galaxy_singularity_cache.json.gz
+        id: galaxy
+        if: steps.cvmfs.outcome == 'success'
+        continue-on-error: true
+        run: |
+          uv run shelley-build-galaxy --out "$RUNNER_TEMP/galaxy_singularity_cache.json.gz"
+          mv "$RUNNER_TEMP/galaxy_singularity_cache.json.gz" shelley/data/galaxy_singularity_cache.json.gz
+
+      - name: Compare with committed data
+        id: compare
+        run: |
+          uv run python .github/scripts/compare_data.py \
+            shelley/data/rsec_meta.json.gz \
+            shelley/data/galaxy_singularity_cache.json.gz \
+            | tee "$RUNNER_TEMP/summary.md"
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open pull request
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="data-refresh/$(date -u +%Y-%m-%d)-$GITHUB_RUN_NUMBER"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add shelley/data/
+          git commit -m "DEV: Regenerate data artifacts"
+          git push origin "$branch"
+
+          {
+            echo "Scheduled refresh of the bundled data artifacts."
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "Sources that failed to refresh: ${{ steps.rsec.outcome != 'success' && 'rsec ' || '' }}${{ steps.galaxy.outcome != 'success' && 'galaxy' || '' }}"
+            echo
+            echo "> CI does not run automatically on PRs opened by this workflow. Close and reopen the PR to trigger it."
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > "$RUNNER_TEMP/body.md"
+
+          gh pr create --base dev --head "$branch" \
+            --title "DEV: Regenerate data artifacts ($(date -u +%Y-%m-%d))" \
+            --body-file "$RUNNER_TEMP/body.md"
+
+      - name: Fail if any source failed
+        if: >-
+          steps.rsec.outcome != 'success' ||
+          steps.galaxy.outcome != 'success'
+        run: |
+          echo "::error::Refresh failed for: rsec=${{ steps.rsec.outcome }} cvmfs=${{ steps.cvmfs.outcome }} galaxy=${{ steps.galaxy.outcome }}"
+          exit 1

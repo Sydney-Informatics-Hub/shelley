@@ -49,6 +49,10 @@ The test suite has two groups:
 
 Every push to a pull request runs general unit tests automatically using `uv run pytest`. CVMFS tests are skipped — the CVMFS filesystem is not available in GitHub Actions.
 
+A separate `lint` job runs ruff on every pull request — see [Linting and formatting](#linting-and-formatting).
+
+Every test job also measures coverage — see [Test coverage](#test-coverage).
+
 ### Running locally (BioShell)
 
 Run from inside a BioShell session where `/cvmfs/singularity.galaxyproject.org/all` is mounted — `cvmfs`-marked tests enable automatically when the path exists:
@@ -59,6 +63,114 @@ uv run pytest -v --tb=short               # verbose with short tracebacks
 uv run pytest tests/test_cvmfs_builder.py # single file
 uv run pytest -m "not network"            # exclude network tests when offline
 ```
+
+### Test coverage
+
+Test coverage reports which parts of the codebase that are, or are not, 
+accounted for by unit tests. [pytest-cov](https://pytest-cov.readthedocs.io/) ships in the `dev` extra. Coverage is
+off by default; add `--cov` to measure it:
+
+```bash
+uv run pytest --cov                        # table of files below 100 %, with missing lines
+uv run pytest --cov --cov-report=html      # browsable report in htmlcov/index.html
+uv run pytest --cov -m "not cvmfs"         # match what CI measures
+```
+
+Configuration lives under `[tool.coverage.*]` in
+[`pyproject.toml`](../../pyproject.toml). Coverage measures the `shelley` package
+and includes branches, so a partly taken `if` counts as partly covered. The report
+leaves out fully covered files.
+
+In CI, every test job prints the coverage table in its log, and the Python 3.12
+job adds it to the run's summary page (**Actions** → the run → **Summary**). CVMFS
+tests are skipped in CI, so the code they exercise shows as uncovered there even
+though it is tested on BioShell.
+
+Coverage is reported but not enforced. A PR that lowers it does not fail. Use the
+report to spot untested code in the files a PR changes.
+
+## Linting and formatting
+
+Linting and formatting keep the codebase consistent and tidy across all contributors, and help catch bugs early. In the long run, it will help focus code reviews on functional changes.
+
+The project uses [ruff](https://docs.astral.sh/ruff/) for both linting and formatting.
+It ships in the `dev` extra, so `uv sync --extra dev` installs it.
+
+```bash
+uv run ruff check .            # lint
+uv run ruff check --fix .      # lint and apply safe autofixes
+uv run ruff format .           # format in place
+uv run ruff format --check .   # report unformatted files without changing them
+```
+
+CI runs `ruff check` and `ruff format --check` on every pull request and fails if
+either reports anything, so **run `uv run ruff check --fix . && uv run ruff format .`
+before pushing.**
+
+Configuration lives under `[tool.ruff]` in [`pyproject.toml`](../../pyproject.toml).
+The rule set is pinned explicitly (`select`) rather than relying on ruff's defaults,
+which change between releases; ruff itself is bounded to one minor version for the
+same reason. Line length (`E501`) is not linted — `ruff format` handles it.
+
+For editor integration, the
+[Ruff VS Code extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)
+picks up the `pyproject.toml` configuration automatically.
+
+### Ignoring bulk changes in `git blame`
+
+[`.git-blame-ignore-revs`](../../.git-blame-ignore-revs) lists commits that `git blame`
+should skip, so lines keep pointing at the commit that last changed their meaning
+rather than the one that reformatted them. GitHub applies it automatically; to apply
+it locally, run once:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+Add a commit to this file only if it is a **bulk, mechanical, behaviour-free**
+change — a full reformat, or a reformat after bumping ruff to a new minor version.
+Do not add small style tidy-ups, or any commit that mixes formatting with logic
+changes (skipping it would hide the logic from blame too); keep those separate.
+Since CI enforces formatting, standalone `STY` commits should be rare.
+
+A listed commit must keep its hash all the way into `dev` and `main`, so merge its
+PR with a merge commit — not squash or rebase — or add the final hash after merging.
+
+## Dependency updates (Dependabot)
+
+[Dependabot](https://docs.github.com/en/code-security/dependabot) opens PRs to keep
+dependencies current. It is configured in
+[`.github/dependabot.yml`](../../.github/dependabot.yml) and covers:
+
+| Ecosystem | What it bumps |
+|---|---|
+| `github-actions` | The SHA-pinned actions in `.github/workflows/`, along with their `# vX.Y.Z` comments |
+| `uv` | Package versions in `uv.lock` |
+
+Updates are checked **monthly** and **grouped**, so expect at most one PR per
+ecosystem per month rather than one per package. PRs target **`dev`**, like
+feature work, and reach `main` at the next release. Commit messages use the
+`MAINT` prefix.
+
+Dependabot reads its config from the default branch (`main`), so changes to
+`dependabot.yml` take effect only after a release merges them there.
+
+### Reviewing a Dependabot PR
+
+1. Let CI run. Lint and tests run on every PR, so a green run is the main signal.
+2. For action bumps, skim the action's release notes for breaking changes,
+   especially across major versions.
+3. For `uv` bumps, check whether the PR touches `pyproject.toml` as well as
+   `uv.lock`. Dependabot may widen a version bound, such as ruff's one-minor-version
+   pin. A ruff minor bump can change formatting, so take it as a deliberate
+   change with its own reformat commit (see
+   [Ignoring bulk changes in `git blame`](#ignoring-bulk-changes-in-git-blame))
+   rather than merging it as routine.
+4. Merge into `dev` with a merge commit.
+
+`container-guts` is installed from a git **branch** (`[tool.uv.sources]` in
+`pyproject.toml`), not a released version, so Dependabot may not track it reliably.
+To pick up upstream changes, run `uv lock --upgrade-package container-guts` manually.
 
 ## Preparing a release
 
@@ -117,25 +229,168 @@ On `dev`:
 1. Bump the version (follow [SemVer](https://semver.org/)): `__version__` in
    `shelley/__init__.py` (the source `pyproject.toml` reads), plus the `version`
    and `date-released` fields in `CITATION.cff`.
-2. Update `CHANGELOG.md`: rename the `Unreleased` section to the new version with
-   today's date, and add the release link at the bottom.
+2. Update `CHANGELOG.md`:
+   - Rename the `Unreleased` section to `## [X.Y.Z] - YYYY-MM-DD`, using today's date.
+     The release workflow looks for this exact heading.
+   - Update the link references at the bottom: point `[Unreleased]` at
+     `compare/vX.Y.Z...HEAD`, and add a `[X.Y.Z]` line linking to
+     `releases/tag/vX.Y.Z`.
 3. Confirm the build and version resolve:
    ```bash
    uv build                                  # builds shelley-<version>.{whl,tar.gz}
    uv run shelley --version                  # should print the new version
    uv run --extra dev pytest -m "not cvmfs"  # tests green
+   uv run --extra dev ruff check .           # lint clean
+   uv run --extra dev ruff format --check .  # formatting clean
    ```
    `pytest` lives in the `dev` extra, so it needs `--extra dev` (or a prior
    `uv sync --extra dev`, which is what CI does) — plain `uv run pytest` fails to
    spawn.
-4. Commit and open a PR into `main`; merge once CI passes.
+4. Dry-run the release workflow's checks. A mismatch found after tagging means
+   [moving the tag](#if-the-workflow-fails), so catch it here:
+   ```bash
+   tag=X.Y.Z
+   grep -n "__version__" shelley/__init__.py        # must equal $tag
+   grep -n "^version:" CITATION.cff                 # must equal $tag
+   grep -n "^## \[$tag\]" CHANGELOG.md              # must exist
+   ```
+5. Commit and open a PR from `dev` into `main`. Merge it with a merge commit once
+   CI passes.
+
+   Merging is what users see: the [update check](#update-check) reads `__version__`
+   on `main`, so existing installs are prompted to upgrade within a day. Tag
+   straight after merging so the GitHub release exists by the time they do.
 
 On `main`, after merge:
 
-5. Tag and push:
+6. Tag and push:
    ```bash
    git checkout main && git pull
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-6. Create the GitHub release from the tag, pasting the CHANGELOG entry as notes.
+7. Pushing the tag triggers the [release workflow](#release-workflow), which creates
+   the GitHub release. Check that the run in the **Actions** tab passes and the release
+   appears under **Releases**, with the wheel and sdist attached.
+
+Back on `dev`:
+
+8. Add an empty `## [Unreleased]` section above the new release in `CHANGELOG.md`,
+   ready for the next change.
+
+### Release workflow
+
+[`.github/workflows/release.yml`](../../.github/workflows/release.yml) runs on every
+pushed `v*` tag. It stops at the first failing check, so nothing is published
+unless all of them pass:
+
+| Step | Fails if |
+|---|---|
+| Tag is on `main` | The tagged commit is not in `main`'s history |
+| Versions match tag | `__version__` in `shelley/__init__.py` or `version` in `CITATION.cff` differs from the tag (without the `v`) |
+| Release notes | `CHANGELOG.md` has no `## [X.Y.Z]` section; its body becomes the release notes |
+| Build | `uv build` fails |
+| Smoke test | The built wheel, installed into a clean venv away from the checkout, cannot run `shelley --version` or `shelley find fastqc`. This catches packaging mistakes, such as data files missing from the wheel, that tests run from the source tree cannot |
+| Create release | The release already exists |
+
+The release is titled with the tag and has the wheel and sdist attached.
+
+The smoke test installs `container-guts` from the
+[`singularity` branch of our fork](https://github.com/Sydney-Informatics-Hub/guts/tree/singularity),
+matching `[tool.uv.sources]` in `pyproject.toml`. The wheel only declares a bare
+`container-guts`, which on PyPI resolves to upstream, so if the source in
+`pyproject.toml` changes, update the workflow too.
+
+#### If the workflow fails
+
+Fix the problem on `dev`, merge it to `main` again, then move the tag to the new
+commit:
+
+```bash
+git checkout main && git pull
+git push origin :refs/tags/vX.Y.Z   # delete the remote tag
+git tag -f vX.Y.Z                   # re-tag the current main
+git push origin vX.Y.Z
+```
+
+This is only safe while no GitHub release exists for the tag. If one was created,
+delete it first (`gh release delete vX.Y.Z`), or release a new patch version instead.
+
+### Zenodo archiving and DOIs
+
+[Zenodo](https://zenodo.org) archives each GitHub release and gives it a DOI, so
+papers can cite the exact version of shelley they used. It is separate from
+package distribution ([PyPI](#not-published-to-pypi-yet)): Zenodo is for
+citing a release, PyPI is for installing it.
+
+| | Zenodo | PyPI |
+|---|---|---|
+| Purpose | Permanent archive and DOI, for citation | `pip install` / `uv tool install` |
+| Stores | A zip of the source at the tag | The built wheel and sdist |
+| Metadata from | `CITATION.cff` | `pyproject.toml` |
+| Triggered by | A GitHub webhook when a release is published | A publish job in `release.yml` |
+| Undo | None: records are permanent; only new versions can be added | Versions can be yanked, never re-uploaded |
+
+Zenodo needs no change to `release.yml`. The rule that a release created with
+`GITHUB_TOKEN` triggers nothing applies only to other Actions workflows, not to
+webhooks, so the release the workflow creates is archived like any other.
+
+Zenodo takes its metadata (authors and ORCIDs, title, abstract, licence, version)
+from [`CITATION.cff`](../../CITATION.cff). That is one more reason the
+release workflow checks its `version` against the tag. Do not add a `.zenodo.json`:
+it would take precedence over `CITATION.cff`, giving two sources to keep in sync.
+
+There are two kinds of DOI:
+
+- **Concept DOI.** Always resolves to the latest version. Use it in the README badge
+  and when referring to shelley in general.
+- **Version DOI.** One per release. Use it to cite a specific version, for example in
+  a paper's methods section.
+
+#### One-time setup
+
+1. Sign in to [Zenodo](https://zenodo.org) with GitHub, open **GitHub** in the account
+   menu, and switch on `Sydney-Informatics-Hub/shelley`. If the repository is not
+   listed, an organisation owner must first grant the Zenodo OAuth app access to
+   `Sydney-Informatics-Hub` (GitHub **Settings → Applications → Authorized OAuth
+   Apps → Zenodo**).
+2. Enable it **before** pushing the next tag. Zenodo archives only releases
+   published after it is switched on; earlier releases are not backfilled.
+
+#### After the first archived release
+
+1. Check the record on Zenodo: authors, ORCIDs, licence and version should match
+   `CITATION.cff`.
+2. Add the **concept DOI** to `CITATION.cff`, so GitHub's **Cite this repository**
+   shows it:
+   ```yaml
+   identifiers:
+     - type: doi
+       value: 10.5281/zenodo.NNNNNNN
+       description: Concept DOI (all versions)
+   ```
+3. Add the DOI badge to the badge row at the top of the README. Zenodo's record
+   page shows the exact Markdown under **Badge**:
+   ```markdown
+   [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.NNNNNNN.svg)](https://doi.org/10.5281/zenodo.NNNNNNN)
+   ```
+
+From then on every release is archived automatically and needs no extra steps.
+
+### Not published to PyPI (yet)
+
+Releases go to GitHub only; users install with `uv tool install git+…` (see the
+[install guide](install.md)). shelley is not on PyPI because `shelley build`
+needs the Singularity support in our `container-guts` fork. The `container-guts`
+on PyPI is upstream, without it, and PyPI does not allow dependencies on git URLs.
+A PyPI install would therefore get upstream guts, and `shelley build` would break.
+
+Once the Singularity support is merged into
+[singularityhub/guts](https://github.com/singularityhub/guts) and released on PyPI:
+
+1. Depend on `container-guts>=<that version>` and remove `[tool.uv.sources]`.
+2. Drop the git pin from the smoke test, so it installs what PyPI users get.
+3. Add a publish job to `release.yml`, after the release job, using
+   [trusted publishing](https://docs.pypi.org/trusted-publishers/). It must be a job
+   in the same workflow: a release created with `GITHUB_TOKEN` does not trigger
+   other workflows, so a separate `on: release` workflow would never run.

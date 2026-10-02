@@ -67,12 +67,14 @@ unreadable one breaks a bare `module load <tool>` for everyone else.
 
 `shelley build` has two paths depending on whether the requested version is in the upstream [shpc-registry](https://github.com/singularityhub/shpc-registry):
 
-- **Version in upstream registry** — `shpc install` is called directly; the upstream registry's `aliases` field is used as-is.
+- **Version in upstream registry** — `shpc install` is called directly; the upstream registry's `aliases` field is used as-is. The one exception is `--interactive`: curating aliases always routes through a local entry (below) so the edit persists and shadows upstream, even though the version itself is not "absent" in the sense this section otherwise describes.
 - **Version absent from upstream** — shelley creates a local `container.yaml` under `/apps/local/` (declared as the first entry in shpc's registry search path by shelley's settings file, so local entries shadow upstream ones). As part of building that entry, it calls `extract_aliases` to diff the exact CVMFS SIF and generate the `aliases` field fresh. The local entry is never copied or inherited from another version of the same tool.
 
 The reason for the no-inheritance rule is correctness. A concrete failure mode: if `star-fusion 1.0.0` inherited the local registry entry from `star-fusion 1.10.1`, the module would expose `salmon` as an alias — because `salmon` was present in the `1.10.1` container but absent from `1.0.0`. Any user running `module load star-fusion/1.0.0` and calling `salmon` would get a command-not-found error, or silently pick up a wrong binary from elsewhere on PATH.
 
 The regression test `test_extract_aliases_star_fusion_1_0_0` explicitly asserts that `salmon` does not appear in the `1.0.0` alias list. `star-fusion 1.0.0` uses the local fallback path (`newly_created=True` in the regression matrix), so this test exercises the alias generation directly.
+
+Regenerating aliases fresh keeps each version's own *install* correct, but `aliases` is one field shared by the whole `container.yaml` file — so building a second locally-curated version of the same tool still overwrites what's on disk with that version's own aliases. `shelley clean` addresses this by snapshotting each locally-curated version's aliases into its own marker directory; see [clean-design.md](clean-design.md#why-marker-directories-also-snapshot-that-versions-aliases).
 
 ## Why guts_db exists — the conda subtraction problem
 
@@ -108,9 +110,9 @@ Shelley keeps one piece of policy on top: basename matching would also drop a to
 
 The upstream [shpc-registry](https://github.com/singularityhub/shpc-registry) does not carry every version of every tool. Older patch releases and some tools are present in CVMFS but absent from the registry.
 
-When `shelley build` requests a version that has no upstream registry entry, it:
+A local entry is created when the requested version has no upstream registry entry, **or** whenever `--interactive` is used — even for a version that *is* upstream, so that curated aliases persist and shadow the upstream entry. When `shelley build` takes either path, it:
 
-1. Creates a minimal `container.yaml` under `/apps/local/<uri>/` (the local shpc registry path, declared in shelley's settings file rather than registered via `shpc config add`).
+1. Creates or updates a `container.yaml` under `/apps/local/<uri>/` (the local shpc registry path, declared in shelley's settings file rather than registered via `shpc config add`).
 2. Retries `shpc install` pointing at the local registry.
 
-This is transparent to the user — it adds a few minutes to the build and is logged. The `newly_created` flag in the regression matrix (see [docs/reference/data-sources.md](../reference/data-sources.md)) records which tools consistently require a local entry.
+This is transparent to the user — it adds a few minutes to the build and is logged (only for the absent-upstream case; an interactive curation of an upstream version is not itself a fallback). The `newly_created` flag in the regression matrix (see [docs/reference/data-sources.md](../reference/data-sources.md)) records which tools consistently require a local entry for this second reason. Both paths are marked with a per-version marker directory so `shelley clean` can find them later — see [clean-design.md](clean-design.md#why-per-version-marker-directories-exist).

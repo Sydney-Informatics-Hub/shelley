@@ -26,12 +26,23 @@ def _sparse_clone_base_manifests(db_url: str, namespaces: list[str]) -> str:
     """
     tmpdir = tempfile.mkdtemp(prefix="shelley-guts-")
     subprocess.run(
-        ["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", db_url, tmpdir],
-        check=True, capture_output=True,
+        [
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            "--filter=blob:none",
+            "--sparse",
+            db_url,
+            tmpdir,
+        ],
+        check=True,
+        capture_output=True,
     )
     subprocess.run(
         ["git", "-C", tmpdir, "sparse-checkout", "set"] + namespaces,
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     return tmpdir
 
@@ -99,7 +110,8 @@ def extract_aliases(cvmfs_path: str, keep: str | None = None) -> list[dict]:
         candidates = list(diff_data.get("unique_paths", []))
         if keep:
             candidates += [
-                p for p in diff_data.get("shadowed_paths", [])
+                p
+                for p in diff_data.get("shadowed_paths", [])
                 if os.path.basename(p) == keep
             ]
         return [{"name": n, "command": n} for n in _alias_names(candidates)]
@@ -147,8 +159,7 @@ def select_aliases(aliases: list[dict]) -> list[dict]:
         return aliases
 
     choices = [
-        questionary.Choice(title=a["name"], value=a, checked=False)
-        for a in aliases
+        questionary.Choice(title=a["name"], value=a, checked=False) for a in aliases
     ]
     selected = questionary.checkbox(
         "Select which binaries to expose as aliases (these can be renamed in the next step):",
@@ -205,11 +216,14 @@ def _add_aliases(aliases: list[dict], require_confirm: bool = True) -> list[dict
     callers that already know the user needs to add aliases (e.g. a container with
     none detected) pass ``False`` to drop straight into the add loop.
     """
-    if require_confirm and not questionary.confirm(
-        "Add new aliases?",
-        default=False,
-        instruction="(y/n)",
-    ).ask():
+    if (
+        require_confirm
+        and not questionary.confirm(
+            "Add new aliases?",
+            default=False,
+            instruction="(y/n)",
+        ).ask()
+    ):
         return aliases
 
     while True:

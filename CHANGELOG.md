@@ -5,6 +5,47 @@ All notable changes to shelley are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-02
+
+### Added
+
+- `shelley clean` removes built modules.
+- Support `build` for tools with no shpc registry [BioShell/#22](https://github.com/AustralianBioCommons/BioShell/issues/22)
+- Dependabot opens monthly, grouped PRs into `dev` for GitHub Actions and `uv.lock`
+  updates; see `docs/how-to/developer-setup.md`.
+- Release workflow: pushing a `vX.Y.Z` tag on `main` checks that the versions and
+  CHANGELOG match, builds and smoke-tests the wheel, and creates the GitHub release
+  with the wheel and sdist attached. See `docs/how-to/developer-setup.md`.
+- Monthly data refresh workflow: regenerates `rsec_meta.json.gz` and 
+  `galaxy_singularity_cache.json.gz`, and opens a PR into
+  `dev` when their content changes. See `docs/how-to/maintain-corpus.md`.
+- Test coverage reporting with `pytest-cov` (in the `dev` extra). CI prints coverage
+  for every test run and adds a summary table to the run's page. See
+  `docs/how-to/developer-setup.md`.
+- README badges for CI status, latest release, supported Python, licence, ruff and uv.
+- Release docs cover Zenodo archiving and DOIs, and why shelley is not yet on PyPI.
+  See `docs/how-to/developer-setup.md`.
+
+### Changed
+
+- Local registries are now built in versioned subdirectories for `shelley clean` to
+  correctly uninstall tool versions.
+- Development tooling now uses [ruff](https://docs.astral.sh/ruff/) for linting and
+  formatting, replacing the unused `black` and `flake8` in the `dev` extra. CI enforces
+  `ruff check` and `ruff format --check` on every pull request. The codebase was
+  reformatted once to match; see `docs/how-to/developer-setup.md`.
+
+### Removed
+
+- `print_about()` and `ShelleyStyle.create_about_panel()` from `shelley.utils`. They were
+  unused and raised `NameError` if called.
+- Support for Python 3.10. `shelley` now requires Python 3.11 or later.
+
+### Fixed
+
+- `docs/how-to/maintain-corpus.md` pointed to a removed script for regenerating the
+  Galaxy cache; it now uses `shelley-build-galaxy`.
+
 ## [0.3.0] - 2026-07-31
 
 Multi-user module builds.
@@ -120,6 +161,8 @@ First tagged release.
 - Installation guide covering system-wide (`uv tool install` into `/opt`),
   per-user, and `uvx` (experimental) paths.
 
+[Unreleased]: https://github.com/Sydney-Informatics-Hub/shelley/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.1.0

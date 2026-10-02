@@ -20,9 +20,21 @@ import yaml
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 TOOLS = [
-    "fastqc", "multiqc", "salmon", "bcftools", "bwa-mem2", "fastp",
-    "sambamba", "samblaster", "samtools", "blast", "star", "star-fusion",
-    "seurat", "parabricks", "tidyverse",
+    "fastqc",
+    "multiqc",
+    "salmon",
+    "bcftools",
+    "bwa-mem2",
+    "fastp",
+    "sambamba",
+    "samblaster",
+    "samtools",
+    "blast",
+    "star",
+    "star-fusion",
+    "seurat",
+    "parabricks",
+    "tidyverse",
 ]
 
 
@@ -45,7 +57,9 @@ def _lookup_rsec(rsec: dict, tool: str) -> dict | None:
 
 
 def _lookup_tf(tf: dict, tool: str) -> dict | None:
-    return tf.get(tool) or tf.get(tool.replace("-", "_")) or tf.get(tool.replace("-", ""))
+    return (
+        tf.get(tool) or tf.get(tool.replace("-", "_")) or tf.get(tool.replace("-", ""))
+    )
 
 
 def _count(lst) -> str:
@@ -56,7 +70,9 @@ def main() -> None:
     rsec = _load_rsec()
     tf = _load_toolfinder()
 
-    print(f"{'Tool':<16} {'RSEC':<6} {'TF':<6} {'ops':<5} {'topics':<8} {'inputs':<8} outputs")
+    print(
+        f"{'Tool':<16} {'RSEC':<6} {'TF':<6} {'ops':<5} {'topics':<8} {'inputs':<8} outputs"
+    )
     print("-" * 62)
     for tool in TOOLS:
         e = _lookup_rsec(rsec, tool)

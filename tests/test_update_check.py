@@ -22,6 +22,7 @@ def _isolate_cache(tmp_path, monkeypatch):
 # _is_newer — version comparison
 # ---------------------------------------------------------------------------
 
+
 def test_is_newer_true():
     assert update_check._is_newer("0.3.0", "0.2.0") is True
 
@@ -42,6 +43,7 @@ def test_is_newer_dev_precedes_release():
 # ---------------------------------------------------------------------------
 # check_for_update — end-to-end decision (network mocked)
 # ---------------------------------------------------------------------------
+
 
 def test_returns_latest_when_main_ahead(monkeypatch):
     monkeypatch.setattr(update_check, "__version__", "0.2.0")
@@ -70,7 +72,9 @@ def test_opt_out_skips_network(monkeypatch):
 
 def test_cache_prevents_second_fetch(monkeypatch):
     monkeypatch.setattr(update_check, "__version__", "0.2.0")
-    with patch.object(update_check, "fetch_main_version", return_value="0.3.0") as mock_fetch:
+    with patch.object(
+        update_check, "fetch_main_version", return_value="0.3.0"
+    ) as mock_fetch:
         assert update_check.check_for_update() == "0.3.0"
         assert update_check.check_for_update() == "0.3.0"
         mock_fetch.assert_called_once()  # second call served from the daily cache
@@ -79,6 +83,7 @@ def test_cache_prevents_second_fetch(monkeypatch):
 # ---------------------------------------------------------------------------
 # format_update_notice — points users at `shelley update`
 # ---------------------------------------------------------------------------
+
 
 def test_notice_points_at_shelley_update():
     notice = update_check.format_update_notice("9.9.9")

@@ -89,6 +89,10 @@ builder — showing a progress table and results summary for each tool.
   will prompt for sudo if needed. The latter two are created on first build, so a fresh
   machine always needs sudo.
 
+## Uninstalling a module
+
+> To remove a module you no longer need, see [clean-modules.md](clean-modules.md).
+
 ## Troubleshooting
 
 ### A build still writes to `$HOME/shpc`

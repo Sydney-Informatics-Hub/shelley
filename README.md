@@ -1,5 +1,12 @@
 # Shelley
 
+[![CI](https://github.com/Sydney-Informatics-Hub/shelley/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Sydney-Informatics-Hub/shelley/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Sydney-Informatics-Hub/shelley)](https://github.com/Sydney-Informatics-Hub/shelley/releases/latest)
+[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FSydney-Informatics-Hub%2Fshelley%2Fmain%2Fpyproject.toml)](pyproject.toml)
+[![License](https://img.shields.io/github/license/Sydney-Informatics-Hub/shelley)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
 **A bioinformatics tool finder and module builder for CVMFS-hosted containers on [BioShell](https://github.com/Sydney-Informatics-Hub/bioimage)**
 
 Shelley helps researchers using [BioShell](https://github.com/AustralianBioCommons/BioShell) virtual machine images on Nectar research cloud platforms discover, query, and deploy bioinformatics software from CVMFS (CernVM File System) repositories. It provides both interactive and programmatic interfaces for finding tools, building Lmod modules, and managing containerised workflows.
@@ -9,6 +16,7 @@ Shelley helps researchers using [BioShell](https://github.com/AustralianBioCommo
 - **Tool Discovery**: Find bioinformatics tools by name or search by description
 - **Container Management**: Query available container versions from CVMFS
 - **Module Building**: Automatically generate Lmod modules for tools, individually or in batch
+- **Module Cleanup**: Cleanly uninstall a specific tool version
 - **Interactive CLI**: Guided REPL for exploring and installing tools
 
 ## Quick Start
@@ -42,6 +50,9 @@ shelley build samtools
 # Build a specific version
 shelley build samtools/1.21
 
+# Uninstall a specific version
+shelley clean samtools:1.21
+
 # Interactive mode
 shelley interactive
 ```
@@ -55,6 +66,7 @@ shelley interactive
 | How-to | [docs/how-to/install.md](docs/how-to/install.md) | Install/update on a VM or BioShell image |
 | How-to | [docs/how-to/find-and-search.md](docs/how-to/find-and-search.md) | find, search |
 | How-to | [docs/how-to/build-modules.md](docs/how-to/build-modules.md) | build and batch operations |
+| How-to | [docs/how-to/clean-modules.md](docs/how-to/clean-modules.md) | Uninstall a specific tool version |
 | How-to | [docs/how-to/maintain-corpus.md](docs/how-to/maintain-corpus.md) | Update data artifacts |
 | How-to | [docs/how-to/developer-setup.md](docs/how-to/developer-setup.md) | Dev environment and tests |
 | Reference | [docs/reference/cli.md](docs/reference/cli.md) | All CLI commands |
@@ -62,6 +74,7 @@ shelley interactive
 | Explanation | [docs/explanation/install-design.md](docs/explanation/install-design.md) | Why shelley installs with uv |
 | Explanation | [docs/explanation/search-design.md](docs/explanation/search-design.md) | Why the search is designed this way |
 | Explanation | [docs/explanation/build-design.md](docs/explanation/build-design.md) | Why the build is designed this way |
+| Explanation | [docs/explanation/clean-design.md](docs/explanation/clean-design.md) | Why the clean is designed this way |
 
 ## Architecture
 
@@ -79,10 +92,10 @@ shelley/
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Access to CVMFS repositories (typically `/cvmfs/singularity.galaxyproject.org/`)
 - Lmod (for module management)
-- Singularity/Apptainer (for container execution)
+- Singularity (for container execution)
 
 ## License
 
@@ -104,3 +117,7 @@ We thank [Vanessa Sochat](https://orcid.org/0000-0002-4387-3819) for
 [Singularity Registry HPC (shpc)](https://github.com/singularityhub/singularity-hpc)
 and for guidance on [container-guts](https://github.com/singularityhub/guts), on
 which shelley builds.
+
+We'd also like to thank Eden Zhang (SIH) for developing the shelley ascii;
+Johan Gustafsson (Australian BioCommons), Mike Lynch, Senhui Guo, and Sebastian
+Haan (SIH) for valuable discussion around installation and tool metadata.

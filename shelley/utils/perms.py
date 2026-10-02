@@ -130,7 +130,9 @@ def harden_tree(root: Path) -> None:
     def _onerror(e: OSError) -> None:
         log.debug("Could not walk %s: %s", getattr(e, "filename", "?"), e)
 
-    for dirpath, dirnames, filenames in os.walk(root, followlinks=False, onerror=_onerror):
+    for dirpath, dirnames, filenames in os.walk(
+        root, followlinks=False, onerror=_onerror
+    ):
         base = Path(dirpath)
         for name in dirnames:
             child = base / name

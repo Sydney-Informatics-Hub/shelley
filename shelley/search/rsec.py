@@ -10,10 +10,9 @@ use nested dicts.
 import gzip
 import json
 from pathlib import Path
-from typing import Optional
 
-from shelley.utils.globals import DATA_DIR
 from shelley.search.base import MetadataSource
+from shelley.utils.globals import DATA_DIR
 
 RSEC_DATA_PATH = DATA_DIR / "rsec_meta.json.gz"
 
@@ -50,7 +49,7 @@ class RsecSource(MetadataSource):
         self.entries = doc["entries"]
         return self
 
-    def search(self, query: str, limit: Optional[int] = None) -> list[str]:
+    def search(self, query: str, limit: int | None = None) -> list[str]:
         """
         Keyword OR-match across name, description, edam-operations, edam-topics.
         Returns tool names sorted alphabetically, truncated to limit.

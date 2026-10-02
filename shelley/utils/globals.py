@@ -13,10 +13,10 @@ binds a copy at import time, so an override set afterwards would be ignored.
 import os
 from pathlib import Path
 
-CVMFS_GALAXY_SINGULARITY_PATH='/cvmfs/singularity.galaxyproject.org/all'
-LMOD_MODULES_PATH="/apps/Modules/modulefiles"
-LOCAL_REGISTRY="/apps/local"
-SHPC_BASE="/apps/shpc"
+CVMFS_GALAXY_SINGULARITY_PATH = "/cvmfs/singularity.galaxyproject.org/all"
+LMOD_MODULES_PATH = "/apps/Modules/modulefiles"
+LOCAL_REGISTRY = "/apps/local"
+SHPC_BASE = "/apps/shpc"
 
 # The upstream shpc registry. Named explicitly because shelley's settings file
 # replaces shpc's `registry` list wholesale rather than appending to it.
@@ -24,7 +24,7 @@ UPSTREAM_SHPC_REGISTRY = "https://github.com/singularityhub/shpc-registry"
 
 # Environment (Lmod) modules loaded before a build so shpc and singularity are on
 # PATH. Loaded only on the build path (see shelley.utils.modules.load_build_modules).
-BUILD_MODULES=("shpc", "singularity")
+BUILD_MODULES = ("shpc", "singularity")
 
 # Path to the bundled data directory (shelley/data/)
 DATA_DIR: Path = Path(__file__).resolve().parent.parent / "data"
