@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README badges for CI status, latest release, supported Python, licence, ruff and uv.
 - Release docs cover Zenodo archiving and DOIs, and why shelley is not yet on PyPI.
   See `docs/how-to/developer-setup.md`.
+- Releases are archived on Zenodo with a DOI
+  ([10.5281/zenodo.23093273](https://doi.org/10.5281/zenodo.23093273)); the DOI is in
+  `CITATION.cff` and shown as a README badge.
 
 ### Changed
 
