@@ -40,4 +40,8 @@ jobs:
         run: uv sync --extra dev --python ${{ matrix.python-version }}
 
       - name: Run tests
-        run: uv run pytest -v --timeout=30 tests/
+        run: uv run pytest -v --timeout=30 --cov --cov-report=term tests/
+
+      - name: Coverage summary
+        if: matrix.python-version == '3.12'
+        run: uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
