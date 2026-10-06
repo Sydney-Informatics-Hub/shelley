@@ -10,6 +10,8 @@
 
 **A bioinformatics tool finder and module builder for CVMFS-hosted containers on [BioShell](https://github.com/Sydney-Informatics-Hub/bioimage)**
 
+<img width="1055" height="386" alt="image" src="https://github.com/user-attachments/assets/c57d2ad1-fe5e-42d2-a09d-10aea743f531" />
+
 Shelley helps researchers using [BioShell](https://github.com/AustralianBioCommons/BioShell) virtual machine images on Nectar research cloud platforms discover, query, and deploy bioinformatics software from CVMFS (CernVM File System) repositories. It provides both interactive and programmatic interfaces for finding tools, building Lmod modules, and managing containerised workflows.
 
 ## Features
