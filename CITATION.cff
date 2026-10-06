@@ -1,7 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: shelley
-abstract: "A bioinformatics tool finder and module builder for CVMFS-hosted containers on BioShell."
+title: "Shelley: A bioinformatics tool finder and module builder for CVMFS-hosted containers on BioShell."
 type: software
 authors:
   - given-names: Frederick
@@ -16,5 +15,9 @@ authors:
 version: 0.4.0
 date-released: "2026-10-02"
 license: GPL-3.0-or-later
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.23093273
+    description: Concept DOI (all versions)
 repository-code: "https://github.com/Sydney-Informatics-Hub/shelley"
 url: "https://github.com/Sydney-Informatics-Hub/shelley"
