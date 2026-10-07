@@ -1,0 +1,62 @@
+classDiagram
+  class CVMFSModuleBuilder {
+    cvmfs_singularity : str
+    cvmfs_singularity_path : Path
+    lmod_modules : str
+    lmod_modules_path : Path
+    \_\_init\_\_(cvmfs_singularity: str, lmod_modules: str | None)
+    _compute_sha256(path: str) str
+    _ensure_local_registry_entry(tool_name: str, version: str, container_path: str, uri: str, local_registry: str | None, interactive: bool, in_upstream: bool, status) list[dict]
+    _get_available_tools(tool_name: str) list[tuple[str, str]]
+    _get_latest_version(versions: list[tuple[str, str]]) tuple[str, str]
+    _is_cvmfs_available() bool
+    _is_registry_miss(output: str) bool
+    _parse_version(version_str: str) tuple[int, ...]
+    _register_local_registry(local_registry: str) None
+    _run_shpc_install(uri_tag: str, container_path: str) tuple[int, str]
+    _run_shpc_uninstall(uri_tag: str) tuple[int, str]
+    _select_version_interactively(tool_name: str, matches: list[tuple[str, str]], labels: list[str] | None) tuple[str, str]
+    _share_build_artifacts(module_base: Path, tool_name: str, uri: str) None
+    _shpc_module_base() Path
+    _shpc_uninstall(uri_tag: str) None
+    _sort_versions(versions: list[tuple[str, str]]) list[tuple[str, str]]
+    list_versions(tool_name: str) list[str]
+    list_versions_with_paths(tool_name: str) list[tuple[str, str]]
+    search_tool_version(tool_name: str, requested_version: str | None) tuple[str, str]
+    shpc_install(tool_name: str, version: str, interactive: bool, status) Path
+    uninstall_module(tool_name: str, version: str) dict
+  }
+  class CacheDocument {
+    cvmfs_root : str
+    entries : list[CacheEntry]
+    entry_count : int
+    generated_at : str
+    tool_names : list[str]
+  }
+  class CacheEntry {
+    entry_name : str
+    mtime : float
+    path : str
+    size_bytes : int
+    tag : str | None
+    tool_name : str
+  }
+  class ShelleyStyle {
+    create_banner() Text
+    create_build_info(tool_name: str, version: str, available_versions: list[str]) Panel
+    create_build_success(tool_name: str, version: str, module_path: Path) Panel
+    create_clean_success(tool_name: str, version: str, report: dict[str, Any]) Panel
+    create_error_panel(title: str, message: str, suggestion: str) Panel
+    create_header(title: str, subtitle: str) Panel
+    create_help_table(commands: list[dict[str, str]]) Table
+    create_info_panel(title: str, message: str) Panel
+    create_progress_bar(description: str) Progress
+    create_status(message: str) Status
+    create_status_summary(success: int, total: int, operation: str) Panel
+    create_tools_table(tools: list[dict[str, Any]], limit: int) Table
+    create_version_info() str
+    create_versions_table(tool_name: str, versions: list[str]) Table
+    create_versions_with_paths_table(tool_name: str, version_path_pairs: list[tuple[str, str]]) Table
+    create_warning_panel(title: str, message: str) Panel
+    format_command_examples() Table
+  }

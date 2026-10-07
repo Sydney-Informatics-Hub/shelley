@@ -74,10 +74,14 @@ shelley interactive
 | How-to | [docs/how-to/developer-setup.md](docs/how-to/developer-setup.md) | Dev environment and tests |
 | Reference | [docs/reference/cli.md](docs/reference/cli.md) | All CLI commands |
 | Reference | [docs/reference/data-sources.md](docs/reference/data-sources.md) | Data artifacts and schemas |
+| Reference | [docs/reference/architecture/glossary.md](docs/reference/architecture/glossary.md) | Domain terms used in the code, docs and architecture diagrams |
+| Reference | [docs/reference/architecture/current-state.md](docs/reference/architecture/current-state.md) | As-is class, package, deployment, sequence and lifecycle diagrams |
+| Reference | [docs/reference/architecture/traceability.md](docs/reference/architecture/traceability.md) | Which modules serve each architecture driver |
 | Explanation | [docs/explanation/install-design.md](docs/explanation/install-design.md) | Why shelley installs with uv |
 | Explanation | [docs/explanation/search-design.md](docs/explanation/search-design.md) | Why the search is designed this way |
 | Explanation | [docs/explanation/build-design.md](docs/explanation/build-design.md) | Why the build is designed this way |
 | Explanation | [docs/explanation/clean-design.md](docs/explanation/clean-design.md) | Why the clean is designed this way |
+| Explanation | [docs/explanation/architecture-drivers.md](docs/explanation/architecture-drivers.md) | Review of the as-is design, and the ranked drivers for the target design |
 
 ## Architecture
 
