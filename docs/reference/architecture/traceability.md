@@ -5,8 +5,8 @@ Driver IDs and their meanings are defined in
 [architecture-drivers.md](../../explanation/architecture-drivers.md#part-2-drivers-quality-attributes-and-priorities).
 Module responsibilities are in [current-state.md §6](current-state.md#6-responsibility-table-as-is).
 
-- **Version:** as-is, 2026-10-07 (shelley `dev` @ `bb70383`). Re-run in each Phase 5
-  design round against the target modules.
+- **Versions:** [as-is](#matrix-as-is) (shelley `dev` @ `bb70383`) and [to-be](#to-be)
+  (the agreed design in [target-state.md](target-state.md)), both 2026-10-07.
 - **Legend:** ● serves the driver · ○ serves part of it · ✖ the defect or gap is located
   here · blank: not involved.
 
@@ -81,7 +81,56 @@ Notes on individual cells:
 | Item | Why no driver applies | Evidence |
 |---|---|---|
 | `ToolfinderSource` at runtime | Only `scripts/assess_*.py` use it | `[code]` grep |
-| `list_cvmfs_versions` → `list_versions_with_paths` | No caller | `[code]` [build.py:206](../../../shelley/commands/build.py#L206) |
+| `list_cvmfs_versions` → `list_versions_with_paths` | No caller |
+| `get_registry_tags` | No runtime caller; tests only | `[code]` [build.py:206](../../../shelley/commands/build.py#L206) |
 | `ShelleyStyle.create_versions_table`, `create_tools_table`, `create_progress_bar`, `create_status_summary` | No caller | `[code]` grep |
 | `/apps/shpc/views` | Kept only so a direct `shpc view` call works; no shelley driver | `[code]` [globals.py:81-83](../../../shelley/utils/globals.py#L81-L83) |
 | pytest marker `network` | Declared, used by no test | `[code]` [conftest.py:11-14](../../../tests/conftest.py#L11-L14) |
+
+## To-be
+
+The agreed design ([target-state.md](target-state.md)), 2026-10-07.
+
+| Key | Module |
+|---|---|
+| CMD | `client.commands` + `client.render` |
+| SVC | `services` |
+| PRV | `privilege` |
+| CAT | `galaxy.catalogue.GalaxyCatalogue` |
+| EXP | `galaxy.exposer.ShpcExposer` |
+| REG | `galaxy.registry` (`RegistryClient`, `LocalRegistry`) |
+| TAG | `tags` (+ vendored `VersionOrder`) |
+| TX | `transaction.BuildTransaction` |
+| TLS | `tools.shpc`, `tools.lmod`, `tools.net` |
+| MDS | `search.*` |
+| UPD | `commands.update` + `utils.update_check` |
+| LAY | `utils.globals` + `utils.perms` |
+
+| Driver | CMD | SVC | PRV | CAT | EXP | REG | TAG | TX | TLS | MDS | UPD | LAY |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C1 search | ● | ● | | ● | | | | | | ● | | |
+| C2 find | ● | ● | | ● | | | ● | | | ● | | ● |
+| C3 build | ● | ● | ● | ● | ● | ● | ● | ● | ● | | | ● |
+| C4 build -i | ● | | | | ● | | | | | | | |
+| C5 batch | ● | ● | ● | | | | | | | | | |
+| C6 clean | ● | ● | ● | ● | ● | ● | ● | ● | ● | | | ● |
+| C7 REPL | ● | | | | | | | | | | | |
+| C8 update | ● | | | | | | | | ○ | | ● | |
+| C9 shared layout | | | ● | | ● | | | | ● | | | ● |
+| C10 read-only without root | | ● | | ● | | | ● | | | ● | | |
+| T1 wrong version | | | | ● | | | ● | | | | | |
+| T2 orphans | | | | | ● | | | ● | | | | |
+| T3 test teardown (deprioritised) | | | | | | | | ○ | | | | |
+| T4 prefix glob (deprioritised) | | | | ● | | | ● | | | | | |
+| T5 cancelled -i (deprioritised) | | | | | ● | | | ● | | | | |
+| T6 offline | | | | | ● | ● | | | ● | | | |
+| N1 network down | ● | | | | ● | ● | | | ● | | | |
+| N2 find = build | | ● | | ● | | | ● | | | | | |
+| K5 resource limits | | | | ● | ● | | | | | | | |
+| F7 discovery | | ○ | | | | | | | | ○ | | |
+| F1, F4, F5, PoC, E1 | | ○ | | | | | | | | | | |
+
+- **Drivers no module serves:** none in scope. F1, F4, F5, the PoC and E1 depend on the
+  EESSI supplier (work in progress); `services` is where its catalogue/exposer pair
+  plugs in.
+- **Modules no driver justifies:** none.

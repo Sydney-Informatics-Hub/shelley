@@ -162,8 +162,12 @@ output, which is unrelated.
   `aliases` (one list shared by every tag), `latest`, `maintainer`, `description`
   (`[code]` [cvmfs_builder.py:353-405](../../../shelley/builder/cvmfs_builder.py#L353-L405)).
   A local entry plays two roles in one file:
-  1. **a cache of the upstream entry**, written best-effort whenever versions are
-     resolved (`[code]` [cvmfs_builder.py:101-111](../../../shelley/builder/cvmfs_builder.py#L101-L111));
+  1. **a cache of the upstream entry**, written best-effort by `get_registry_tags`
+     (`[code]` [cvmfs_builder.py:101-111](../../../shelley/builder/cvmfs_builder.py#L101-L111)).
+     In v0.4.0 nothing calls `get_registry_tags` at runtime (only tests do), so pure
+     cache entries come from earlier shelley versions. On the dev VM, `star-fusion`
+     has an upstream maintainer, no marker, and a tag (`1.0.0`) that is not upstream:
+     an entry authored before marker directories existed `[runtime]`;
   2. **a shelley-authored entry** for tags missing upstream, or for interactively
      curated aliases (`[code]` [cvmfs_builder.py:526-550](../../../shelley/builder/cvmfs_builder.py#L526-L550)).
 - **Marker directory**: `<entry dir>/<tag>/aliases.yaml`, which holds that tag's own
@@ -300,4 +304,5 @@ EESSI (`/cvmfs/software.eessi.io`) is the intended second supplier. It is config
 | Each Galaxy entry is "a `tool:tag` container directory" | Entries are flat SIF files | `[code]` [build_galaxy_cache.py:69](../../../shelley/scripts/build_galaxy_cache.py#L69); `[runtime]` |
 | Interactive help lists `find`, `search`, `build` | The REPL also dispatches `clean` | `[code]` [commands.py:9-25](../../../shelley/utils/commands.py#L9-L25), [interactive.py:68-73](../../../shelley/commands/interactive.py#L68-L73) |
 | Design brief: build = resolve → registry entry → `shpc install` → `shpc view install` → link | No `shpc view` call exists | `[code]` [cvmfs_builder.py:491-590](../../../shelley/builder/cvmfs_builder.py#L491-L590) |
+| `uninstall_module` docstring: `shelley find` calls `get_registry_tags` | `find` no longer calls it; it has no runtime caller | `[code]` [cvmfs_builder.py:601-605](../../../shelley/builder/cvmfs_builder.py#L601-L605) |
 | Design brief: "122k Galaxy entries" | 122,520 in the bundled cache; `data-sources.md` example still says 118,594 | `[runtime]`; `[doc]` [data-sources.md:202](../data-sources.md) |

@@ -160,7 +160,7 @@ tested, and have an opt-out.
 | Feature Envy | `find` calls `MetadataSource._flatten_edam`; `clean` uses `find.list_installed_versions` | [find.py:107-109](../../shelley/commands/find.py#L107-L109), [clean.py:10](../../shelley/commands/clean.py#L10) |
 | Repeated Switches | Command dispatch in `cli` and `interactive` | [cli.py:72-145](../../shelley/client/cli.py#L72-L145), [interactive.py:46-75](../../shelley/commands/interactive.py#L46-L75) |
 | Global Data | The `console` singleton; the module-level `_LOADED` flag | [style.py:95](../../shelley/utils/style.py#L95), [modules.py:23](../../shelley/utils/modules.py#L23) |
-| Dead Code | `list_cvmfs_versions` → `list_versions_with_paths`; 4 `ShelleyStyle` methods; `ToolfinderSource` at runtime | [build.py:206](../../shelley/commands/build.py#L206); [style.py](../../shelley/utils/style.py) |
+| Dead Code | `list_cvmfs_versions` → `list_versions_with_paths`; `get_registry_tags` (tests only); 4 `ShelleyStyle` methods; `ToolfinderSource` at runtime | [build.py:206](../../shelley/commands/build.py#L206); [style.py](../../shelley/utils/style.py) |
 | Mysterious Name | `utils.globals` holds Galaxy-specific constants; `find_tool_sync` has no async counterpart | [globals.py:16](../../shelley/utils/globals.py#L16), [find.py:46](../../shelley/commands/find.py#L46) |
 | Comments (used as deodorant) | A 48-line docstring explains `uninstall_module`'s state rules; the complexity it documents is the registry entry's dual role | [cvmfs_builder.py:593-639](../../shelley/builder/cvmfs_builder.py#L593-L639) |
 
@@ -252,7 +252,7 @@ Fred has filed some of these as GitHub issues; their numbers are not linked here
 | K4 | Shared multi-user VMs: a change to `/apps` affects every user | `[code]` C9 |
 | K5 | CVMFS cache quota 4,096 MB, already 3.6 GB used on the dev VM; root disk about 16 GB free | `[runtime]` `cvmfs_config stat`; requirements draft v0.3 |
 
-### 2.5 Quality attributes, ranked (proposal)
+### 2.5 Quality attributes, ranked
 
 Confirmed by Fred on 2026-10-07, with extensibility deliberately last. The ranking is the tie-breaker for Phase 5. It follows the refocus on the Galaxy supplier
 and the metadata sources: extensibility to new suppliers is ranked deliberately low until
