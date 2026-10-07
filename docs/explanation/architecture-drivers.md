@@ -241,6 +241,7 @@ Fred has filed some of these as GitHub issues; their numbers are not linked here
 | F2, F3, F6, F8 | Python versions; SIH-curated stacks; trainer-built stacks; immutable stacks | Deferred by the requirements | same |
 | PoC | `module load r/4.6.0` → RStudio → `library(DESeq2); library(Seurat)` works | Latent: EESSI; note the version name mismatch in `tmp/design/eessi-notes.md` | same |
 | E1 | Expose a supplier's existing Lmod modules without building anything (EESSI) | Latent: shapes how cheap a second supplier must be, not what is built now | glossary, "Expose" |
+| E2 | Discover reference data on `data.galaxyproject.org` (genomes, indices, databases) | Latent, like EESSI (Fred, 2026-10-07) | [architecture-evaluation S7b](architecture-evaluation.md#s7b-datagalaxyprojectorg-reference-data) |
 
 ### 2.4 Constraints (K)
 

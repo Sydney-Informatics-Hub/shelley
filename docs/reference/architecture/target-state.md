@@ -572,8 +572,10 @@ and `client/render.py`. None remain in `services` or `client/commands.py`.
 
 ## 9. Adding a second supplier (to-be)
 
-A second supplier adds a catalogue class and an exposer class in its own package, plus a
-name-to-pair lookup in `services`. When that second pair exists, a `typing.Protocol`
+A second supplier adds a catalogue class, and an exposer class only if something must be
+built or made visible, in its own package, plus a lookup in `services`. `data.galaxyproject.org`
+(reference data, latent) needs a catalogue only: its `.loc` manifests list each index
+and its path. When that second pair exists, a `typing.Protocol`
 for each of the two roles is extracted from the two concrete classes. For EESSI (work
 in progress), the exposer makes an existing module tree visible to Lmod and needs no
 `BuildTransaction`. The open questions for that integration are tracked outside the

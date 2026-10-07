@@ -20,7 +20,7 @@ Canonical names agreed on 2026-10-07. Sections below record current usage, inclu
 
 | Term | Means | Replaces / distinct from |
 |---|---|---|
-| **Supplier** | An upstream that delivers runnable software (today: the Galaxy Singularity CVMFS directory) | "Source" when it means software; "CVMFS" when it means Galaxy only |
+| **Supplier** | An upstream that delivers software, or reference data, that users load or point tools at. Today: the Galaxy Singularity CVMFS directory. Latent: EESSI (software), `data.galaxyproject.org` (reference genomes, indices, databases). A supplier always has a catalogue; it has an exposer only if something must be built or made visible | "Source" when it means software; "CVMFS" when it means Galaxy only |
 | **Metadata source** | A corpus of tool descriptions searched by shelley (RSEC, toolfinder) | "Source" alone |
 | **Build** | Make a supplier's software loadable by writing artefacts under `/apps` (the Galaxy path) | "Install" when it means `shelley build` |
 | **Expose** | Make a supplier's existing modules loadable without writing artefacts (reserved for the incoming EESSI supplier) | — |
@@ -28,6 +28,9 @@ Canonical names agreed on 2026-10-07. Sections below record current usage, inclu
 | **Version** | The short version, the tag up to the first `--` | — |
 | **Latest** | The newest version under one ordering rule (two rules exist today; see [Version](#version-tag-short-version-build)) | — |
 | **Stack** | A module that delivers a set of R packages | Undefined in code today |
+| **Catalogue** | The read-only part of a supplier: lists what exists, resolves a request to one entry, and reports what is installed. Runs as the user (agreed with design Option C) | The version-listing parts of `CVMFSModuleBuilder`, `utils/cache.py` |
+| **Exposer** | The privileged part of a supplier that makes an entry loadable (Galaxy: builds with shpc) and removes it. Optional: reference data has none (agreed with Option C) | The build parts of `CVMFSModuleBuilder` |
+| **Snapshot** | Short name for the Galaxy container cache, the bundled `galaxy_singularity_cache.json.gz` | "Galaxy cache", "CVMFS container index" |
 
 ---
 
@@ -232,7 +235,9 @@ output, which is unrelated.
   - On this VM, `software.eessi.io` was also added by hand to
     `/etc/cvmfs/default.local`, with the `cvmfs-config-eessi` 0.6.0 package
     `[runtime]`.
-  - `data.galaxyproject.org` is mounted but not read by shelley `[code]`.
+  - `data.galaxyproject.org` is mounted but not read by shelley `[code]`. It holds reference
+    data: `byhand/` (258 genome and database directories), `managed/` (18 index and database
+    kinds), and 24 Galaxy `.loc` manifests in `managed/location/` `[runtime]`.
 - **Galaxy Singularity mount**: `/cvmfs/singularity.galaxyproject.org/all`, the only
   repository shelley reads (`[code]` [globals.py:16](../../../shelley/utils/globals.py#L16)).
 - **CVMFS client cache**: the local disk cache of fetched CVMFS content, with a

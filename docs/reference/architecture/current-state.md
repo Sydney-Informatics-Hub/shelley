@@ -700,30 +700,32 @@ Evidence for each transition marked BUG:
 
 ## 6. Responsibility table (as-is)
 
-| Module / class | Knows | Does | Collaborates with | Evidence | Smells observed |
-|---|---|---|---|---|---|
-| `client.cli` | argv shape for every command | Dispatches commands, parses flags, detects a batch file, prints usage | every command, `batch`, `args`, `style` | `[code]` [cli.py](../../../shelley/client/cli.py); `[test]` test_batch_command, test_clean_command | Dispatch duplicated with `interactive`; the file's own TODO says helpers accumulate here ([cli.py:3-6](../../../shelley/client/cli.py#L3-L6)) |
-| `commands.interactive` | REPL commands | Reads lines, dispatches to the same command functions | build, clean, find, search, `args` | `[code]`; `[test]` test_interactive | Second copy of the dispatch; help table omits `clean` |
-| `commands.build` | sudo policy, re-exec argv, build roots | Elevates, bootstraps the layout, parses the spec, drives the builder, renders the result | `CVMFSModuleBuilder`, `perms`, `shpc_settings`, `modules`, `style` | `[code]` [build.py](../../../shelley/commands/build.py); `[test]` test_shared_build, test_resolve_executable | Hosts the shared elevation helpers that `clean` imports; dead `list_cvmfs_versions` |
-| `commands.clean` | installed tags (via `find`) | Resolves a tag, confirms, elevates, calls `uninstall_module`, renders the report | `commands.build`, `commands.find`, `CVMFSModuleBuilder` | `[code]` [clean.py](../../../shelley/commands/clean.py); `[test]` test_clean_command | Spec parsing duplicated from `build` |
-| `commands.find` | RSEC record shape, cache tuple shape, modulefile naming | Exact or fuzzy lookup, version table, installed flags, rendering | `RsecSource`, `utils.cache`, `render`, `style`, `globals` | `[code]` [find.py](../../../shelley/commands/find.py); `[test]` test_find_install_panel, test_verbosity | Calls private `_flatten_edam`; installed check also used by `clean`; prefix-glob bug |
-| `commands.search` | Galaxy id normalisation | Loads RSEC, filters by Galaxy cache, searches, paginates | `RsecSource`, `utils.cache`, `render` | `[code]` [search.py](../../../shelley/commands/search.py) | No direct test |
-| `commands.update` | uv install layouts | Picks the upgrade argv and runs it | `uv`, `style` | `[code]`; `[test]` test_update | — |
-| `CVMFSModuleBuilder` | Galaxy mount layout, tag grammar, version ordering, shpc URIs, registry YAML schema, marker format, permission subtrees, Lmod symlink layout | Lists versions, resolves, prompts, hashes SIFs, writes registry entries, runs shpc, hardens, links, uninstalls | registry functions, `guts_integration`, `shpc_settings`, `perms`, `globals`, `style`, `questionary`, `subprocess` | `[code]` [cvmfs_builder.py:136-869](../../../shelley/builder/cvmfs_builder.py#L136-L869); `[test]` test_cvmfs_builder, test_registry, test_shared_build | 734-line class with at least 5 reasons to change; mixes I/O, prompts and rendering with logic; supplier-specific throughout |
-| registry functions | upstream URL, `container.yaml` schema | Fetches and caches registry entries; builds shpc argv | `curl`, `shpc`, `perms` | `[code]` [cvmfs_builder.py:42-133](../../../shelley/builder/cvmfs_builder.py#L42-L133); `[test]` test_registry `get_registry_tags`, the read-path writer to `/apps/local`, has no runtime caller (tests only) |
-| `guts_integration` | shpc-guts URL, base images, alias shape | Diffs a SIF for aliases; interactive alias editing | `container_guts`, `git`, `questionary` | `[code]`; `[test]` test_select_aliases | Swallows every exception, including `SystemExit`, returning `[]` |
-| `shpc_settings` | shpc settings semantics | Writes the override settings file atomically | `globals` | `[code]`; `[test]` test_shpc_settings | — |
-| `utils.perms` | shared permission model | umask, mkdir, chmod walks bounded to build roots | `globals` | `[code]`; `[test]` test_perms | — |
-| `utils.globals` | every path and mode default | Resolves overridable paths per call | — | `[code]` | Named "globals" but holds Galaxy and shpc-specific constants |
-| `utils.modules` | Lmod driver | Loads build modules into `os.environ` once per process | `lmod`, `style` | `[code]`; `[test]` test_modules | Module-level `_LOADED` flag; `exec` of Lmod output |
-| `utils.cache` | Galaxy cache schema, tag grammar | Loads and shapes version rows | gzip JSON file | `[code]`; `[test]` test_verbosity | Re-reads and re-parses the 122k-entry file on every call; second version-ordering rule |
-| `MetadataSource` / `RsecSource` / `ToolfinderSource` | corpus shapes, tokenisation, stop words | Load a corpus; keyword OR-search | data files | `[code]` [search/](../../../shelley/search/); `[test]` test_search_base, test_search_rsec, test_search_toolfinder | `search()` duplicated verbatim in both subclasses; `ToolfinderSource` unused at runtime |
-| `utils.style` / `ShelleyStyle` | theme, banner, panel layouts | Builds rich renderables; owns the global `console`; triggers the update check | `rich`, `update_check` | `[code]` [style.py](../../../shelley/utils/style.py); `[test]` test_rendering, test_interactive_rendering | Class of 17 static methods; presentation module triggers network I/O |
-| `utils.render` | pagination | Paginates and renders tool tables | `style` | `[code]`; `[test]` test_cli_paginate | — |
-| `utils.batch` | tools-file format | Reads specs; runs builds in sequence; renders summary | `commands.build`, `style` | `[code]`; `[test]` test_batch_file_build | Lives in `utils` but depends on a command |
-| `utils.args`, `utils.commands` | flag syntax, help text | Split flags from positionals; shared help rows | — | `[code]`; `[test]` test_verbosity, test_interactive | — |
-| `utils.update_check` | release-check URL, cache file | Daily cached version check | `urllib`, `shelley.__version__` | `[code]`; `[test]` test_update_check | Imports the package root (cycle) |
-| `scripts.build_galaxy_cache`, `scripts.build_rsec_meta` | mount layout, RSEC repo layout | Regenerate the bundled data files (CI, monthly) | filesystem, git | `[code]` | No tests (data refresh is out of scope for this review) |
+Code smells for each module are judged in [architecture-drivers §1.3](../../explanation/architecture-drivers.md#13-code-smells-fowler-refactoring-2nd-ed).
+
+| Module / class | Knows | Does | Collaborates with | Evidence |
+|---|---|---|---|---|
+| `client.cli` | argv shape for every command | Dispatches commands, parses flags, detects a batch file, prints usage | every command, `batch`, `args`, `style` | `[code]` [cli.py](../../../shelley/client/cli.py); `[test]` test_batch_command, test_clean_command |
+| `commands.interactive` | REPL commands | Reads lines, dispatches to the same command functions | build, clean, find, search, `args` | `[code]`; `[test]` test_interactive |
+| `commands.build` | sudo policy, re-exec argv, build roots | Elevates, bootstraps the layout, parses the spec, drives the builder, renders the result | `CVMFSModuleBuilder`, `perms`, `shpc_settings`, `modules`, `style` | `[code]` [build.py](../../../shelley/commands/build.py); `[test]` test_shared_build, test_resolve_executable |
+| `commands.clean` | installed tags (via `find`) | Resolves a tag, confirms, elevates, calls `uninstall_module`, renders the report | `commands.build`, `commands.find`, `CVMFSModuleBuilder` | `[code]` [clean.py](../../../shelley/commands/clean.py); `[test]` test_clean_command |
+| `commands.find` | RSEC record shape, cache tuple shape, modulefile naming | Exact or fuzzy lookup, version table, installed flags, rendering | `RsecSource`, `utils.cache`, `render`, `style`, `globals` | `[code]` [find.py](../../../shelley/commands/find.py); `[test]` test_find_install_panel, test_verbosity |
+| `commands.search` | Galaxy id normalisation | Loads RSEC, filters by Galaxy cache, searches, paginates | `RsecSource`, `utils.cache`, `render` | `[code]` [search.py](../../../shelley/commands/search.py) |
+| `commands.update` | uv install layouts | Picks the upgrade argv and runs it | `uv`, `style` | `[code]`; `[test]` test_update |
+| `CVMFSModuleBuilder` | Galaxy mount layout, tag grammar, version ordering, shpc URIs, registry YAML schema, marker format, permission subtrees, Lmod symlink layout | Lists versions, resolves, prompts, hashes SIFs, writes registry entries, runs shpc, hardens, links, uninstalls | registry functions, `guts_integration`, `shpc_settings`, `perms`, `globals`, `style`, `questionary`, `subprocess` | `[code]` [cvmfs_builder.py:136-869](../../../shelley/builder/cvmfs_builder.py#L136-L869); `[test]` test_cvmfs_builder, test_registry, test_shared_build |
+| registry functions | upstream URL, `container.yaml` schema | Fetches and caches registry entries; builds shpc argv | `curl`, `shpc`, `perms` | `[code]` [cvmfs_builder.py:42-133](../../../shelley/builder/cvmfs_builder.py#L42-L133); `[test]` test_registry |
+| `guts_integration` | shpc-guts URL, base images, alias shape | Diffs a SIF for aliases; interactive alias editing | `container_guts`, `git`, `questionary` | `[code]`; `[test]` test_select_aliases |
+| `shpc_settings` | shpc settings semantics | Writes the override settings file atomically | `globals` | `[code]`; `[test]` test_shpc_settings |
+| `utils.perms` | shared permission model | umask, mkdir, chmod walks bounded to build roots | `globals` | `[code]`; `[test]` test_perms |
+| `utils.globals` | every path and mode default | Resolves overridable paths per call | — | `[code]` |
+| `utils.modules` | Lmod driver | Loads build modules into `os.environ` once per process | `lmod`, `style` | `[code]`; `[test]` test_modules |
+| `utils.cache` | Galaxy cache schema, tag grammar | Loads and shapes version rows | gzip JSON file | `[code]`; `[test]` test_verbosity |
+| `MetadataSource` / `RsecSource` / `ToolfinderSource` | corpus shapes, tokenisation, stop words | Load a corpus; keyword OR-search | data files | `[code]` [search/](../../../shelley/search/); `[test]` test_search_base, test_search_rsec, test_search_toolfinder |
+| `utils.style` / `ShelleyStyle` | theme, banner, panel layouts | Builds rich renderables; owns the global `console`; triggers the update check | `rich`, `update_check` | `[code]` [style.py](../../../shelley/utils/style.py); `[test]` test_rendering, test_interactive_rendering |
+| `utils.render` | pagination | Paginates and renders tool tables | `style` | `[code]`; `[test]` test_cli_paginate |
+| `utils.batch` | tools-file format | Reads specs; runs builds in sequence; renders summary | `commands.build`, `style` | `[code]`; `[test]` test_batch_file_build |
+| `utils.args`, `utils.commands` | flag syntax, help text | Split flags from positionals; shared help rows | — | `[code]`; `[test]` test_verbosity, test_interactive |
+| `utils.update_check` | release-check URL, cache file | Daily cached version check | `urllib`, `shelley.__version__` | `[code]`; `[test]` test_update_check |
+| `scripts.build_galaxy_cache`, `scripts.build_rsec_meta` | mount layout, RSEC repo layout | Regenerate the bundled data files (CI, monthly) | filesystem, git | `[code]` |
 
 ---
 

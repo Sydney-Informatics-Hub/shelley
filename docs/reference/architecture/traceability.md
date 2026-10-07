@@ -128,9 +128,9 @@ The agreed design ([target-state.md](target-state.md)), 2026-10-07.
 | N2 find = build | | ● | | ● | | | ● | | | | | |
 | K5 resource limits | | | | ● | ● | | | | | | | |
 | F7 discovery | | ○ | | | | | | | | ○ | | |
-| F1, F4, F5, PoC, E1 | | ○ | | | | | | | | | | |
+| F1, F4, F5, PoC, E1, E2 | | ○ | | | | | | | | | | |
 
 - **Drivers no module serves:** none in scope. F1, F4, F5, the PoC and E1 depend on the
-  EESSI supplier (work in progress); `services` is where its catalogue/exposer pair
-  plugs in.
+  EESSI supplier (work in progress) or, for E2, the `data.galaxyproject.org`
+  supplier (latent); `services` is where their catalogues (and EESSI's exposer) plug in.
 - **Modules no driver justifies:** none.

@@ -10,6 +10,7 @@ Fred (2026-10-07): leftovers from testing; monitor in case `shelley clean` needs
 |---|---|---|---|---|
 | 2026-10-07 ~04:40 | 9 `module.lua` across 7 tools (fastqc had a version dir + `.version` but no `module.lua`) | not checked | `last`, `star-fusion` | none |
 | 2026-10-07 05:04 | tree below `quay.io/biocontainers/` gone | `last`, `ngsfetch`, `samtools`, `seqtk`, `star`, `star-fusion` (version dirs with `99-shpc.sh` + `bin/`) | `last`, `star-fusion` | none |
+| 2026-10-07 10:38 | none | unchanged: `last`, `ngsfetch`, `samtools`, `seqtk`, `star`, `star-fusion` | `last`, `star-fusion` | none |
 
 Something removed the modules tree between the two snapshots (not shelley's design work; likely manual testing).
 
@@ -19,3 +20,5 @@ Something removed the modules tree between the two snapshots (not shelley's desi
 - a local registry entry/marker for a tag no longer installed
 
 Relevant code: `CVMFSModuleBuilder.uninstall_module` relies on `shpc uninstall --force` for modules/wrappers/containers and only checks Lmod symlinks itself (`shelley/builder/cvmfs_builder.py:592-721`). A tool whose Lmod symlink is already gone cannot be targeted by `clean` at all, because `_resolve_installed_version` lists only Lmod modulefiles (`shelley/commands/clean.py:27-50`).
+
+**Design outcome (2026-10-07):** Fred ruled that orphans must not be produced in the first place, so `clean` will not target them (ADR 0005). These dev-VM leftovers stay as Tier 0 bug artefacts; remove them by hand when convenient. The `star-fusion` local entry will be removed by the next build of that tool under the target design (legacy-entry rule, ADR 0006).
