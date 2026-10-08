@@ -15,12 +15,12 @@ from shelley.transaction import (
 )
 from shelley.utils import globals as gl
 
-from .tree import changes, snapshot
+from .roots_snapshot import changes, snapshot
 
 
 @pytest.fixture
-def tool_tree():
-    """An installed-looking tool: dirs, files with modes, a symlink."""
+def tool_dirs():
+    """An installed-looking tool's directories: files with modes, a symlink."""
     uri = "quay.io/biocontainers/samtools"
     mods = gl.shpc_module_base() / uri
     (mods / "1.10").mkdir(parents=True)
@@ -36,78 +36,78 @@ def _roots():
     return [gl.shpc_base(), gl.local_registry(), gl.lmod_modules()]
 
 
-def _mess_up(subtrees):
-    mods, wrappers, registry, links = subtrees
+def _mess_up(tool_dirs):
+    mods, wrappers, registry, links = tool_dirs
     (mods / "1.10" / "module.lua").write_text("changed\n")  # changed bytes
     (mods / ".version").chmod(0o600)  # changed mode
     (mods / "1.21").mkdir()  # new dir
     (mods / "1.21" / "module.lua").write_text("new\n")
-    (wrappers / "1.21" / "bin").mkdir(parents=True)  # new subtree with new ancestors
+    (wrappers / "1.21" / "bin").mkdir(parents=True)  # new dir with new ancestors
     registry.mkdir(parents=True)
     (registry / "container.yaml").write_text("tags: {}\n")
     (links / "1.10.lua").unlink()  # removed link
     (links / "1.10.lua").symlink_to("/elsewhere")
 
 
-def test_exception_restores_everything(tool_tree):
+def test_exception_restores_everything(tool_dirs):
     before = snapshot(*_roots())
     with pytest.raises(RuntimeError, match="boom"):
-        with BuildTransaction("samtools", tool_tree):
-            _mess_up(tool_tree)
+        with BuildTransaction("samtools", tool_dirs):
+            _mess_up(tool_dirs)
             raise RuntimeError("boom")
     assert changes(before, snapshot(*_roots())) == []
 
 
-def test_leaving_without_commit_restores_everything(tool_tree):
+def test_leaving_without_commit_restores_everything(tool_dirs):
     before = snapshot(*_roots())
-    with BuildTransaction("samtools", tool_tree):
-        _mess_up(tool_tree)
+    with BuildTransaction("samtools", tool_dirs):
+        _mess_up(tool_dirs)
     assert changes(before, snapshot(*_roots())) == []
 
 
-def test_commit_keeps_changes_and_runs_callbacks(tool_tree):
+def test_commit_keeps_changes_and_runs_callbacks(tool_dirs):
     ran = []
-    with BuildTransaction("samtools", tool_tree) as tx:
-        _mess_up(tool_tree)
+    with BuildTransaction("samtools", tool_dirs) as tx:
+        _mess_up(tool_dirs)
         tx.on_commit(lambda: ran.append("cleanup"))
         tx.commit()
-    assert (tool_tree[0] / "1.21" / "module.lua").read_text() == "new\n"
+    assert (tool_dirs[0] / "1.21" / "module.lua").read_text() == "new\n"
     assert ran == ["cleanup"]
 
 
-def test_callbacks_do_not_run_without_commit(tool_tree):
+def test_callbacks_do_not_run_without_commit(tool_dirs):
     ran = []
-    with BuildTransaction("samtools", tool_tree) as tx:
+    with BuildTransaction("samtools", tool_dirs) as tx:
         tx.on_commit(lambda: ran.append("cleanup"))
     assert ran == []
 
 
-def test_moved_aside_siblings_are_removed_on_restore(tool_tree):
-    mods = tool_tree[0]
+def test_moved_aside_siblings_are_removed_on_restore(tool_dirs):
+    mods = tool_dirs[0]
     before = snapshot(*_roots())
-    with BuildTransaction("samtools", tool_tree):
+    with BuildTransaction("samtools", tool_dirs):
         (mods / "1.10").rename(mods / "1.10.aside")
     assert changes(before, snapshot(*_roots())) == []
 
 
-def test_failed_restore_is_reported(tool_tree, monkeypatch):
+def test_failed_restore_is_reported(tool_dirs, monkeypatch):
     def broken(self):
         raise OSError(28, "No space left on device")
 
     monkeypatch.setattr(PreImage, "restore", broken)
     with pytest.raises(RollbackFailed) as exc:
-        with BuildTransaction("samtools", tool_tree):
+        with BuildTransaction("samtools", tool_dirs):
             raise RuntimeError("install failed")
     assert "install failed" in str(exc.value) and "No space left" in str(exc.value)
 
 
-def test_subtree_outside_the_build_roots_is_refused(tmp_path):
+def test_tool_dir_outside_the_build_roots_is_refused(tmp_path):
     with pytest.raises(ValueError, match="outside every build root"):
         with BuildTransaction("x", [tmp_path / "elsewhere"]):
             pass
 
 
-def test_a_second_build_of_the_same_tool_waits_then_gives_up(tool_tree):
+def test_a_second_build_of_the_same_tool_waits_then_gives_up(tool_dirs):
     lock = gl.shpc_base() / ".locks" / "samtools.lock"
     lock.parent.mkdir(parents=True, exist_ok=True)
     holder = subprocess.Popen(
@@ -125,18 +125,18 @@ def test_a_second_build_of_the_same_tool_waits_then_gives_up(tool_tree):
         assert holder.stdout.readline().strip() == "held"
         start = time.monotonic()
         with pytest.raises(BuildInProgress, match="Another build of 'samtools'"):
-            with BuildTransaction("samtools", tool_tree, lock_timeout=1):
+            with BuildTransaction("samtools", tool_dirs, lock_timeout=1):
                 pass
         assert time.monotonic() - start >= 1
     finally:
         holder.kill()
         holder.wait()
-    with BuildTransaction("samtools", tool_tree) as tx:  # free again
+    with BuildTransaction("samtools", tool_dirs) as tx:  # free again
         tx.commit()
 
 
-def test_other_tools_are_not_blocked(tool_tree):
-    with BuildTransaction("samtools", tool_tree) as outer:
+def test_other_tools_are_not_blocked(tool_dirs):
+    with BuildTransaction("samtools", tool_dirs) as outer:
         other = [gl.shpc_module_base() / "quay.io/biocontainers/bwa"]
         with BuildTransaction("bwa", other, lock_timeout=0.1) as inner:
             inner.commit()

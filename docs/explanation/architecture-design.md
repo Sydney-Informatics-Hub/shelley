@@ -101,7 +101,7 @@ Working material, not published docs (`tmp/design/`, committed in `7ba6099`):
 | # | Risk | Likelihood | Impact | Mitigation | Trigger to act |
 |---|---|---|---|---|---|
 | R1 | ~~The build undo cannot restore shpc's per-tool `.version` file exactly~~ **Closed 2026-10-08:** the batch 0 spike restored the tree exactly in 14/14 injected failures using a pre-image (ADR 0005, amended) | — | — | — | — |
-| R11 | Two users build the same tool at the same moment and race on its subtrees | Low | Medium | Per-tool lock in `BuildTransaction` (ADR 0005); not yet tested | A concurrent-build report, or before batch 3a |
+| R11 | Two users build the same tool at the same moment and race on its directories | Low | Medium | Per-tool lock in `BuildTransaction` (ADR 0005); not yet tested | A concurrent-build report, or before batch 3a |
 | R2 | Review capacity drops below one moderate PR a fortnight | Medium | Medium: the schedule slips | Option A fallback: stop after build, since all Tier 0s are fixed by 0.6.0 | Two PRs waiting > 2 weeks |
 | R3 | Estimates are low (6 units a week assumed; 40 units total) | Medium | Medium | Batch order puts the PO's priority (build) first; batches 4–5 can slip without user harm | Batch 2 takes > 12 units |
 | R4 | Legacy registry entries on deployed VMs behave differently from the dev VM sample (2 entries) | Low | Medium: a build on an old VM fails or keeps a bad entry | The merge/remove rule is tested with fixture entries; the opt-in period on real VMs (0.5.0) | A report during the opt-in |

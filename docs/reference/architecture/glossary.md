@@ -186,6 +186,14 @@ output, which is unrelated.
 - **Build roots**: the three prefixes a build writes to, `/apps/shpc`, `/apps/local` and
   `/apps/Modules/modulefiles`. Each can be overridden by environment variable (`[code]`
   [globals.py:104-106](../../../shelley/utils/globals.py#L104-L106)).
+- **Tool directories**: the five directories a build of one tool may create or change.
+  For `samtools`: `shpc/modules/quay.io/biocontainers/samtools`, the same path under
+  `shpc/wrappers` and `shpc/containers`, the local registry entry
+  `local/quay.io/biocontainers/samtools`, and the Lmod directory `modulefiles/samtools`.
+  `BuildTransaction` records and restores exactly these (target design, ADR 0005).
+- **Build-roots snapshot**: in tests, a record of every path under the build roots
+  (type, mode, symlink target, contents), used to assert that a failed build left no
+  trace (`tests/build_core/roots_snapshot.py`).
 - **Shared build layout**: the build roots plus the four shpc bases, all root-owned and
   world-readable (`[code]` [globals.py:91-101](../../../shelley/utils/globals.py#L91-L101),
   [perms.py](../../../shelley/utils/perms.py)).

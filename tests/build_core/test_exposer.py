@@ -9,7 +9,7 @@ from shelley.tools.lmod import Lmod
 from shelley.utils import globals as gl
 
 from .fakes import UPSTREAM_SAMTOOLS, FakeRegistry, FakeShpc
-from .tree import changes, snapshot
+from .roots_snapshot import changes, snapshot
 
 URI = "quay.io/biocontainers/samtools"
 UP = Tag("1.21--h50ea8bc_3")  # in upstream

@@ -3,13 +3,14 @@
 ``BuildTransaction`` is a context manager around the writes of one build:
 
 - On entry it takes a per-tool lock, so two builds of the same tool cannot interleave,
-  and records a *pre-image* of the tool's subtrees: every path's type, mode, symlink
+  and records a *pre-image* of the tool's directories (``ShpcExposer.tool_dirs``):
+  every path's type, mode, symlink
   target and (small) file bytes.
 - Unless ``commit()`` is called before the block ends, it restores that pre-image
   exactly: new paths are deleted, changed ones are rewritten, and modes are reset.
 - ``on_commit`` callbacks run only after a commit, e.g. to delete moved-aside copies.
 
-Subtrees hold small text files only: ``shpc install --keep-path`` leaves the SIF on CVMFS.
+Tool directories hold small text files only: ``shpc install --keep-path`` leaves the SIF on CVMFS.
 """
 
 import fcntl
@@ -54,13 +55,13 @@ class _Node:
 
 
 class PreImage:
-    """The exact state of some subtrees (and their ancestors inside the build roots)."""
+    """The exact state of some directories (and their ancestors inside the build roots)."""
 
-    def __init__(self, subtrees: Iterable[Path], roots: Iterable[Path]):
-        self.subtrees = [Path(p) for p in subtrees]
+    def __init__(self, tool_dirs: Iterable[Path], roots: Iterable[Path]):
+        self.tool_dirs = [Path(p) for p in tool_dirs]
         self.roots = [Path(r) for r in roots]
         self.nodes: dict[Path, _Node] = {}
-        for top in self.subtrees:
+        for top in self.tool_dirs:
             for ancestor in self._ancestors(top):
                 if ancestor.is_dir() and not ancestor.is_symlink():
                     self.nodes.setdefault(ancestor, self._node(ancestor))
@@ -96,15 +97,15 @@ class PreImage:
         return _Node("file", stat.S_IMODE(st.st_mode), p.read_bytes())
 
     def restore(self) -> None:
-        # 1. Delete what is new: anything under a subtree, or a moved-aside sibling.
-        for top in self.subtrees:
+        # 1. Delete what is new: anything under a tool directory, or a moved-aside sibling.
+        for top in self.tool_dirs:
             self._remove_new(top)
             if top.parent.is_dir():
                 for sibling in top.parent.iterdir():
                     if sibling.name.endswith(".aside") and sibling not in self.nodes:
                         _remove(sibling)
         # 2. Remove new, now-empty ancestors (e.g. intermediates created by shpc).
-        for top in self.subtrees:
+        for top in self.tool_dirs:
             for p in self._ancestors(top):
                 if p not in self.nodes and p.is_dir() and not any(p.iterdir()):
                     p.rmdir()
@@ -148,18 +149,18 @@ def _remove(p: Path) -> None:
 
 
 class BuildTransaction:
-    """``with BuildTransaction(tool, subtrees) as tx: ...; tx.commit()``"""
+    """``with BuildTransaction(tool, tool_dirs) as tx: ...; tx.commit()``"""
 
     def __init__(
         self,
         tool: str,
-        subtrees: Iterable[Path],
+        tool_dirs: Iterable[Path],
         roots: Iterable[Path] | None = None,
         lock_dir: Path | None = None,
         lock_timeout: float = LOCK_TIMEOUT,
     ):
         self.tool = tool
-        self.subtrees = list(subtrees)
+        self.tool_dirs = list(tool_dirs)
         self.roots = list(roots) if roots is not None else list(gl.build_roots())
         self.lock_dir = lock_dir if lock_dir is not None else gl.shpc_base() / ".locks"
         self.lock_timeout = lock_timeout
@@ -177,7 +178,7 @@ class BuildTransaction:
     def __enter__(self) -> "BuildTransaction":
         self._acquire_lock()
         try:
-            self._pre = PreImage(self.subtrees, self.roots)
+            self._pre = PreImage(self.tool_dirs, self.roots)
         except BaseException:
             self._release_lock()
             raise

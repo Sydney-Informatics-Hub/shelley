@@ -136,7 +136,7 @@ classDiagram
     }
     class BuildTransaction {
         <<context manager>>
-        +subtrees: list~Path~
+        +tool_dirs: list~Path~
         +commit() None
     }
     class RegistryClient {
@@ -396,15 +396,15 @@ sequenceDiagram
     participant SH as Shpc
     participant LM as Lmod
     participant FS as /apps
-    X->>T: enter - take the per-tool lock, record a pre-image of the tool's 5 subtrees
+    X->>T: enter - take the per-tool lock, record a pre-image of the tool's 5 directories
     opt plan.replace_existing
-        X->>FS: move the tag's shpc subtrees and link aside
+        X->>FS: move the tag's shpc directories and link aside
     end
     opt plan.local_entry
         X->>L: write entry and marker
     end
     X->>SH: install(uri:tag, sif) with --keep-path
-    X->>FS: harden this tool's subtrees
+    X->>FS: harden this tool's directories
     X->>LM: link(tool, tag, module.lua)
     X->>T: commit - delete the moved-aside copies, release the lock
     T-->>X: on any exception before commit, restore the pre-image exactly
@@ -513,8 +513,8 @@ Legacy artefacts on VMs built with shelley ≤ 0.4.0 are handled as follows:
 | `privilege` | sudo policy, re-exec argv | Decides on and performs the elevated re-exec | `sudo` | user |
 | `GalaxyCatalogue` | snapshot schema, mount layout, `tool:tag` grammar, Lmod link layout | Lists, resolves, verifies and reports install state | `Tag`, snapshot, mount, Lmod directory | user |
 | `Tag`, `tags.latest` | version grammar, conda ordering, non-version tags, mulled rule | Parses, orders, matches | vendored `VersionOrder` | either |
-| `ShpcExposer` | shpc URI layout, registry entry schema, marker format, permission subtrees | Plans and applies builds; removes tags | `RegistryClient`, `LocalRegistry`, `guts_integration`, `Shpc`, `Lmod`, `BuildTransaction`, `perms` | root |
-| `BuildTransaction` | the pre-image of one tool's five subtrees; the per-tool lock | Restores the pre-image exactly unless committed | — | root |
+| `ShpcExposer` | shpc URI layout, registry entry schema, marker format, the tool's directories | Plans and applies builds; removes tags | `RegistryClient`, `LocalRegistry`, `guts_integration`, `Shpc`, `Lmod`, `BuildTransaction`, `perms` | root |
+| `BuildTransaction` | the pre-image of one tool's five directories; the per-tool lock | Restores the pre-image exactly unless committed | — | root |
 | `RegistryClient` | upstream URL | Fetches an upstream entry, or `None` if not upstream | `net` | root |
 | `LocalRegistry` | `/apps/local` layout, markers | Reads, writes, merges and removes authored entries | filesystem, `perms` | root |
 | `Shpc`, `Lmod` | CLI argv, settings file, Lmod driver | Wrap one external tool each | `subprocess` | root |
@@ -544,7 +544,7 @@ and where each one is held in the target design:
 | 10 | Versions from the bundled snapshot | `galaxy/catalogue.py` |
 | 11 | `search` joined to Galaxy ids | `services.search` via `GalaxyCatalogue.tool_ids()` |
 | 12 | User messages naming Galaxy | `client/render.py` |
-| 13 | Hardening walks shpc subtrees | `galaxy/exposer.py` |
+| 13 | Hardening walks the tool's shpc directories | `galaxy/exposer.py` |
 | 14 | Image-patched shpc module template | BioShell (unchanged) |
 
 All shelley-side assumptions now sit in `galaxy/`, `tags.py`, `tools/`, `privilege.py`

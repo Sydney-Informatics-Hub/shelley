@@ -28,7 +28,7 @@ Shared-VM safety (rank 2); honest failures (rank 3); testability (rank 4).
    - `plan` does all network calls, alias discovery and prompts, writes nothing, and
      returns a frozen `BuildPlan`;
    - `apply` runs inside `BuildTransaction`, a context manager that, on entry, records a
-     **pre-image** of the tool's five subtrees (shpc modules, wrappers and containers, the
+     **pre-image** of the tool's five directories (shpc modules, wrappers and containers, the
      local registry entry, and the Lmod directory: paths, modes, symlink targets and file
      bytes). Unless `commit()` is reached, it restores that pre-image exactly.
    - Rebuilding an installed tag first moves the existing install aside, and the undo
@@ -60,7 +60,7 @@ unlink, …) to the pre-image restore:
   asserts that `/apps` is unchanged.
 - Bad: the filesystem is not transactional. Undo is compensation, so an undo can itself
   fail (e.g. if the disk is full). Undo failures are logged and reported, not hidden.
-- Bad: two concurrent builds of the same tool would race on the same subtrees. The
+- Bad: two concurrent builds of the same tool would race on the same directories. The
   transaction takes a per-tool lock (e.g. `fcntl.flock` on `local/<uri>/.lock`); this
   was not exercised by the spike.
 - Bad: orphans left by earlier versions are not cleaned up by `clean`. See
@@ -84,7 +84,7 @@ Python ch. 18); Split Phase (Fowler).
 
 - shpc gaining an atomic install or "install to staging, then swap". Then use it instead
   of the moving-aside.
-- A tool whose subtrees become large (e.g. if `--keep-path` were dropped and SIFs were
+- A tool whose directories become large (e.g. if `--keep-path` were dropped and SIFs were
   copied into `containers/`). Then the pre-image is too costly and per-step undo with
   explicit pruning is preferable.
 - Undo failures showing up in practice on BioShell VMs. Then add a recovery check to

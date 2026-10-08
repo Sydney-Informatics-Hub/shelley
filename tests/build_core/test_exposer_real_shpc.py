@@ -2,7 +2,7 @@
 
 Builds ``seqtk:r93--0`` (3.5 MB, in the upstream registry) into the tmp build roots,
 checks it loads and runs through Lmod, then injects a failure into a rebuild and checks
-the tree is unchanged and the module still works. Skips itself without the mount, shpc,
+the build roots are unchanged and the module still works. Skips itself without the mount, shpc,
 Lmod or network.
 """
 
@@ -20,7 +20,7 @@ from shelley.tools.lmod import Lmod
 from shelley.tools.shpc import ShpcFailed
 from shelley.utils import globals as gl
 
-from .tree import changes, snapshot
+from .roots_snapshot import changes, snapshot
 
 MOUNT = Path("/cvmfs/singularity.galaxyproject.org/all")
 LMOD_INIT = Path("/usr/share/lmod/lmod/init/bash")

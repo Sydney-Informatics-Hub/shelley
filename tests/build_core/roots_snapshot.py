@@ -1,4 +1,9 @@
-"""Exact tree snapshots for "nothing changed" assertions"""
+"""Build-roots snapshots, for "nothing changed" assertions.
+
+A snapshot records every path under the build roots (``/apps/shpc``, ``/apps/local``,
+``/apps/Modules/modulefiles``, redirected to tmp in tests): its type, mode, symlink
+target and file contents. Two equal snapshots mean a build left no artefacts.
+"""
 
 import hashlib
 import os

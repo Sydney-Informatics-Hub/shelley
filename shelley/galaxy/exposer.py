@@ -59,8 +59,12 @@ class ShpcExposer:
     def uri(tool: str) -> str:
         return f"{URI_PREFIX}/{tool}"
 
-    def subtrees(self, tool: str) -> list[Path]:
-        """Every path a build of ``tool`` may create or change."""
+    def tool_dirs(self, tool: str) -> list[Path]:
+        """The tool's directories: every path a build of ``tool`` may create or change.
+
+        One each under shpc's modules, wrappers and containers, the local registry entry,
+        and the Lmod modulefile directory. See the glossary, "Tool directories".
+        """
         uri = self.uri(tool)
         return [
             gl.shpc_module_base() / uri,
@@ -153,7 +157,7 @@ class ShpcExposer:
     # ------------------------------------------------------------------ apply
     def apply(self, plan: BuildPlan) -> Path:
         """Perform the planned writes atomically; return the modulefile link."""
-        with BuildTransaction(plan.tool, self.subtrees(plan.tool)) as tx:
+        with BuildTransaction(plan.tool, self.tool_dirs(plan.tool)) as tx:
             if plan.replace_existing:
                 self._move_aside(plan, tx)
             if plan.remove_legacy:
@@ -180,14 +184,14 @@ class ShpcExposer:
 
     def _harden(self, plan: BuildPlan) -> None:
         """World-readable and traversable, scoped to this tool (as in 0.4.0)."""
-        for subtree in (
+        for tool_dir in (
             gl.shpc_module_base() / plan.uri,
             gl.shpc_wrapper_base() / plan.uri,
             gl.shpc_container_base() / plan.uri,
             self.local.entry_dir(plan.uri),
         ):
-            ensure_traversable(subtree)
-            harden_tree(subtree)
+            ensure_traversable(tool_dir)
+            harden_tree(tool_dir)
 
 
 def _remove(path: Path) -> None:

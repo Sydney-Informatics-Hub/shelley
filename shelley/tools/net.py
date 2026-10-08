@@ -1,4 +1,4 @@
-"""HTTP fetches that tell you whether a tool registry doesn't exist, vs. 
+"""HTTP fetches that tell you whether a tool registry doesn't exist, vs.
 failed to reach due to network failure
 
 ``fetch_text`` returns the body, ``None`` for HTTP 404 (the resource does not exist),
