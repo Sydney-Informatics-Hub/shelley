@@ -1,5 +1,7 @@
 """Interactive command — guided REPL for shelley."""
 
+import os
+
 from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
@@ -59,6 +61,10 @@ def interactive_mode() -> None:
                 search_tools(" ".join(parts[1:]))
             else:
                 print_warning("Usage: search <description>")
+        elif cmd == "build" and os.environ.get("SHELLEY_NEW_BUILD") == "1":
+            from ..client.new_build import run as run_new_build
+
+            run_new_build(parts[1:])
         elif cmd == "build":
             interactive, positional = parse_build_flags(parts[1:])
             if positional:

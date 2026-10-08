@@ -5,6 +5,7 @@
 # functions always end up here. They should not. These should be imported from
 # the relevant modules.
 
+import os
 import sys
 from pathlib import Path
 
@@ -76,6 +77,12 @@ def main() -> None:
     if command in ("--version", "-V"):
         print_version()
         sys.exit(0)
+
+    if command == "build" and os.environ.get("SHELLEY_NEW_BUILD") == "1":
+        # Opt-in new build core (migration plan batch 2); becomes the default in 3a.
+        from .new_build import run as run_new_build
+
+        sys.exit(run_new_build(sys.argv[2:]))
 
     if command == "build" and len(sys.argv) > 2:
         interactive, positional = parse_build_flags(sys.argv[2:])

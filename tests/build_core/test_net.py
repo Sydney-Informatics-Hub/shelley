@@ -31,8 +31,8 @@ def test_message_matches_the_agreed_wording():
 
 def test_404_means_not_there(monkeypatch):
     monkeypatch.setattr(
-        net.urllib.request,
-        "urlopen",
+        net,
+        "_open",
         _raising(urllib.error.HTTPError(URL, 404, "Not Found", {}, BytesIO())),
     )
     assert net.fetch_text(URL) is None
@@ -40,8 +40,8 @@ def test_404_means_not_there(monkeypatch):
 
 def test_server_error_is_unavailable(monkeypatch):
     monkeypatch.setattr(
-        net.urllib.request,
-        "urlopen",
+        net,
+        "_open",
         _raising(urllib.error.HTTPError(URL, 503, "Unavailable", {}, BytesIO())),
     )
     with pytest.raises(NetworkUnavailable, match="HTTP 503"):
@@ -66,7 +66,7 @@ def test_server_error_is_unavailable(monkeypatch):
 def test_failures_have_plain_reasons(monkeypatch, error, reason):
     for k in ("https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"):
         monkeypatch.delenv(k, raising=False)
-    monkeypatch.setattr(net.urllib.request, "urlopen", _raising(error))
+    monkeypatch.setattr(net, "_open", _raising(error))
     with pytest.raises(NetworkUnavailable) as exc:
         net.fetch_text(URL)
     assert reason in exc.value.reason
@@ -84,8 +84,24 @@ def test_dead_proxy_is_reported_as_the_proxy(monkeypatch):
 
 
 def test_diagnose(monkeypatch):
-    monkeypatch.setattr(
-        net.urllib.request, "urlopen", _raising(urllib.error.URLError(TimeoutError()))
-    )
+    monkeypatch.setattr(net, "_open", _raising(urllib.error.URLError(TimeoutError())))
     result = net.diagnose(URL)
     assert not result.ok and "timed out" in result.reason
+
+
+def test_proxy_set_after_an_earlier_request_is_honoured(monkeypatch):
+    """urlopen's cached global opener froze proxy settings; each request must re-read them."""
+    for k in ("https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"):
+        monkeypatch.delenv(k, raising=False)
+
+    def no_dns(*args, **kwargs):
+        raise socket.gaierror(-3, "Temporary failure in name resolution")
+
+    with monkeypatch.context() as m:  # first request: no proxy, no network
+        m.setattr(socket, "getaddrinfo", no_dns)
+        with pytest.raises(NetworkUnavailable, match="could not be resolved"):
+            net.fetch_text(URL, timeout=2)
+    monkeypatch.setenv("https_proxy", "http://127.0.0.1:9")
+    with pytest.raises(NetworkUnavailable) as exc:
+        net.fetch_text(URL, timeout=2)
+    assert exc.value.reason == "the proxy refused the connection"

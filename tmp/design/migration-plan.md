@@ -92,6 +92,21 @@ New files only; nothing existing is edited except `NOTICE`.
 
 ## Batch 2: new build path, opt-in (9.5 units) → 0.5.0
 
+**DONE 2026-10-08 (uncommitted).** New modules:
+- `shelley/tools/{shpc,lmod}.py`;
+- `shelley/transaction.py` (pre-image plus a per-tool `flock` in `<shpc_base>/.locks`);
+- `shelley/galaxy/{aliases,exposer}.py`;
+- `shelley/{results,privilege,services}.py`;
+- `shelley/client/new_build.py`.
+
+Routing: one branch each in `client/cli.py` and `commands/interactive.py`. 61 new tests (145 in `tests/build_core`), including failure injection (4 steps × 3 scenarios), ports of spikes A and B, lock contention, and one real-shpc contract test (skips itself without shpc, the mount or the network).
+
+Smoke-run with the CLI on the dev VM: real build, typo, dead proxy (under sudo), and ambiguous version without a terminal. Fixes found along the way:
+- `urlopen`'s cached opener froze proxy settings; each request now builds its own opener;
+- the ambiguous-version prompt crashed without a terminal (as 0.4.0 does); it is now a clean "cancelled".
+
+The ambiguous-version prompt runs in the user process before sudo; batches prompt per ambiguous spec, then elevate once.
+
 | Step | Scope | Files | Tests | Fowler refactoring | Units |
 |---|---|---|---|---|---|
 | 2.1 | `Shpc` and `Lmod` façades (wrap the existing `shpc_settings` and Lmod loader rather than copying them) | `shelley/tools/shpc.py`, `shelley/tools/lmod.py` | `FakeShpc`, `FakeLmod` | Extract Class | 1.5 |

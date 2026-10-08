@@ -67,6 +67,20 @@ def test_resolve_mulled_without_tag(catalogue):
     assert catalogue.resolve(MULLED[0], MULLED[1][0]).raw == MULLED[1][0]
 
 
+def test_t_coffee_spellings_are_two_containers_in_the_real_snapshot(tmp_path):
+    """Known collision: Galaxy has both ``t_coffee`` and ``t-coffee`` as separate SIFs.
+
+    Lookups treat ``-`` and ``_`` alike only when there is no exact match, so each
+    spelling must still reach its own container. If a snapshot refresh merges or drops
+    one of them, this test flags it for review.
+    """
+    cat = GalaxyCatalogue(mount=tmp_path)  # snapshot only; the mount is not needed
+    assert {"t_coffee", "t-coffee"} <= cat.tool_ids()
+    assert cat.name("t_coffee") == "t_coffee"
+    assert cat.name("t-coffee") == "t-coffee"
+    assert set(cat.tags("t_coffee")).isdisjoint(cat.tags("t-coffee"))
+
+
 def test_lookup_is_case_and_separator_insensitive(catalogue):
     assert catalogue.resolve("Integron-Finder").raw == "2.0.6--py_0"
     assert catalogue.name("INTEGRON-FINDER") == "integron_finder"

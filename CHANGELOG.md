@@ -5,6 +5,28 @@ All notable changes to shelley are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Experimental: a new `shelley build`, opt-in with `SHELLEY_NEW_BUILD=1`. The default
+  build is unchanged. With the variable set:
+  - a build either fully succeeds or changes nothing: a failure or a cancelled `-i`
+    prompt restores the previous state, including an already-installed module;
+  - "latest" follows conda's version ordering, and `mulled-*` containers need an
+    explicit tag;
+  - if GitHub cannot be reached, the build stops before writing anything and says so,
+    instead of building a module without the tool's command;
+  - a mistyped tool or version, or a missing CVMFS mount, is reported before the
+    `sudo` password prompt, and a tools file asks for the password once;
+  - two builds of the same tool at once wait for each other.
+
+  See `docs/explanation/architecture-design.md` and ADRs 0001–0007.
+
+### Fixed
+
+- CI: `ruff` no longer checks the design notes under `tmp/`.
+
 ## [0.4.0] - 2026-10-02
 
 ### Added

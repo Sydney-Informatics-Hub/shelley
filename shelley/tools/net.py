@@ -1,4 +1,5 @@
-"""HTTP fetches that tell "not there" apart from "couldn't reach it" (ADR 0004).
+"""HTTP fetches that tell you whether a tool registry doesn't exist, vs. 
+failed to reach due to network failure
 
 ``fetch_text`` returns the body, ``None`` for HTTP 404 (the resource does not exist),
 and raises ``NetworkUnavailable`` with a plain-language reason for everything else. A
@@ -32,7 +33,7 @@ def fetch_text(url: str, timeout: float = TIMEOUT) -> str | None:
     """GET ``url`` and return its body; ``None`` on 404; raise ``NetworkUnavailable`` otherwise."""
     host = urlsplit(url).hostname or url
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:
+        with _open(url, timeout) as resp:
             return resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -40,6 +41,15 @@ def fetch_text(url: str, timeout: float = TIMEOUT) -> str | None:
         raise NetworkUnavailable(host, f"the server returned HTTP {e.code}") from e
     except (urllib.error.URLError, OSError) as e:
         raise NetworkUnavailable(host, describe(e, timeout)) from e
+
+
+def _open(url: str, timeout: float):
+    """Open ``url`` with proxy settings read from the environment *now*.
+
+    ``urllib.request.urlopen`` caches a global opener on first use, freezing whatever
+    ``https_proxy`` was set then; a fresh opener per request honours later changes.
+    """
+    return urllib.request.build_opener().open(url, timeout=timeout)
 
 
 def diagnose(url: str, timeout: float = TIMEOUT) -> Reachability:
