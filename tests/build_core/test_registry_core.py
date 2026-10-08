@@ -1,4 +1,4 @@
-"""RegistryClient and LocalRegistry (ADR 0004, ADR 0006)."""
+"""RegistryClient and LocalRegistry"""
 
 import pytest
 import yaml

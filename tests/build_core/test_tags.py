@@ -1,4 +1,4 @@
-"""Tag: one ordering rule for every command (ADR 0002)."""
+"""Tag: one ordering rule for every command"""
 
 import gzip
 import json

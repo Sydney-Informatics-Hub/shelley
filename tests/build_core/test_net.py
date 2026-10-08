@@ -1,4 +1,4 @@
-"""Network failures are named, never mistaken for "not found" (ADR 0004)."""
+"""Network failures are named, never mistaken for 'not found'"""
 
 import socket
 import urllib.error
