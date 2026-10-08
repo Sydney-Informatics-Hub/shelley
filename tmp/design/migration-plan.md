@@ -75,6 +75,11 @@ Result: `spikes/batch0_results.md`. The pre-image undo was exact in 14/14 inject
 
 ## Batch 1: new build core, alongside the old (9 units, expand, no release needed)
 
+**DONE 2026-10-08 (uncommitted).** New: `shelley/_vendor/conda_version.py` (VersionOrder subset of conda @ c755016, BSD-3-Clause), `shelley/errors.py`, `shelley/tags.py`, `shelley/galaxy/{catalogue,registry}.py`, `shelley/tools/net.py`, `tests/build_core/` (84 tests, including the live-mount contract). The only edit to an existing file is `pyproject.toml`: ruff `extend-exclude = ["tmp", "shelley/_vendor"]`. That also fixes `dev` CI, which was failing ruff on the committed `tmp/design` notes. Deviations from the plan:
+- the vendored file is trimmed to the VersionOrder part (340 lines, not 715);
+- `GalaxyCatalogue.resolve` raises `AmbiguousTag` instead of prompting; the prompt moves to `services` in batch 2;
+- `LocalRegistry` has no `remove`, because the batch 2 transaction restores a pre-image instead.
+
 New files only; nothing existing is edited except `NOTICE`.
 
 | Step (commit) | Scope | New files | Tests | Fowler refactoring | Units |
