@@ -27,8 +27,10 @@ Shared-VM safety (rank 2); honest failures (rank 3); testability (rank 4).
 2. **Split the build into `plan` and `apply`:**
    - `plan` does all network calls, alias discovery and prompts, writes nothing, and
      returns a frozen `BuildPlan`;
-   - `apply` runs inside `BuildTransaction`, a context manager that records an undo
-     action for each write and runs them in reverse unless `commit()` is reached.
+   - `apply` runs inside `BuildTransaction`, a context manager that, on entry, records a
+     **pre-image** of the tool's five subtrees (shpc modules, wrappers and containers, the
+     local registry entry, and the Lmod directory: paths, modes, symlink targets and file
+     bytes). Unless `commit()` is reached, it restores that pre-image exactly.
    - Rebuilding an installed tag first moves the existing install aside, and the undo
      moves it back.
 3. Keep builds as they are, and make `clean` able to find and remove orphans, or provide
@@ -39,6 +41,16 @@ Shared-VM safety (rank 2); honest failures (rank 3); testability (rank 4).
 **Chosen: 2.** `clean` targets only `LINKED` and `DANGLING` tags, and there is no cleanup
 tool.
 
+**Amended 2026-10-08 after the batch 0 spike** (real shpc 0.1.33, 30 runs in scratch
+roots). The undo mechanism changed from per-step inverse actions (`shpc uninstall`,
+unlink, …) to the pre-image restore:
+- the pre-image restored the tree exactly in **14 of 14** injected failures, including a
+  rebuild of an installed tag (still loadable and runnable afterwards) and a legacy tool
+  directory at mode `0700`;
+- per-step inverse actions were exact in only 1 of 14. `shpc uninstall` itself restored
+  shpc's paths and the per-tool `.version` file correctly, but empty shelley-created
+  directories were left behind, and the permission hardening could not be undone.
+
 ### Consequences
 
 - Good: the only path that keeps changes is total success followed by `commit()`. A
@@ -48,6 +60,9 @@ tool.
   asserts that `/apps` is unchanged.
 - Bad: the filesystem is not transactional. Undo is compensation, so an undo can itself
   fail (e.g. if the disk is full). Undo failures are logged and reported, not hidden.
+- Bad: two concurrent builds of the same tool would race on the same subtrees. The
+  transaction takes a per-tool lock (e.g. `fcntl.flock` on `local/<uri>/.lock`); this
+  was not exercised by the spike.
 - Bad: orphans left by earlier versions are not cleaned up by `clean`. See
   [target-state §5](../../reference/architecture/target-state.md#5-artefact-lifecycle-state-diagram-to-be)
   for how legacy entries are handled.
@@ -69,5 +84,8 @@ Python ch. 18); Split Phase (Fowler).
 
 - shpc gaining an atomic install or "install to staging, then swap". Then use it instead
   of the moving-aside.
+- A tool whose subtrees become large (e.g. if `--keep-path` were dropped and SIFs were
+  copied into `containers/`). Then the pre-image is too costly and per-step undo with
+  explicit pruning is preferable.
 - Undo failures showing up in practice on BioShell VMs. Then add a recovery check to
   `find`.

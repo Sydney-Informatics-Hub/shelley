@@ -77,7 +77,7 @@ evidence: EESSI's R 4.5.2 bundle already contains DESeq2 and Seurat.
 | Explanation | [architecture-evaluation.md](architecture-evaluation.md) | Seven scenarios through both designs |
 | Explanation | [decisions/0001](decisions/0001-split-discovery-from-exposure.md) to [0007](decisions/0007-resolve-before-elevating.md) | The design decisions (ADRs) |
 
-Working material, not published docs (`tmp/design/`, uncommitted):
+Working material, not published docs (`tmp/design/`, committed in `7ba6099`):
 - the migration plan and test seams;
 - the spike scripts and results (offline build, cancelled rebuild, version ordering);
 - the integration-discovery notes;
@@ -89,19 +89,19 @@ Working material, not published docs (`tmp/design/`, uncommitted):
 
 | # | Decision | Owner | Needed by |
 |---|---|---|---|
-| 1 | Commit `tmp/design/` (as design-work) or keep it local; whether to gitignore `tmp/` | Fred | Before the batch 1 PR |
-| 2 | Link the Tier 0 GitHub issues Fred created to the drivers (T1, T2, T6) | Fred | Before the batch 1 PR |
-| 3 | Q5: what users see when the Galaxy Stratum 1 is unreachable (spike on a disposable VM) | Fred | Before batch 3a (switch build) |
-| 4 | Q6: widen `search`'s join to `bioconductor-`/`r-` containers (+~1,300 tools)? | Fred / PO | Deferred; revisit with the R work |
-| 5 | EESSI: exposure option (X1/X2/X3), the user-facing verb, and the EESSI version policy | Fred / PO | When EESSI is scheduled, after the D-Q1 PoC spike |
-| 6 | Reference data: paths only, or `ref/<build>` modulefiles | Fred | When data is scheduled |
-| 7 | BioShell PR adding `software.eessi.io` to the image (today hand-configured on the dev VM) | Fred | With the EESSI work |
+| 1 | Link the Tier 0 GitHub issues Fred created to the drivers (T1, T2, T6) | Fred | Before the batch 1 PR |
+| 2 | Q5: what users see when the Galaxy Stratum 1 is unreachable (spike on a disposable VM) | Fred | Before batch 3a (switch build) |
+| 3 | Q6: widen `search`'s join to `bioconductor-`/`r-` containers (+~1,300 tools)? | Fred / PO | Deferred; revisit with the R work |
+| 4 | EESSI: exposure option (X1/X2/X3), the user-facing verb, and the EESSI version policy | Fred / PO | When EESSI is scheduled, after the D-Q1 PoC spike |
+| 5 | Reference data: paths only, or `ref/<build>` modulefiles | Fred | When data is scheduled |
+| 6 | BioShell PR adding `software.eessi.io` to the image (today hand-configured on the dev VM) | Fred | With the EESSI work |
 
 ## Risks register
 
 | # | Risk | Likelihood | Impact | Mitigation | Trigger to act |
 |---|---|---|---|---|---|
-| R1 | The build undo cannot restore shpc's per-tool `.version` file exactly (shpc rewrites it on install *and* uninstall) | Medium | High: the undo would leave a wrong default version | Batch 0 spike first; fallback "install to staging, then rename" (ADR 0005) | Spike shows a tree-hash mismatch |
+| R1 | ~~The build undo cannot restore shpc's per-tool `.version` file exactly~~ **Closed 2026-10-08:** the batch 0 spike restored the tree exactly in 14/14 injected failures using a pre-image (ADR 0005, amended) | — | — | — | — |
+| R11 | Two users build the same tool at the same moment and race on its subtrees | Low | Medium | Per-tool lock in `BuildTransaction` (ADR 0005); not yet tested | A concurrent-build report, or before batch 3a |
 | R2 | Review capacity drops below one moderate PR a fortnight | Medium | Medium: the schedule slips | Option A fallback: stop after build, since all Tier 0s are fixed by 0.6.0 | Two PRs waiting > 2 weeks |
 | R3 | Estimates are low (6 units a week assumed; 40 units total) | Medium | Medium | Batch order puts the PO's priority (build) first; batches 4–5 can slip without user harm | Batch 2 takes > 12 units |
 | R4 | Legacy registry entries on deployed VMs behave differently from the dev VM sample (2 entries) | Low | Medium: a build on an old VM fails or keeps a bad entry | The merge/remove rule is tested with fixture entries; the opt-in period on real VMs (0.5.0) | A report during the opt-in |

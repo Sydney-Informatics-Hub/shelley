@@ -136,7 +136,7 @@ classDiagram
     }
     class BuildTransaction {
         <<context manager>>
-        +record(undo) None
+        +subtrees: list~Path~
         +commit() None
     }
     class RegistryClient {
@@ -396,22 +396,18 @@ sequenceDiagram
     participant SH as Shpc
     participant LM as Lmod
     participant FS as /apps
-    X->>T: enter - default is to undo everything
+    X->>T: enter - take the per-tool lock, record a pre-image of the tool's 5 subtrees
     opt plan.replace_existing
         X->>FS: move the tag's shpc subtrees and link aside
-        X->>T: record(move them back)
     end
     opt plan.local_entry
         X->>L: write entry and marker
-        X->>T: record(restore previous entry)
     end
     X->>SH: install(uri:tag, sif) with --keep-path
-    X->>T: record(shpc uninstall)
     X->>FS: harden this tool's subtrees
     X->>LM: link(tool, tag, module.lua)
-    X->>T: record(unlink)
-    X->>T: commit - delete the moved-aside copies
-    T-->>X: on any exception before commit, run the undo list in reverse
+    X->>T: commit - delete the moved-aside copies, release the lock
+    T-->>X: on any exception before commit, restore the pre-image exactly
 ```
 
 ### 4.6 `shelley build <tools-file>` (batch)
@@ -518,7 +514,7 @@ Legacy artefacts on VMs built with shelley ≤ 0.4.0 are handled as follows:
 | `GalaxyCatalogue` | snapshot schema, mount layout, `tool:tag` grammar, Lmod link layout | Lists, resolves, verifies and reports install state | `Tag`, snapshot, mount, Lmod directory | user |
 | `Tag`, `tags.latest` | version grammar, conda ordering, non-version tags, mulled rule | Parses, orders, matches | vendored `VersionOrder` | either |
 | `ShpcExposer` | shpc URI layout, registry entry schema, marker format, permission subtrees | Plans and applies builds; removes tags | `RegistryClient`, `LocalRegistry`, `guts_integration`, `Shpc`, `Lmod`, `BuildTransaction`, `perms` | root |
-| `BuildTransaction` | undo actions recorded so far | Undoes in reverse unless committed | — | root |
+| `BuildTransaction` | the pre-image of one tool's five subtrees; the per-tool lock | Restores the pre-image exactly unless committed | — | root |
 | `RegistryClient` | upstream URL | Fetches an upstream entry, or `None` if not upstream | `net` | root |
 | `LocalRegistry` | `/apps/local` layout, markers | Reads, writes, merges and removes authored entries | filesystem, `perms` | root |
 | `Shpc`, `Lmod` | CLI argv, settings file, Lmod driver | Wrap one external tool each | `subprocess` | root |

@@ -46,18 +46,20 @@ The only format change, the tag value `local:keep-path` in place of a SIF hash, 
 |---|---|---|---|---|---|---|
 | 0 | **Spike: transaction against real shpc** (not merged) | — | de-risks T2/T5 | 2 | none | — |
 | 1 | **New build core:** `Tag`, `GalaxyCatalogue` (resolve/verify), `net`, registry | expand | — | 9 | none | — |
-| 2 | **New build path, opt-in:** façades, `BuildTransaction`, `ShpcExposer`, resolve-before-elevate, `services.build` | expand + opt in | T1 (build side), T2, T5, T6 behind the flag | 9 | only with `SHELLEY_NEW_BUILD=1` | 0.5.0 |
+| 2 | **New build path, opt-in:** façades, `BuildTransaction`, `ShpcExposer`, resolve-before-elevate, `services.build` | expand + opt in | T1 (build side), T2, T5, T6 behind the flag | 9.5 | only with `SHELLEY_NEW_BUILD=1` | 0.5.0 |
 | 3a | **Switch build** | switch | **T2, T5, T6 (Tier 0) for everyone**; T1 for `build` | 1.5 | yes: conda "latest"; mulled needs a tag; fail fast offline; one sudo prompt per batch | 0.6.0 |
 | 3b | **Delete the old build** | contract | — | 2 | none | 0.6.1 |
 | 4 | **find, search and clean on the new core** (same expand → opt-in → switch, flag `SHELLEY_NEW_DISCOVERY`) | all four stages | **T1 fully** (`find` agrees with `build`), T4, N2 | 10 | `find`'s order and installed flags change | 0.7.0 |
 | 5 | **One command surface and final removal** | contract | Repeated Switches, import cycle, dead code | 6 | REPL help gains `clean` | 0.8.0 |
-| | **Total** | | | **39.5 units ≈ 7 weeks of Fred's time** | | |
+| | **Total** | | | **40 units ≈ 7 weeks of Fred's time** | | |
 
 **T1 interim:** between 3a and 4, `build` uses conda ordering while `find` still uses `_version_key`, so the two keep disagreeing, for a different set of tools, for about three weeks. See checkpoint question 1.
 
 ---
 
-## Batch 0: spike, transaction against real shpc (2 units, not merged)
+## Batch 0: spike, transaction against real shpc (2 units, not merged): **DONE 2026-10-08, go**
+
+Result: `spikes/batch0_results.md`. The pre-image undo was exact in 14/14 injected failures; ADR 0005 is amended to use it. New item: a per-tool lock (step 2.2).
 
 - **Question:** can `apply` be undone exactly, with the real shpc 0.1.33, at every step, including rebuilding an installed tag by moving it aside?
 - **Method:** extend `tmp/design/spikes/spike_partial_failures.py` (scratch build roots, `seqtk:r93--0`):
@@ -83,12 +85,12 @@ New files only; nothing existing is edited except `NOTICE`.
 | 1.4 | `net.fetch_text`/`diagnose`; `NetworkUnavailable`; `RegistryClient` | `shelley/tools/net.py`, `shelley/galaxy/registry.py` | Simulated DNS failure, timeout and connection refused; Fred's message wording | Substitute Algorithm (curl → urllib) | 2 |
 | 1.5 | `LocalRegistry`: authored entries; merge upstream tags; legacy-entry rule; marker format unchanged | `shelley/galaxy/registry.py` | Stale-shadow and legacy-entry tests; round trip: an entry written by `LocalRegistry` is read by the old `uninstall_module` | — | 2 |
 
-## Batch 2: new build path, opt-in (9 units) → 0.5.0
+## Batch 2: new build path, opt-in (9.5 units) → 0.5.0
 
 | Step | Scope | Files | Tests | Fowler refactoring | Units |
 |---|---|---|---|---|---|
 | 2.1 | `Shpc` and `Lmod` façades (wrap the existing `shpc_settings` and Lmod loader rather than copying them) | `shelley/tools/shpc.py`, `shelley/tools/lmod.py` | `FakeShpc`, `FakeLmod` | Extract Class | 1.5 |
-| 2.2 | `BuildTransaction` | `shelley/transaction.py` | Commit keeps; exception undoes in reverse; failing undo reported | — | 1 |
+| 2.2 | `BuildTransaction`: pre-image of the tool's 5 subtrees on entry, exact restore unless committed, per-tool `flock` | `shelley/transaction.py` | Port the spike's tree-hash check as a unit test on a fixture tree; commit keeps; exception restores exactly; failing restore reported; two processes contend for the lock | — | 1.5 |
 | 2.3 | `ShpcExposer.plan`/`apply` with move-aside (per batch 0); tag value `local:keep-path` | `shelley/galaxy/exposer.py`, `shelley/results.py` | **Failure injection** at each step (tree hash unchanged); **spike A port** (cancelled `-i` keeps the module); **spike B port** (dead proxy: `NetworkUnavailable`, nothing written); real-shpc variants marked `shpc` | Split Phase | 3.5 |
 | 2.4 | `privilege` (resolve first, then re-exec with hidden `--resolved-tag`); `services.build`, `services.build_many` (one elevation per batch) | `shelley/privilege.py`, `shelley/services.py` | Bad spec → no sudo call; batch resolves all specs and elevates once; failed specs reported individually | Move Function (copy, then old deleted in 3b) | 2 |
 | 2.5 | Opt-in routing: when `SHELLEY_NEW_BUILD=1`, the CLI and REPL `build` call `services.build`; CHANGELOG "experimental" | `client/cli.py`, `commands/interactive.py` (one branch each) | CLI routing tests for both values of the flag | — | 1 |
