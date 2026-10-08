@@ -1,0 +1,91 @@
+classDiagram
+  class shelley {
+  }
+  class __main__ {
+  }
+  class builder {
+  }
+  class cvmfs_builder {
+  }
+  class guts_integration {
+  }
+  class shpc_settings {
+  }
+  class client {
+  }
+  class cli {
+  }
+  class commands {
+  }
+  class build {
+  }
+  class clean {
+  }
+  class find {
+  }
+  class interactive {
+  }
+  class search {
+  }
+  class update {
+  }
+  class scripts {
+  }
+  class assess_coverage {
+  }
+  class assess_regression_tools {
+  }
+  class build_galaxy_cache {
+  }
+  class build_rsec_meta {
+  }
+  class utils {
+  }
+  class args {
+  }
+  class batch {
+  }
+  class cache {
+  }
+  class commands {
+  }
+  class constants {
+  }
+  class globals {
+  }
+  class modules {
+  }
+  class perms {
+  }
+  class render {
+  }
+  class style {
+  }
+  class update_check {
+  }
+  shelley --> cvmfs_builder
+  shelley --> cli
+  __main__ --> cli
+  cvmfs_builder --> guts_integration
+  cvmfs_builder --> shpc_settings
+  cvmfs_builder --> utils
+  cvmfs_builder --> globals
+  cvmfs_builder --> perms
+  client --> cli
+  find --> search
+  interactive --> build
+  interactive --> clean
+  interactive --> find
+  interactive --> search
+  scripts --> build_galaxy_cache
+  scripts --> build_rsec_meta
+  build_galaxy_cache --> globals
+  build_rsec_meta --> globals
+  utils --> constants
+  utils --> style
+  batch --> commands
+  batch --> style
+  cache --> globals
+  perms --> globals
+  render --> style
+  style --> update_check
