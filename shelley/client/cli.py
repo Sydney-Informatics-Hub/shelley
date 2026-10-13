@@ -91,8 +91,9 @@ def main() -> None:
         }[command]
         sys.exit(runner(sys.argv[2:]))
 
-    if command == "build" and os.environ.get("SHELLEY_NEW_BUILD") == "1":
-        # Opt-in new build core (migration plan batch 2); becomes the default in 3a.
+    if command == "build" and os.environ.get("SHELLEY_LEGACY_BUILD") != "1":
+        # New build core is the default (migration plan batch 3a);
+        # SHELLEY_LEGACY_BUILD=1 selects the old path until it is deleted in 3b.
         from .new_build import run as run_new_build
 
         sys.exit(run_new_build(sys.argv[2:]))

@@ -21,6 +21,12 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture
+def legacy_build(monkeypatch):
+    """Route ``build`` to the 0.4.0 path; goes with that path in batch 3b."""
+    monkeypatch.setenv("SHELLEY_LEGACY_BUILD", "1")
+
+
 @pytest.fixture(autouse=True)
 def _skip_without_cvmfs(request):
     if request.node.get_closest_marker("cvmfs") and not CVMFS_PATH.exists():

@@ -2,6 +2,32 @@
 
 Why the module builder is designed the way it is.
 
+## Which build runs
+
+`shelley build` runs on the new build core (`services.build`, with `GalaxyCatalogue` for
+discovery and `ShpcExposer` for exposure) by default. For one release,
+`SHELLEY_LEGACY_BUILD=1` selects the 0.4.0 builder (`CVMFSModuleBuilder`). The variable is
+forwarded across the `sudo` re-exec, so the root child takes the same path. The 0.4.0
+builder is deleted in the release after that.
+
+Most of this page applies to both paths: the new core uses the same pinned settings file,
+the same permissions, the same alias discovery and the same on-disk layout. Where the new
+core behaves differently, the reasons are in the decision records:
+
+- a build plans first and then applies its writes in a transaction, so a failure or a
+  cancelled `-i` restores the previous state
+  ([ADR 0005](decisions/0005-plan-then-apply-with-compensating-transaction.md));
+- the tool, the version and the build are resolved, and any prompt is answered, before
+  `sudo` ([ADR 0007](decisions/0007-resolve-before-elevating.md));
+- "latest" follows conda's version ordering
+  ([ADR 0002](decisions/0002-tag-value-object-with-conda-ordering.md));
+- an unreachable network stops the build before it writes anything, and alias discovery
+  failures are no longer swallowed
+  ([ADR 0004](decisions/0004-fail-fast-when-network-unavailable.md));
+- local registry entries hold only what shelley authored, and store the tag value
+  `local:keep-path` instead of a hash of the whole SIF
+  ([ADR 0006](decisions/0006-local-registry-holds-authored-entries-only.md)).
+
 ## Why shelley pins shpc to its own settings file
 
 A built module has to be usable by every user on the machine, not just whoever ran the
@@ -116,3 +142,9 @@ A local entry is created when the requested version has no upstream registry ent
 2. Retries `shpc install` pointing at the local registry.
 
 This is transparent to the user — it adds a few minutes to the build and is logged (only for the absent-upstream case; an interactive curation of an upstream version is not itself a fallback). The `newly_created` flag in the regression matrix (see [docs/reference/data-sources.md](../reference/data-sources.md)) records which tools consistently require a local entry for this second reason. Both paths are marked with a per-version marker directory so `shelley clean` can find them later — see [clean-design.md](clean-design.md#why-per-version-marker-directories-exist).
+
+On the new build core, a local entry is no longer also a cache of the upstream entry. Each
+build of a tool that has a local entry merges the fresh upstream tags into it, so a
+curated `-i` entry no longer hides newer upstream versions. An entry that no installed
+version uses and that has no marker directory is a 0.4.0 leftover, and the next build of
+that tool removes it ([ADR 0006](decisions/0006-local-registry-holds-authored-entries-only.md)).

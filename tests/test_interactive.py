@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from shelley.commands.interactive import interactive_mode
 
 # ---------------------------------------------------------------------------
@@ -169,16 +171,19 @@ def test_search_missing_arg_warns():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_build_dispatches():
     mocks = _run(["build samtools", "exit"])
     mocks["build"].assert_called_once_with("samtools", interactive=False)
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_build_interactive_flag():
     mocks = _run(["build samtools -i", "exit"])
     mocks["build"].assert_called_once_with("samtools", interactive=True)
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_build_missing_arg_warns():
     mocks = _run(["build", "exit"])
     mocks["build"].assert_not_called()

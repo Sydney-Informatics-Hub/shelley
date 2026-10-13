@@ -1,6 +1,7 @@
 """The opt-in build path end to end: resolve as the user, then elevate once"""
 
 import sys
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -172,11 +173,15 @@ def test_in_process_build_when_apps_is_writable(catalogue, fake_build_env):
 
 
 # ------------------------------------------------------------------ routing
-def test_cli_routes_build_to_the_new_path_when_opted_in(monkeypatch):
+@pytest.mark.parametrize("opt_in", [None, "1"])
+def test_cli_routes_build_to_the_new_path_by_default(monkeypatch, opt_in):
+    """Default since 3a; a leftover ``SHELLEY_NEW_BUILD=1`` changes nothing."""
     from shelley.client import cli
 
     seen = []
-    monkeypatch.setenv("SHELLEY_NEW_BUILD", "1")
+    monkeypatch.delenv("SHELLEY_LEGACY_BUILD", raising=False)
+    if opt_in:
+        monkeypatch.setenv("SHELLEY_NEW_BUILD", opt_in)
     monkeypatch.setattr(new_build, "run", lambda argv: seen.append(argv) or 0)
     monkeypatch.setattr(
         cli, "build_module", lambda *a, **k: pytest.fail("old path used")
@@ -187,11 +192,11 @@ def test_cli_routes_build_to_the_new_path_when_opted_in(monkeypatch):
     assert exc.value.code == 0 and seen == [["samtools", "-i"]]
 
 
-def test_cli_keeps_the_old_path_by_default(monkeypatch):
+def test_cli_keeps_the_old_path_behind_the_escape_hatch(monkeypatch):
     from shelley.client import cli
 
     seen = []
-    monkeypatch.delenv("SHELLEY_NEW_BUILD", raising=False)
+    monkeypatch.setenv("SHELLEY_LEGACY_BUILD", "1")
     monkeypatch.setattr(new_build, "run", lambda argv: pytest.fail("new path used"))
     monkeypatch.setattr(
         cli, "build_module", lambda spec, interactive=False: seen.append(spec) or True
@@ -202,9 +207,27 @@ def test_cli_keeps_the_old_path_by_default(monkeypatch):
     assert exc.value.code == 0 and seen == ["samtools"]
 
 
-def test_root_child_inherits_the_opt_in(monkeypatch):
-    monkeypatch.setenv("SHELLEY_NEW_BUILD", "1")
-    assert "SHELLEY_NEW_BUILD=1" in privilege.sudo_env_args()
+def test_repl_routes_build_to_the_new_path_by_default(monkeypatch):
+    from shelley.commands import interactive
+
+    seen = []
+    monkeypatch.delenv("SHELLEY_LEGACY_BUILD", raising=False)
+    monkeypatch.setattr(new_build, "run", lambda argv: seen.append(argv) or 0)
+    monkeypatch.setattr(
+        interactive, "build_module", lambda *a, **k: pytest.fail("old path used")
+    )
+    monkeypatch.setattr(interactive, "print_banner", lambda *a, **k: None)
+    monkeypatch.setattr(interactive, "print_rule", lambda *a, **k: None)
+    console = MagicMock()
+    console.input.side_effect = ["build samtools -i", "exit"]
+    monkeypatch.setattr(interactive, "console", console)
+    interactive.interactive_mode()
+    assert seen == [["samtools", "-i"]]
+
+
+def test_root_child_inherits_the_escape_hatch(monkeypatch):
+    monkeypatch.setenv("SHELLEY_LEGACY_BUILD", "1")
+    assert "SHELLEY_LEGACY_BUILD=1" in privilege.sudo_env_args()
 
 
 def test_ambiguous_version_without_a_terminal_is_a_clean_cancel(

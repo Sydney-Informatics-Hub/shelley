@@ -8,6 +8,7 @@ import pytest
 from shelley.client.cli import main
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_import_path_resolves(tmp_path, monkeypatch):
     """patch('shelley.client.cli.batch_build_modules') intercepts file-based build."""
     f = tmp_path / "tools.txt"

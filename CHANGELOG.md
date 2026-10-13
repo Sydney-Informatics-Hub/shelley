@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- Experimental: a new `shelley build`, opt-in with `SHELLEY_NEW_BUILD=1`. The default
-  build is unchanged in this release; the new one becomes the default in a later
-  release once it has been tried on more VMs. With the variable set:
+- `shelley build` uses a new build core by default. For this release,
+  `SHELLEY_LEGACY_BUILD=1` selects the 0.4.0 build; it will be removed in the next
+  release. `SHELLEY_NEW_BUILD=1`, the earlier opt-in, is no longer needed. What changes:
   - a build either fully succeeds or changes nothing: a failure or a cancelled `-i`
     prompt restores the previous state, including an already-installed module;
   - "latest" follows conda's version ordering (the rule Bioconda uses), and `mulled-*`
@@ -28,9 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - local registry entries no longer store a hash of the whole container, so a build
     no longer reads the full SIF through the CVMFS cache.
 
-  Modules built this way use the same layout as before, so `shelley find` and
-  `shelley clean` work on them unchanged. See
+  Modules use the same layout as before, so `shelley find` and `shelley clean` work on
+  them unchanged. See
   `docs/explanation/architecture-design.md` and ADRs 0001–0007.
+
+### Added
+
 - Architecture documentation: start at `docs/explanation/architecture-design.md`.
   Reference pages are in `docs/reference/architecture/` (glossary, current and target
   state, traceability); explanation pages cover the design review, the scenario

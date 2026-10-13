@@ -49,6 +49,7 @@ def test_read_missing_raises(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_main_file_arg_calls_batch(tmp_path, monkeypatch):
     """File arg → batch_build_modules called with parsed tools; build_module not called."""
     f = tmp_path / "tools.txt"
@@ -66,6 +67,7 @@ def test_main_file_arg_calls_batch(tmp_path, monkeypatch):
         mock_single.assert_not_called()
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_main_non_file_arg_calls_single(monkeypatch):
     """Non-file arg → build_module called unchanged; batch_build_modules not called."""
     monkeypatch.setattr(sys, "argv", ["shelley", "build", "samtools"])
@@ -81,6 +83,7 @@ def test_main_non_file_arg_calls_single(monkeypatch):
         mock_batch.assert_not_called()
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_main_empty_file_exits_1_with_warning(tmp_path, monkeypatch):
     """All-comment file → exit 1, warning printed, neither build function called."""
     f = tmp_path / "tools.txt"
@@ -100,6 +103,7 @@ def test_main_empty_file_exits_1_with_warning(tmp_path, monkeypatch):
         mock_warn.assert_called_once()
 
 
+@pytest.mark.usefixtures("legacy_build")
 def test_main_batch_failure_propagates_exit_code(tmp_path, monkeypatch):
     """batch_build_modules returning 1 → main exits 1."""
     f = tmp_path / "tools.txt"

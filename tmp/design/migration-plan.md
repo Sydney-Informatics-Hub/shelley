@@ -38,7 +38,7 @@ The only format change, the tag value `local:keep-path` in place of a SIF hash, 
 - (a) **[MET 2026-10-13: CI green on `redesign`]** the failure-injection, exposer-contract and catalogue-contract suites are green;
 - (b) **[MET 2026-10-08: 23/23, `smoke/results-2026-10-08.md`]** a scripted smoke run on the dev VM with `SHELLEY_NEW_BUILD=1` builds the regression tool matrix ([data-sources.md](../../docs/reference/data-sources.md#regression-tool-matrix)), including one `-i` build, one rebuild of an installed tag, one cancelled `-i`, and one build behind a dead proxy;
 - (c) **[MET 2026-10-13: PO built seqtk on their VM]** the PO has built at least one tool on their own VM with the flag;
-- (d) one release (0.5.0) has been out with the opt-in, and no regressions were reported.
+- (d) **[WAIVED 2026-10-13 by Fred: (a)–(c) judged sufficient; `SHELLEY_LEGACY_BUILD=1` remains the safety net]** one release (0.5.0) has been out with the opt-in, and no regressions were reported.
 
 ## Overview
 
@@ -116,6 +116,8 @@ The ambiguous-version prompt runs in the user process before sudo; batches promp
 | 2.5 | Opt-in routing: when `SHELLEY_NEW_BUILD=1`, the CLI and REPL `build` call `services.build`; CHANGELOG "experimental" | `client/cli.py`, `commands/interactive.py` (one branch each) | CLI routing tests for both values of the flag | — | 1 |
 
 ## Batch 3a: switch build (1.5 units) → 0.6.0
+
+**DONE 2026-10-13 (on `redesign`, not released).** Default flipped in `client/cli.py` and the REPL; `SHELLEY_LEGACY_BUILD=1` selects the old path and is forwarded across sudo. A leftover `SHELLEY_NEW_BUILD=1` is ignored. The eight old routing tests are pinned to the old path with a `legacy_build` fixture (`tests/conftest.py`) and go in 3b. CHANGELOG moves the build entry from "Added, experimental" to "Changed"; `docs/explanation/build-design.md` gains "Which build runs" and an ADR 0006 note. 472 passed, 1 skipped.
 
 Once the "certain" criteria hold:
 - the default becomes the new path, and `SHELLEY_LEGACY_BUILD=1` selects the old one for this release;

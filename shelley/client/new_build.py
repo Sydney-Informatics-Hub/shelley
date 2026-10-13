@@ -1,9 +1,9 @@
-"""``shelley build`` on the new build core, opt-in with ``SHELLEY_NEW_BUILD=1``.
+"""``shelley build`` on the new build core, the default since batch 3a.
 
-This currently runs beside the 0.4.0 build in
-``commands/build.py`` until the default switches in the next iteration. Accepted arguments are the
-same (a spec or a tools file, ``-i``/``--interactive``), plus the hidden
-``--resolved-tag tool:tag`` that the user process passes to its root child.
+``SHELLEY_LEGACY_BUILD=1`` selects the 0.4.0 build in ``commands/build.py`` until that
+is deleted in batch 3b. Accepted arguments are the same (a spec or a tools file,
+``-i``/``--interactive``), plus the hidden ``--resolved-tag tool:tag`` that the user
+process passes to its root child.
 """
 
 from datetime import datetime

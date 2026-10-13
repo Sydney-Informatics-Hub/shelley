@@ -27,7 +27,7 @@ def needs_root() -> bool:
 def sudo_env_args() -> list[str]:
     """``PATH`` and every ``SHELLEY_*`` variable, passed explicitly through ``sudo env``.
 
-    This includes ``SHELLEY_NEW_BUILD``, so the root child takes the same build path.
+    This includes ``SHELLEY_LEGACY_BUILD``, so the root child takes the same build path.
     """
     args = [f"PATH={os.environ['PATH']}"]
     args += [
