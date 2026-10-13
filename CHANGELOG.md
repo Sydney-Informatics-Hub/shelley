@@ -9,40 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `shelley build` runs on a new build core, and the 0.4.0 build has been removed. There
-  is no opt-in or fallback variable; `SHELLEY_NEW_BUILD` and `SHELLEY_LEGACY_BUILD` are
-  ignored. What changes:
-  - a build either fully succeeds or changes nothing: a failure or a cancelled `-i`
-    prompt restores the previous state, including an already-installed module;
-  - "latest" follows conda's version ordering (the rule Bioconda uses), and `mulled-*`
-    containers need an explicit tag;
-  - if GitHub cannot be reached, the build stops before writing anything and says so,
-    e.g. "Couldn't reach GitHub (raw.githubusercontent.com): the request timed out
-    after 10 s. Try again in a few seconds.", instead of building a module without
-    the tool's command;
-  - a mistyped tool or version, or a missing CVMFS mount, is reported before the
-    `sudo` password prompt, and a tools file asks for the password once;
-  - when a version has several builds, the choice is asked before `sudo`; with no
-    terminal to ask on, the build is cancelled cleanly instead of crashing;
-  - two builds of the same tool at once wait for each other;
-  - local registry entries no longer store a hash of the whole container, so a build
-    no longer reads the full SIF through the CVMFS cache.
-
-  Modules use the same on-disk layout as 0.4.0's. See
-  `docs/explanation/architecture-design.md` and ADRs 0001–0007.
-
-- `shelley find`, `search` and `clean` run on the same core as `build`.
-  `SHELLEY_NEW_DISCOVERY`, the earlier opt-in, is ignored. What changes:
-  - `find` lists versions in the same order `build` uses, so its top row is the version
-    `shelley build <tool>` installs, and marks a version installed only on an exact
-    match (no longer `1.1` because `1.10` is);
-  - `find -v` lists every build with its container path (what `-vv` showed); `-vv` is
-    accepted and means the same;
-  - `find`, `search` and `clean` with no arguments exit with status 1;
-  - `clean` checks the version is installed before asking for `sudo`, removes it
-    all-or-nothing, and leaves no leftover files: wrappers shpc keeps are removed, and
-    the tool's local registry entry goes with its last installed version. If
-    `shpc uninstall` fails, nothing is removed.
+- Major refactor of `shelley` to be more modular and less repetitive to support
+  incoming CVMFS repos
+- Large and messy `CVMFSModuleBuilder` class replaced with a new set of core classes and functions
+  for better error handling and reusability
+- New logic for `build` so artefacts are deleted when a build is cancelled or
+  fails. This ensures `shelley clean` doesn't leave any stray artefacts.
+- Version ordering follows the same rules as Bioconda to account for uncommon version
+  specs (e.g. 0.4.0-dev for dev work, seqtk/r93)
+- If GitHub cannot be reached, the build stops before writing anything and says so,
+  e.g. "Couldn't reach GitHub (raw.githubusercontent.com): the request timed out
+  after 10 s. Try again in a few seconds.", instead of building a module without
+  the tool's command
+- Improved CVMFS error handling (e.g. all errors do not raise generic "check if CVMFS is mounted")
 
 ### Added
 
@@ -65,7 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `shelley search` and `shelley find -v` no longer end in a traceback when output is
   piped or run from a script; with no terminal to page on, they print the first page.
 - CI: `ruff` no longer checks the design notes under `tmp/`, which had made lint fail
-  on `dev`.
+- `find` version ordering fixed
+- `build` correctly selects latest tool version
 
 ## [0.4.0] - 2026-10-02
 
@@ -226,7 +206,7 @@ First tagged release.
 - Installation guide covering system-wide (`uv tool install` into `/opt`),
   per-user, and `uvx` (experimental) paths.
 
-[Unreleased]: https://github.com/Sydney-Informatics-Hub/shelley/compare/v0.4.0...HEAD
+[0.5.0]: https://github.com/Sydney-Informatics-Hub/shelley/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.2.0
