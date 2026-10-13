@@ -29,10 +29,10 @@ def _run(inputs: list, *, side_effect=None):
         patch(f"{_MODULE}.print_info") as mock_info,
         patch(f"{_MODULE}.print_success") as mock_success,
         patch(f"{_MODULE}.print_warning") as mock_warning,
-        patch(f"{_MODULE}.find_tool_sync") as mock_find,
-        patch(f"{_MODULE}.search_tools") as mock_search,
+        patch(f"{_MODULE}.run_find") as mock_find,
+        patch(f"{_MODULE}.run_search") as mock_search,
         patch(f"{_MODULE}.run_build") as mock_build,
-        patch(f"{_MODULE}.clean_module") as mock_clean,
+        patch(f"{_MODULE}.run_clean") as mock_clean,
     ):
         mock_console.input = input_mock
 
@@ -108,60 +108,30 @@ def test_help_shows_table():
 
 
 # ---------------------------------------------------------------------------
-# find
+# find / search / clean: arguments go to the command unchanged; it parses its own
+# flags and prints its own usage line (tests/build_core/test_discovery.py)
 # ---------------------------------------------------------------------------
 
 
-def test_find_dispatches():
-    mocks = _run(["find samtools", "exit"])
-    mocks["find"].assert_called_once_with("samtools", verbose=False)
-
-
-def test_find_verbose_flag_dispatches():
-    mocks = _run(["find samtools -v", "exit"])
-    mocks["find"].assert_called_once_with("samtools", verbose=True)
-
-
-def test_find_verbose_long_flag_dispatches():
-    mocks = _run(["find --verbose samtools", "exit"])
-    mocks["find"].assert_called_once_with("samtools", verbose=True)
-
-
-def test_find_double_verbose_flag_dispatches():
+def test_find_dispatches_with_its_flags():
     mocks = _run(["find samtools -vv", "exit"])
-    mocks["find"].assert_called_once_with("samtools", verbose=True)
+    mocks["find"].assert_called_once_with(["samtools", "-vv"])
 
 
-def test_find_stacked_verbose_flags_dispatch():
-    mocks = _run(["find samtools -v -v", "exit"])
-    mocks["find"].assert_called_once_with("samtools", verbose=True)
-
-
-def test_find_missing_arg_warns():
-    mocks = _run(["find", "exit"])
-    mocks["find"].assert_not_called()
-    mocks["warning"].assert_called()
-
-
-# ---------------------------------------------------------------------------
-# search
-# ---------------------------------------------------------------------------
-
-
-def test_search_dispatches():
-    mocks = _run(["search alignment", "exit"])
-    mocks["search"].assert_called_once_with("alignment")
-
-
-def test_search_multi_word():
+def test_search_dispatches_every_word():
     mocks = _run(["search quality control", "exit"])
-    mocks["search"].assert_called_once_with("quality control")
+    mocks["search"].assert_called_once_with(["quality", "control"])
 
 
-def test_search_missing_arg_warns():
-    mocks = _run(["search", "exit"])
-    mocks["search"].assert_not_called()
-    mocks["warning"].assert_called()
+def test_clean_dispatches_with_its_flags():
+    mocks = _run(["clean samtools:1.21 -y", "exit"])
+    mocks["clean"].assert_called_once_with(["samtools:1.21", "-y"])
+
+
+def test_commands_without_arguments_are_left_to_the_command():
+    mocks = _run(["find", "search", "clean", "exit"])
+    for name in ("find", "search", "clean"):
+        mocks[name].assert_called_once_with([])
 
 
 # ---------------------------------------------------------------------------
@@ -183,27 +153,6 @@ def test_build_without_arguments_is_left_to_the_build_command():
     """``run_build`` prints its own usage line for an empty argument list."""
     mocks = _run(["build", "exit"])
     mocks["build"].assert_called_once_with([])
-
-
-# ---------------------------------------------------------------------------
-# clean
-# ---------------------------------------------------------------------------
-
-
-def test_clean_dispatches():
-    mocks = _run(["clean samtools:1.21", "exit"])
-    mocks["clean"].assert_called_once_with("samtools:1.21", force=False)
-
-
-def test_clean_force_flag_dispatches():
-    mocks = _run(["clean samtools:1.21 -y", "exit"])
-    mocks["clean"].assert_called_once_with("samtools:1.21", force=True)
-
-
-def test_clean_missing_arg_warns():
-    mocks = _run(["clean", "exit"])
-    mocks["clean"].assert_not_called()
-    mocks["warning"].assert_called()
 
 
 # ---------------------------------------------------------------------------

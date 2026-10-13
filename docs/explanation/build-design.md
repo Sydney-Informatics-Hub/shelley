@@ -6,9 +6,8 @@ Why the module builder is designed the way it is.
 
 `shelley build` has one path: `client/build.py` resolves the request as the user, then
 `services.build` builds it, with `GalaxyCatalogue` for discovery and `ShpcExposer` for
-exposure. The 0.4.0 builder (`CVMFSModuleBuilder.shpc_install`) has been removed; only its
-`uninstall_module` remains, for the old `shelley clean`, until find, search and clean move
-to the same core.
+exposure. `shelley find`, `search` and `clean` use the same core (`client/discovery.py`).
+The 0.4.0 builder (`CVMFSModuleBuilder`) has been removed.
 
 Most of this page explains choices made in 0.4.0 that the build core keeps: the pinned
 settings file, the permissions, the alias discovery and the on-disk layout. Where the

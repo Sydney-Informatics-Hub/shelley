@@ -11,20 +11,19 @@ shelley <command> [args]
 ## `find`
 
 ```bash
-shelley find <tool_name> [-v | -vv]
+shelley find <tool_name> [-v]
 ```
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `tool_name` | string | Yes | Tool to look up |
-| `-v`, `--verbose` | flag | No | Show every available container version, paginated, instead of the recent-versions preview |
-| `-vv` | flag | No | As `-v`, but list every individual build (one row per `--hash`) with its full CVMFS container path |
+| `-v`, `--verbose` | flag | No | List every individual build (one row per `--hash`) with its full CVMFS container path, paginated, instead of the recent-versions preview |
 
-Verbosity stacks: `-vv` is equivalent to `-v -v`.
+`-vv` and `-v -v` are accepted and mean the same as `-v`.
 
 Looks up a tool by name. Case-insensitive; handles hyphen/underscore variants. Matches against the `id` and `name` fields in the RSEC corpus; falls back to fuzzy matching when no exact match is found.
 
-**Returns:** Tool description, homepage, and EDAM operations; a table of container versions with buildable and install status; an install prompt. By default only the five most recent versions are shown. `-v` expands this to the full paginated version list, sorted newest-first (✓ = in the upstream shpc-registry, ✗ = requires local registry fallback). `-vv` further expands each version into its individual builds and adds a **Container Path** column with the full CVMFS image path.
+**Returns:** Tool description, homepage, and EDAM operations; a table of container versions with install status (✓ = installed and loadable on this system); an install prompt. Versions are ordered by the same rule `build` uses, so the top row is the version `shelley build <tool>` installs. By default only the five most recent versions are shown. `-v` lists every build instead, with a **Container Path** column.
 
 ---
 
@@ -62,7 +61,7 @@ Installs an Lmod module for a tool from CVMFS via `shpc`. Creates a local regist
 
 **Returns:** Build status output.
 
-Requires `shpc` on PATH and CVMFS mounted.
+Requires CVMFS mounted. On BioShell, shelley loads the `shpc` and `singularity` modules itself.
 
 ---
 
@@ -79,9 +78,10 @@ shelley clean <tool>:<version> [-y]
 
 Uninstalls a specific installed tool version — the inverse of `build`. Removes the
 `shpc`-managed module, wrappers and container artifacts, and the Lmod modulefile
-symlink under `/apps/Modules/modulefiles/` (pruning the tool's directory too if that
-was the last installed version). Prompts for confirmation before removing anything
-unless `-y` is passed. Prompts for sudo if the shared directories are not writable.
+symlink under `/apps/Modules/modulefiles/`; if that was the last installed version,
+all of the tool's directories go too, including its local registry entry. Removal is
+all-or-nothing. Prompts for confirmation before removing anything unless `-y` is
+passed, then for sudo if the shared directories are not writable.
 
 Running with no version, or a version that isn't installed, lists every currently
 installed version of that tool instead of uninstalling anything:
@@ -103,8 +103,8 @@ shelley clean samtools:1.21--h96c455f_1
 **Returns:** Clean status output, listing exactly what was removed.
 
 See [docs/how-to/clean-modules.md](../how-to/clean-modules.md) for details, and
-[docs/explanation/clean-design.md](../explanation/clean-design.md) for why the local
-registry (`/apps/local/`) is deliberately left alone in most cases.
+[docs/explanation/clean-design.md](../explanation/clean-design.md) for how the local
+registry (`/apps/local/`) is handled.
 
 ---
 

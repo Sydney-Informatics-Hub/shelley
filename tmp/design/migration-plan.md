@@ -147,7 +147,7 @@ After one release with no regression and no use of the escape hatch, delete:
 - 28 new tests (172 in `tests/build_core`).
 - VM smoke: `find` and `search` read-only; a real `clean` through sudo left no leftovers.
 
-Remaining: switch (4.4 criteria) and contract (4.5).
+**Switch and contract DONE 2026-10-13 (on `redesign`, not released; Fred asked for one route).** CLI and REPL always call `client/discovery.py` (renamed from `new_discovery.py`); `SHELLEY_NEW_DISCOVERY` is gone. Deleted `commands/{find,search,clean}.py`, `utils/cache.py`, `builder/cvmfs_builder.py` (so `uninstall_module` and the `CVMFSModuleBuilder` export), and `ShelleyStyle.create_clean_success`. Tests: deleted `test_clean_command.py` and `test_find_install_panel.py`; ported the curated-upstream-tag clean case (mutation-checked), the Install and Not Installed panels (`test_discovery_render.py`), usage and `-v` handling, and `parse_force_flag`. User-visible: `find -v` is what `-vv` was; no-argument `find`/`search` exit 1. Docs: `clean-design.md` rewritten; how-tos and CLI reference updated. Also fixed (pre-existing): `paginate` crashed with EOFError when piped. 393 passed, 1 skipped.
 
 Same four stages, with flag `SHELLEY_NEW_DISCOVERY` (covers `find`, `search` and `clean`):
 

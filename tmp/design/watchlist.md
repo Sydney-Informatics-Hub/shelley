@@ -15,6 +15,7 @@ Fred (2026-10-07): leftovers from testing; monitor in case `shelley clean` needs
 | 2026-10-13 (status review) | empty | `wrappers/` dir absent: all orphans gone (`last`, `ngsfetch`, `samtools`, `seqtk`) | empty (legacy `last` entry gone) | no shpc tools; only site modules. Residue: empty-looking `containers/quay.io/biocontainers/fastqc/` dir (pre-dates redesign, Sep 24) | 
 | 2026-10-13 00:55 (3a check: default `build seqtk` then new `clean`) | `seqtk/r93--0` only (built 00:36 by Fred) | `seqtk/r93--0` only | empty | `seqtk/r93--0.lua`. No 1.5 residue after a real `clean` |
 | 2026-10-13 ~01:40 (3b check: `build seqtk`, then **old** `clean` via sudo) | `seqtk/r93--0` only | `seqtk/r93--0` only | empty | `seqtk/r93--0.lua`. No 1.5 residue after the old `clean` either |
+| 2026-10-13 01:58 (batch 4 one-route check: `build seqtk` then new `clean`, no flags) | no seqtk (Fred `shelley clean`ed `r93--0` between 01:40 and 01:57) | no seqtk dir | empty | `last` only (Fred built 01:43). No 1.5 residue; tool dirs removed with the last version, as designed. Sandbox replay with `r93` installed: `r93` survives build and clean of 1.5 |
 
 Something removed the modules tree between the two snapshots (not shelley's design work; likely manual testing).
 

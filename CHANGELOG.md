@@ -28,9 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - local registry entries no longer store a hash of the whole container, so a build
     no longer reads the full SIF through the CVMFS cache.
 
-  Modules use the same layout as before, so `shelley find` and `shelley clean` work on
-  them unchanged. See
+  Modules use the same on-disk layout as 0.4.0's. See
   `docs/explanation/architecture-design.md` and ADRs 0001–0007.
+
+- `shelley find`, `search` and `clean` run on the same core as `build`.
+  `SHELLEY_NEW_DISCOVERY`, the earlier opt-in, is ignored. What changes:
+  - `find` lists versions in the same order `build` uses, so its top row is the version
+    `shelley build <tool>` installs, and marks a version installed only on an exact
+    match (no longer `1.1` because `1.10` is);
+  - `find -v` lists every build with its container path (what `-vv` showed); `-vv` is
+    accepted and means the same;
+  - `find`, `search` and `clean` with no arguments exit with status 1;
+  - `clean` checks the version is installed before asking for `sudo`, removes it
+    all-or-nothing, and leaves no leftover files: wrappers shpc keeps are removed, and
+    the tool's local registry entry goes with its last installed version. If
+    `shpc uninstall` fails, nothing is removed.
 
 ### Added
 
@@ -41,21 +53,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - conda's version-ordering code is vendored in `shelley/_vendor/` (BSD-3-Clause,
   licence included), because conda cannot be installed as a library dependency.
 
-- Experimental: new `shelley find`, `search` and `clean`, opt-in with
-  `SHELLEY_NEW_DISCOVERY=1`. `find` lists versions in the same order `build` uses, so its
-  top row is the version `shelley build <tool>` installs, and marks a version installed
-  only on an exact match (no longer `1.1` because `1.10` is). `clean` asks before
-  `sudo`, removes a version all-or-nothing, and leaves no leftover files.
-
 ### Removed
 
-- The 0.4.0 build code: `commands/build.py`, `utils/batch.py`, `get_registry_tags`, and
-  `CVMFSModuleBuilder`'s build and version-lookup methods (`shpc_install`,
-  `search_tool_version`, `list_versions`, `list_versions_with_paths`). Only
-  `CVMFSModuleBuilder.uninstall_module` remains, for `shelley clean`.
+- The 0.4.0 command code: `commands/build.py`, `commands/find.py`, `commands/search.py`,
+  `commands/clean.py`, `utils/batch.py`, `utils/cache.py` and `builder/cvmfs_builder.py`.
+  `shelley.CVMFSModuleBuilder` is no longer exported; `shelley.cli_main` is the only
+  public name.
 
 ### Fixed
 
+- `shelley search` and `shelley find -v` no longer end in a traceback when output is
+  piped or run from a script; with no terminal to page on, they print the first page.
 - CI: `ruff` no longer checks the design notes under `tmp/`, which had made lint fail
   on `dev`.
 

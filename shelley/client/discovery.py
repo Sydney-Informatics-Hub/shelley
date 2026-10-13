@@ -1,12 +1,8 @@
-"""``shelley find``, ``search`` and ``clean`` on the new core, opt-in with
-``SHELLEY_NEW_DISCOVERY=1`` (migration plan, batch 4).
-
-Parallel change: these run beside the 0.4.0 commands until the default switches. Output
-keeps 0.4.0's layout; what changes is where the data comes from:
+"""``shelley find``, ``search`` and ``clean`` on the build core.
 
 - ``find`` orders versions with the same rule as ``build``, so its top row and its
-  "shelley build <tool>" hint name the version a build would install (T1), and its
-  installed ticks match tags exactly, never by prefix (T4).
+  "shelley build <tool>" hint name the version a build would install, and its
+  installed ticks match tags exactly, never by prefix.
 - ``clean`` resolves the tag before ``sudo``, then removes it all-or-nothing, leftovers
   included, so it never leaves an orphan.
 """

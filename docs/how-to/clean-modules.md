@@ -46,43 +46,38 @@ shelley clean samtools:1.21--h96c455f_1 -y
 ## What gets removed
 
 ```
-/apps/shpc/modules/quay.io/biocontainers/<tool>/<version>/    -> removed (via shpc uninstall)
-/apps/shpc/wrappers/quay.io/biocontainers/<tool>/<version>/   -> removed (via shpc uninstall)
-/apps/shpc/containers/quay.io/biocontainers/<tool>/<version>/ -> removed (via shpc uninstall)
-/apps/Modules/modulefiles/<tool>/<version>.lua                -> removed (shelley's own symlink)
+/apps/shpc/modules/quay.io/biocontainers/<tool>/<version>/    -> removed (shpc uninstall)
+/apps/shpc/wrappers/quay.io/biocontainers/<tool>/<version>/   -> removed
+/apps/shpc/containers/quay.io/biocontainers/<tool>/<version>/ -> removed
+/apps/Modules/modulefiles/<tool>/<version>.lua                -> removed (shelley's link)
 ```
 
-If that was the last installed version of the tool, the now-empty
-`/apps/Modules/modulefiles/<tool>/` directory is removed too.
+shelley removes the wrapper and container directories itself if shpc leaves them behind,
+so nothing is left over for that version.
 
-`/apps/local/` (the local shpc registry) is deliberately left alone in most cases —
-see [docs/explanation/clean-design.md](../explanation/clean-design.md) for why, and
-for the one case where a local registry tag *is* safely pruned.
+If that was the last installed version of the tool, all of the tool's directories go too,
+including its local registry entry under `/apps/local/`. While other versions stay
+installed, the local registry entry is only changed for a version shelley added there; see
+[docs/explanation/clean-design.md](../explanation/clean-design.md).
+
+Removal is all-or-nothing: if any step fails, everything is put back as it was and the
+error is shown.
 
 ## Requirements
 
 Same as `build`:
 
-- `shpc` must be on PATH (`module load shpc`)
-- Write access to `/apps/Modules/modulefiles/`, `/apps/shpc/` and `/apps/local/` —
-  shelley will prompt for sudo if needed.
+- Write access to `/apps/Modules/modulefiles/`, `/apps/shpc/` and `/apps/local/`.
+  shelley asks for `sudo` if needed, after it has checked that the version is installed.
+- On BioShell, shelley loads the `shpc` module itself.
 
 ## Troubleshooting
 
-### `shpc uninstall reported an issue`
+### `Clean Failed` … `shpc uninstall failed for …`
 
-```
-╭──────────────────── shpc uninstall reported an issue ────────────────────╮
-│ quay.io/biocontainers/samtools:1.21--h96c455f_1: ... — the Lmod          │
-│ modulefile symlink was still cleaned up.                                 │
-╰────────────────────────────────────────────────────────────────────────────╯
-```
-
-This means shpc's own bookkeeping had already lost track of the install (for
-example, its module/wrapper/container directories were removed by hand, or a
-previous `clean` was interrupted partway through). shelley's own state — the
-modulefile symlink — is independent and still gets cleaned up regardless, so
-`module avail` will correctly stop listing the tool. Safe to ignore.
+shpc could not remove the module. As the panel says, nothing was removed: shelley put
+everything back, so the version is still installed and still loads. The message includes
+shpc's own output; fix the cause and run the same `shelley clean` again.
 
 ### The tool still shows up under `module avail` after cleaning
 

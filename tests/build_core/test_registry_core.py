@@ -3,7 +3,6 @@
 import pytest
 import yaml
 
-from shelley.builder.cvmfs_builder import CVMFSModuleBuilder
 from shelley.errors import NetworkUnavailable
 from shelley.galaxy.registry import (
     LOCAL_TAG_VALUE,
@@ -12,7 +11,6 @@ from shelley.galaxy.registry import (
     RegistryClient,
     merged_with_upstream,
 )
-from shelley.utils.globals import lmod_modules
 
 URI = "quay.io/biocontainers/samtools"
 UPSTREAM = {
@@ -118,27 +116,6 @@ def test_entry_in_use_is_not_legacy():
 
 def test_missing_entry_is_not_legacy():
     assert not LocalRegistry().is_legacy(URI, linked_tags=[])
-
-
-def test_old_clean_still_understands_entries_written_here(monkeypatch):
-    """Parallel change: 0.4.0's uninstall_module must work on the new format."""
-    reg = LocalRegistry()
-    entry = merged_with_upstream({"tags": {"1.19--h1": LOCAL_TAG_VALUE}}, UPSTREAM)
-    reg.write(URI, entry, Marker("1.19--h1", in_upstream=False))
-    tool_dir = lmod_modules() / "samtools"
-    tool_dir.mkdir(parents=True)
-    for tag in ("1.19--h1", "1.21--h50ea8bc_3"):  # another version stays installed
-        (tool_dir / f"{tag}.lua").symlink_to("/nonexistent/module.lua")
-    monkeypatch.setattr(
-        CVMFSModuleBuilder, "_run_shpc_uninstall", lambda self, uri_tag: (0, "")
-    )
-
-    report = CVMFSModuleBuilder().uninstall_module("samtools", "1.19--h1")
-
-    assert report["registry_tag_removed"] is True
-    assert "1.19--h1" not in reg.read(URI)["tags"]
-    assert "1.21--h50ea8bc_3" in reg.read(URI)["tags"]
-    assert "1.19--h1" not in reg.markers(URI)
 
 
 # ------------------------------------------------------------------ live upstream

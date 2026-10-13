@@ -154,7 +154,6 @@ def build_resolved(
 
 
 # ---------------------------------------------------------------------- find / search
-# Opt-in with SHELLEY_NEW_DISCOVERY=1 (migration plan, batch 4).
 
 
 class NotInstalled(ShelleyError):

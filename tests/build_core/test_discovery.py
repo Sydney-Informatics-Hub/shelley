@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-import shelley.client.new_discovery as new_discovery
+import shelley.client.discovery as discovery
 from shelley import privilege, services
 from shelley.errors import AmbiguousTag
 from shelley.galaxy.catalogue import GalaxyCatalogue
@@ -225,6 +225,25 @@ def test_clean_one_of_two_versions_keeps_the_other(tmp_path):
     assert "1.19--h1" not in LocalRegistry().markers(uri)
 
 
+def test_clean_keeps_a_curated_tag_that_is_still_upstream(tmp_path):
+    """Its marker goes, but the tag stays in the entry: upstream still has it."""
+    exposer = make_exposer()
+    up = Tag("1.21--h50ea8bc_3")
+    sif = tmp_path / f"samtools:{up.raw}"
+    sif.touch()
+    curated = [{"name": "st", "command": "samtools"}]
+    exposer.apply(exposer.plan("samtools", up, sif, curate=lambda aliases: curated))
+    build(exposer, Tag("1.19--h1"), tmp_path)  # keeps the tool installed
+    uri = "quay.io/biocontainers/samtools"
+    assert LocalRegistry().markers(uri)[up.raw].in_upstream is True
+
+    exposer.remove("samtools", up)
+
+    assert up.raw not in LocalRegistry().markers(uri)
+    assert up.raw in LocalRegistry().read(uri)["tags"]
+    assert not (gl.lmod_modules() / "samtools" / f"{up.raw}.lua").exists()
+
+
 def test_failed_shpc_uninstall_changes_nothing(tmp_path):
     exposer = make_exposer()
     build(exposer, Tag("1.21--h50ea8bc_3"), tmp_path)
@@ -245,7 +264,7 @@ def test_clean_resolved_validates_and_checks_installed(catalogue):
 # ------------------------------------------------------------------ CLI
 @pytest.fixture
 def cli_catalogue(catalogue, monkeypatch):
-    monkeypatch.setattr(new_discovery, "GalaxyCatalogue", lambda: catalogue)
+    monkeypatch.setattr(discovery, "GalaxyCatalogue", lambda: catalogue)
     return catalogue
 
 
@@ -258,20 +277,20 @@ def sudo(monkeypatch):
 
 
 def test_clean_not_installed_is_reported_before_sudo(cli_catalogue, sudo):
-    assert new_discovery.run_clean(["samtools:1.21", "-y"]) == 1
+    assert discovery.run_clean(["samtools:1.21", "-y"]) == 1
     assert sudo == []
 
 
 def test_clean_reexecs_once_with_the_resolved_tag(cli_catalogue, sudo):
     link("samtools", "1.10--h2e538c0_3")
-    assert new_discovery.run_clean(["samtools:1.10", "-y"]) == 0
+    assert discovery.run_clean(["samtools:1.10", "-y"]) == 0
     assert sudo == [["clean", "--resolved-tag", "samtools:1.10--h2e538c0_3", "-y"]]
 
 
 def test_clean_declined_confirmation_removes_nothing(cli_catalogue, sudo, monkeypatch):
     link("samtools", "1.10--h2e538c0_3")
-    monkeypatch.setattr(new_discovery, "_confirm", lambda tool, tag: False)
-    assert new_discovery.run_clean(["samtools:1.10"]) == 1
+    monkeypatch.setattr(discovery, "_confirm", lambda tool, tag: False)
+    assert discovery.run_clean(["samtools:1.10"]) == 1
     assert sudo == []
 
 
@@ -280,41 +299,60 @@ def test_clean_root_child_removes_the_tag(cli_catalogue, tmp_path, monkeypatch):
     build(exposer, Tag("1.21--h50ea8bc_3"), tmp_path)
     monkeypatch.setattr(privilege, "needs_root", lambda: False)
     monkeypatch.setattr(Lmod, "load_build_modules", lambda self: True)
-    monkeypatch.setattr(new_discovery, "ShpcExposer", lambda lmod: exposer)
-    code = new_discovery.run_clean(
-        ["--resolved-tag", "samtools:1.21--h50ea8bc_3", "-y"]
-    )
+    monkeypatch.setattr(discovery, "ShpcExposer", lambda lmod: exposer)
+    code = discovery.run_clean(["--resolved-tag", "samtools:1.21--h50ea8bc_3", "-y"])
     assert code == 0
     assert not (gl.lmod_modules() / "samtools").exists()
 
 
+@pytest.mark.parametrize("leftover", [{}, {"SHELLEY_NEW_DISCOVERY": "1"}])
 @pytest.mark.parametrize("command", ["find", "search", "clean"])
-def test_cli_routes_to_the_new_commands_when_opted_in(command, monkeypatch):
+def test_cli_routes_every_discovery_command_to_the_core(command, leftover, monkeypatch):
+    """One route: a leftover ``SHELLEY_NEW_DISCOVERY`` changes nothing."""
     from shelley.client import cli
 
     seen = []
-    monkeypatch.setenv("SHELLEY_NEW_DISCOVERY", "1")
-    monkeypatch.setattr(
-        new_discovery, f"run_{command}", lambda argv: seen.append(argv) or 0
-    )
+    for k, v in leftover.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setattr(cli, f"run_{command}", lambda argv: seen.append(argv) or 0)
     monkeypatch.setattr(sys, "argv", ["shelley", command, "samtools"])
     with pytest.raises(SystemExit) as exc:
         cli.main()
     assert exc.value.code == 0 and seen == [["samtools"]]
 
 
-def test_cli_keeps_the_old_find_by_default(monkeypatch):
+@pytest.mark.parametrize("command", ["find", "search", "clean"])
+def test_cli_passes_the_exit_code_through(command, monkeypatch):
     from shelley.client import cli
 
-    seen = []
-    monkeypatch.delenv("SHELLEY_NEW_DISCOVERY", raising=False)
-    monkeypatch.setattr(
-        new_discovery, "run_find", lambda argv: pytest.fail("new path used")
-    )
-    monkeypatch.setattr(
-        cli, "find_tool_sync", lambda name, verbose=False: seen.append(name)
-    )
-    monkeypatch.setattr(sys, "argv", ["shelley", "find", "samtools"])
-    with pytest.raises(SystemExit):
+    monkeypatch.setattr(cli, f"run_{command}", lambda argv: 1)
+    monkeypatch.setattr(sys, "argv", ["shelley", command])
+    with pytest.raises(SystemExit) as exc:
         cli.main()
-    assert seen == ["samtools"]
+    assert exc.value.code == 1
+
+
+@pytest.mark.parametrize("runner", ["run_find", "run_search", "run_clean"])
+def test_missing_arguments_print_usage_and_exit_1(runner, capsys, monkeypatch):
+    # clean constructs its catalogue before parsing; find and search must not look up
+    unused = (
+        (lambda: None) if runner == "run_clean" else (lambda: pytest.fail("lookup"))
+    )
+    monkeypatch.setattr(discovery, "GalaxyCatalogue", unused)
+    assert getattr(discovery, runner)([]) == 1
+    assert "Usage" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("flags", [["-v"], ["-vv"], ["--verbose"], ["-v", "-v"]])
+def test_find_verbose_flags(flags, catalogue, monkeypatch):
+    seen = {}
+
+    def find(query, catalogue, source, verbose=False):
+        seen.update(query=query, verbose=verbose)
+        return services.FindResult(query=query, tool=None)
+
+    monkeypatch.setattr(discovery.services, "find", find)
+    monkeypatch.setattr(discovery, "GalaxyCatalogue", lambda: catalogue)
+    monkeypatch.setattr(discovery.RsecSource, "load", lambda self: None)
+    assert discovery.run_find(["samtools", *flags]) == 0
+    assert seen == {"query": "samtools", "verbose": True}
