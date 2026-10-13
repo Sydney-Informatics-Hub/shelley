@@ -37,7 +37,7 @@ The only format change, the tag value `local:keep-path` in place of a SIF hash, 
 **"Certain" criteria for switching build:**
 - (a) **[MET 2026-10-13: CI green on `redesign`]** the failure-injection, exposer-contract and catalogue-contract suites are green;
 - (b) **[MET 2026-10-08: 23/23, `smoke/results-2026-10-08.md`]** a scripted smoke run on the dev VM with `SHELLEY_NEW_BUILD=1` builds the regression tool matrix ([data-sources.md](../../docs/reference/data-sources.md#regression-tool-matrix)), including one `-i` build, one rebuild of an installed tag, one cancelled `-i`, and one build behind a dead proxy;
-- (c) the PO has built at least one tool on their own VM with the flag;
+- (c) **[MET 2026-10-13: PO built seqtk on their VM]** the PO has built at least one tool on their own VM with the flag;
 - (d) one release (0.5.0) has been out with the opt-in, and no regressions were reported.
 
 ## Overview
