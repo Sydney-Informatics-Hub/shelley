@@ -35,7 +35,7 @@ This is Parallel Change, also called expand–migrate–contract (martinfowler.c
 The only format change, the tag value `local:keep-path` in place of a SIF hash, is never read by old code, which only checks whether tag keys exist.
 
 **"Certain" criteria for switching build:**
-- (a) the failure-injection, exposer-contract and catalogue-contract suites are green;
+- (a) **[MET 2026-10-13: CI green on `redesign`]** the failure-injection, exposer-contract and catalogue-contract suites are green;
 - (b) **[MET 2026-10-08: 23/23, `smoke/results-2026-10-08.md`]** a scripted smoke run on the dev VM with `SHELLEY_NEW_BUILD=1` builds the regression tool matrix ([data-sources.md](../../docs/reference/data-sources.md#regression-tool-matrix)), including one `-i` build, one rebuild of an installed tag, one cancelled `-i`, and one build behind a dead proxy;
 - (c) the PO has built at least one tool on their own VM with the flag;
 - (d) one release (0.5.0) has been out with the opt-in, and no regressions were reported.
