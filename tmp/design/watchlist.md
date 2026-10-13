@@ -11,6 +11,8 @@ Fred (2026-10-07): leftovers from testing; monitor in case `shelley clean` needs
 | 2026-10-07 ~04:40 | 9 `module.lua` across 7 tools (fastqc had a version dir + `.version` but no `module.lua`) | not checked | `last`, `star-fusion` | none |
 | 2026-10-07 05:04 | tree below `quay.io/biocontainers/` gone | `last`, `ngsfetch`, `samtools`, `seqtk`, `star`, `star-fusion` (version dirs with `99-shpc.sh` + `bin/`) | `last`, `star-fusion` | none |
 | 2026-10-07 10:38 | none | unchanged: `last`, `ngsfetch`, `samtools`, `seqtk`, `star`, `star-fusion` | `last`, `star-fusion` | none |
+| 2026-10-08 04:54 (after the opt-in smoke run) | 12 regression tools built by the new path, all linked | orphans left: `last` (3 tags), `ngsfetch`, `samtools/1.24--h9dcdb79_1`, `seqtk` (2 tags). The `star` and `star-fusion` orphans were absorbed by real builds of the same tags | legacy `star-fusion` entry replaced by an authored one; `last` legacy entry still present | 12 tools |
+| 2026-10-13 (status review) | empty | `wrappers/` dir absent: all orphans gone (`last`, `ngsfetch`, `samtools`, `seqtk`) | empty (legacy `last` entry gone) | no shpc tools; only site modules. Residue: empty-looking `containers/quay.io/biocontainers/fastqc/` dir (pre-dates redesign, Sep 24) | 
 
 Something removed the modules tree between the two snapshots (not shelley's design work; likely manual testing).
 

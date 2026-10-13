@@ -16,6 +16,7 @@ from functools import cached_property
 from pathlib import Path
 
 from ..errors import AmbiguousTag, MountUnavailable, TagNotFound
+from ..results import Build, TagState
 from ..tags import Tag, latest, newest_first
 from ..utils import globals as gl
 
@@ -37,26 +38,42 @@ def _variants(tool: str) -> list[str]:
 class GalaxyCatalogue:
     """Tags available for each tool on the Galaxy Singularity mount.
 
-    ``snapshot`` and ``mount`` default to the bundled snapshot and the configured mount
-    (``SHELLEY_CVMFS_PATH``), resolved when the catalogue is created.
+    ``snapshot``, ``mount`` and ``lmod_dir`` default to the bundled snapshot, the
+    configured mount (``SHELLEY_CVMFS_PATH``) and the Lmod modulefiles directory
+    (``SHELLEY_LMOD_MODULES_PATH``), resolved when the catalogue is created.
     """
 
-    def __init__(self, snapshot: Path | None = None, mount: Path | None = None):
+    def __init__(
+        self,
+        snapshot: Path | None = None,
+        mount: Path | None = None,
+        lmod_dir: Path | None = None,
+    ):
         self.snapshot = Path(snapshot) if snapshot is not None else DEFAULT_SNAPSHOT
         self.mount = Path(mount) if mount is not None else gl.cvmfs_singularity()
+        self.lmod_dir = Path(lmod_dir) if lmod_dir is not None else gl.lmod_modules()
 
     @cached_property
-    def _index(self) -> dict[str, tuple[str, list[Tag]]]:
-        """Lower-cased tool name -> (tool name as spelled on the mount, tags)."""
+    def _entries(self) -> dict[str, tuple[str, list[Build]]]:
+        """Lower-cased tool name -> (tool name as spelled on the mount, builds)."""
         with gzip.open(self.snapshot, "rt", encoding="utf-8") as f:
             doc = json.load(f)
-        index: dict[str, tuple[str, list[Tag]]] = {}
+        entries: dict[str, tuple[str, list[Build]]] = {}
         for entry in doc["entries"]:
             if not entry.get("tag"):  # non-container files in the mount root
                 continue
             name = entry["tool_name"]
-            index.setdefault(name.lower(), (name, []))[1].append(Tag(entry["tag"]))
-        return index
+            build = Build(Tag(entry["tag"]), Path(entry["path"]), entry["mtime"])
+            entries.setdefault(name.lower(), (name, []))[1].append(build)
+        return entries
+
+    @cached_property
+    def _index(self) -> dict[str, tuple[str, list[Tag]]]:
+        """Lower-cased tool name -> (tool name as spelled on the mount, tags)."""
+        return {
+            k: (name, [b.tag for b in builds])
+            for k, (name, builds) in self._entries.items()
+        }
 
     def _lookup(self, tool: str) -> tuple[str, list[Tag]] | None:
         for key in _variants(tool):
@@ -72,6 +89,23 @@ class GalaxyCatalogue:
         """The tool's name as spelled on the mount (``STAR-Fusion`` -> ``star-fusion``)."""
         found = self._lookup(tool)
         return found[0] if found else tool
+
+    def builds(self, tool: str) -> list[Build]:
+        """Every container of ``tool`` in the snapshot, newest tag first."""
+        for key in _variants(tool):
+            if key in self._entries:
+                return sorted(self._entries[key][1], key=lambda b: b.tag, reverse=True)
+        return []
+
+    def installed(self, tool: str) -> dict[Tag, TagState]:
+        """Tags with a modulefile link, and whether each still resolves (exact names only)."""
+        tool_dir = self.lmod_dir / self.name(tool)
+        if not tool_dir.is_dir():
+            return {}
+        return {
+            Tag(p.stem): TagState.LINKED if p.is_file() else TagState.DANGLING
+            for p in sorted(tool_dir.glob("*.lua"))
+        }
 
     def tags(self, tool: str) -> list[Tag]:
         """Tags of ``tool`` in the snapshot, newest first. Empty if unknown."""

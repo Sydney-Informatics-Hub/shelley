@@ -78,6 +78,19 @@ def main() -> None:
         print_version()
         sys.exit(0)
 
+    if command in ("find", "search", "clean") and (
+        os.environ.get("SHELLEY_NEW_DISCOVERY") == "1"
+    ):
+        # Opt-in new find/search/clean (migration plan batch 4).
+        from . import new_discovery
+
+        runner = {
+            "find": new_discovery.run_find,
+            "search": new_discovery.run_search,
+            "clean": new_discovery.run_clean,
+        }[command]
+        sys.exit(runner(sys.argv[2:]))
+
     if command == "build" and os.environ.get("SHELLEY_NEW_BUILD") == "1":
         # Opt-in new build core (migration plan batch 2); becomes the default in 3a.
         from .new_build import run as run_new_build

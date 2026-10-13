@@ -10,22 +10,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Experimental: a new `shelley build`, opt-in with `SHELLEY_NEW_BUILD=1`. The default
-  build is unchanged. With the variable set:
+  build is unchanged in this release; the new one becomes the default in a later
+  release once it has been tried on more VMs. With the variable set:
   - a build either fully succeeds or changes nothing: a failure or a cancelled `-i`
     prompt restores the previous state, including an already-installed module;
-  - "latest" follows conda's version ordering, and `mulled-*` containers need an
-    explicit tag;
+  - "latest" follows conda's version ordering (the rule Bioconda uses), and `mulled-*`
+    containers need an explicit tag;
   - if GitHub cannot be reached, the build stops before writing anything and says so,
-    instead of building a module without the tool's command;
+    e.g. "Couldn't reach GitHub (raw.githubusercontent.com): the request timed out
+    after 10 s. Try again in a few seconds.", instead of building a module without
+    the tool's command;
   - a mistyped tool or version, or a missing CVMFS mount, is reported before the
     `sudo` password prompt, and a tools file asks for the password once;
-  - two builds of the same tool at once wait for each other.
+  - when a version has several builds, the choice is asked before `sudo`; with no
+    terminal to ask on, the build is cancelled cleanly instead of crashing;
+  - two builds of the same tool at once wait for each other;
+  - local registry entries no longer store a hash of the whole container, so a build
+    no longer reads the full SIF through the CVMFS cache.
 
-  See `docs/explanation/architecture-design.md` and ADRs 0001–0007.
+  Modules built this way use the same layout as before, so `shelley find` and
+  `shelley clean` work on them unchanged. See
+  `docs/explanation/architecture-design.md` and ADRs 0001–0007.
+- Architecture documentation: start at `docs/explanation/architecture-design.md`.
+  Reference pages are in `docs/reference/architecture/` (glossary, current and target
+  state, traceability); explanation pages cover the design review, the scenario
+  evaluation and the decision records in `docs/explanation/decisions/`.
+- conda's version-ordering code is vendored in `shelley/_vendor/` (BSD-3-Clause,
+  licence included), because conda cannot be installed as a library dependency.
+
+- Experimental: new `shelley find`, `search` and `clean`, opt-in with
+  `SHELLEY_NEW_DISCOVERY=1`. `find` lists versions in the same order `build` uses, so its
+  top row is the version `shelley build <tool>` installs, and marks a version installed
+  only on an exact match (no longer `1.1` because `1.10` is). `clean` asks before
+  `sudo`, removes a version all-or-nothing, and leaves no leftover files.
 
 ### Fixed
 
-- CI: `ruff` no longer checks the design notes under `tmp/`.
+- CI: `ruff` no longer checks the design notes under `tmp/`, which had made lint fail
+  on `dev`.
 
 ## [0.4.0] - 2026-10-02
 

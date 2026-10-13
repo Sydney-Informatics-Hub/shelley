@@ -1,6 +1,7 @@
 """Plain data passed between the build core, the services and the renderers."""
 
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 
 from .galaxy.registry import Marker
@@ -49,3 +50,61 @@ class BuildResult:
     @property
     def ok(self) -> bool:
         return self.error is None
+
+
+class TagState(Enum):
+    """What exists on disk for one installed tag (ADR 0005: no orphaned state)."""
+
+    LINKED = "linked"  # modulefile link resolves: loadable
+    DANGLING = "dangling"  # link exists but its target was removed outside shelley
+
+
+@dataclass(frozen=True)
+class Build:
+    """One container on the mount, from the snapshot."""
+
+    tag: Tag
+    path: Path
+    mtime: float
+
+
+@dataclass(frozen=True)
+class VersionRow:
+    """One version for ``find``: its newest build date and whether any build is loadable."""
+
+    version: str
+    date: str
+    installed: bool
+
+
+@dataclass(frozen=True)
+class ToolMeta:
+    id: str
+    name: str
+    description: str = ""
+    homepage: str = ""
+    operations: tuple[str, ...] = ()
+    inputs: tuple[str, ...] = ()
+    outputs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class FindResult:
+    query: str
+    tool: str | None  # name on the mount, if it has containers
+    meta: ToolMeta | None = None
+    versions: tuple[VersionRow, ...] = ()  # newest first, by the same rule as build
+    builds: tuple[tuple[Build, TagState | None], ...] = ()  # filled for -v
+    latest: Tag | None = None  # what `shelley build <tool>` installs; None for mulled
+    suggestions: tuple[tuple[str, str], ...] = ()  # (name, description)
+
+    @property
+    def found(self) -> bool:
+        return self.meta is not None or bool(self.versions)
+
+
+@dataclass(frozen=True)
+class CleanResult:
+    tool: str
+    tag: Tag
+    removed: tuple[str, ...] = ()

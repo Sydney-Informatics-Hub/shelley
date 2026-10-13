@@ -19,7 +19,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from ..builder.guts_integration import normalize_aliases
-from ..results import BuildPlan
+from ..results import BuildPlan, CleanResult
 from ..tags import Tag
 from ..tools.lmod import Lmod
 from ..tools.shpc import Shpc
@@ -175,6 +175,52 @@ class ShpcExposer:
             tx.commit()
         return link
 
+    # ------------------------------------------------------------------ remove
+    def remove(self, tool: str, tag: Tag) -> CleanResult:
+        """Remove one installed tag completely, all-or-nothing: the inverse of ``apply``.
+
+        Unlike 0.4.0's clean, leftovers that ``shpc uninstall`` does not remove go too, so
+        clean never leaves an orphan; when the last linked tag of a tool goes, so do all
+        of the tool's directories. If shpc fails, the transaction restores everything and
+        the error is raised: nothing is ever half-removed.
+        """
+        uri = self.uri(tool)
+        removed: list[str] = []
+        with BuildTransaction(tool, self.tool_dirs(tool)) as tx:
+            if (gl.shpc_module_base() / uri / tag.raw).exists():
+                self.shpc.uninstall(f"{uri}:{tag.raw}")
+                removed.append("shpc module, wrappers and container artefacts")
+            for leftover in self._tag_paths(tool, tag)[:3]:  # anything shpc kept
+                _remove(leftover)
+            link = self.lmod.link_path(tool, tag)
+            if link.is_symlink() or link.exists():
+                link.unlink()
+                removed.append("Lmod modulefile link")
+
+            if not self.lmod.linked_tags(tool):  # that was the last version
+                for tool_dir in self.tool_dirs(tool):
+                    if tool_dir == self.local.entry_dir(uri) and tool_dir.exists():
+                        removed.append("local registry entry (last installed version)")
+                    _remove(tool_dir)
+                    _prune_empty_parents(tool_dir)
+            else:
+                marker = self.local.markers(uri).get(tag.raw)
+                entry = self.local.read(uri)
+                if marker is not None:
+                    if (
+                        not marker.in_upstream
+                        and entry
+                        and tag.raw in entry.get("tags", {})
+                    ):
+                        del entry["tags"][tag.raw]
+                        self.local.write(uri, entry)
+                        removed.append(
+                            "local registry tag (added locally, not upstream)"
+                        )
+                    _remove(self.local.entry_dir(uri) / tag.raw)
+            tx.commit()
+        return CleanResult(tool, tag, tuple(removed))
+
     def _move_aside(self, plan: BuildPlan, tx: BuildTransaction) -> None:
         for path in self._tag_paths(plan.tool, plan.tag):
             if path.exists() or path.is_symlink():
@@ -192,6 +238,20 @@ class ShpcExposer:
         ):
             ensure_traversable(tool_dir)
             harden_tree(tool_dir)
+
+
+def _prune_empty_parents(path: Path) -> None:
+    """Remove now-empty directories above ``path``, never the shared layout itself.
+
+    Stops at any directory of the shared layout (the build roots and shpc's bases).
+    """
+    stops = set(gl.shared_dirs())
+    parent = path.parent
+    while parent not in stops and any(r in parent.parents for r in stops):
+        if not parent.is_dir() or any(parent.iterdir()):
+            return
+        parent.rmdir()
+        parent = parent.parent
 
 
 def _remove(path: Path) -> None:

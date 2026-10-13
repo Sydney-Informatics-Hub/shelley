@@ -44,7 +44,16 @@ class FakeShpc:
             raise ShpcFailed("install", uri_tag, "injected failure after writing")
 
     def uninstall(self, uri_tag: str) -> None:
+        """Like shpc: removes the tag's module dir, but leaves wrappers behind."""
         self.calls.append(("uninstall", uri_tag))
+        if self.fail_on == "uninstall":
+            raise ShpcFailed("uninstall", uri_tag, "injected failure")
+        uri, tag = uri_tag.rsplit(":", 1)
+        module_dir = gl.shpc_module_base() / uri / tag
+        if module_dir.is_dir():
+            for f in module_dir.iterdir():
+                f.unlink()
+            module_dir.rmdir()
 
     def module_base(self) -> Path:
         return gl.shpc_module_base()

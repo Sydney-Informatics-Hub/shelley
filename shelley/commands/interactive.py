@@ -50,6 +50,16 @@ def interactive_mode() -> None:
             break
         elif cmd == "help":
             console.print(help_table)
+        elif cmd in ("find", "search", "clean") and (
+            os.environ.get("SHELLEY_NEW_DISCOVERY") == "1"
+        ):
+            from ..client import new_discovery
+
+            {
+                "find": new_discovery.run_find,
+                "search": new_discovery.run_search,
+                "clean": new_discovery.run_clean,
+            }[cmd](parts[1:])
         elif cmd == "find":
             verbose, positional = parse_verbose(parts[1:])
             if positional:

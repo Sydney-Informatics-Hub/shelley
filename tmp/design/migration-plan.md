@@ -36,7 +36,7 @@ The only format change, the tag value `local:keep-path` in place of a SIF hash, 
 
 **"Certain" criteria for switching build:**
 - (a) the failure-injection, exposer-contract and catalogue-contract suites are green;
-- (b) a scripted smoke run on the dev VM with `SHELLEY_NEW_BUILD=1` builds the regression tool matrix ([data-sources.md](../../docs/reference/data-sources.md#regression-tool-matrix)), including one `-i` build, one rebuild of an installed tag, one cancelled `-i`, and one build behind a dead proxy;
+- (b) **[MET 2026-10-08: 23/23, `smoke/results-2026-10-08.md`]** a scripted smoke run on the dev VM with `SHELLEY_NEW_BUILD=1` builds the regression tool matrix ([data-sources.md](../../docs/reference/data-sources.md#regression-tool-matrix)), including one `-i` build, one rebuild of an installed tag, one cancelled `-i`, and one build behind a dead proxy;
 - (c) the PO has built at least one tool on their own VM with the flag;
 - (d) one release (0.5.0) has been out with the opt-in, and no regressions were reported.
 
@@ -134,6 +134,16 @@ After one release with no regression and no use of the escape hatch, delete:
 `uninstall_module` stays until batch 4. Fowler: Remove Dead Code.
 
 ## Batch 4: find, search and clean on the new core (10 units) → 0.7.0
+
+**Expand and opt-in DONE 2026-10-08 (uncommitted), flag `SHELLEY_NEW_DISCOVERY=1`.**
+- New: `GalaxyCatalogue.builds()`/`installed()` with `TagState`; `ShpcExposer.remove` (transactional; also removes leftovers shpc keeps and prunes empty parents, so build-then-clean leaves no trace); `services.find/search/resolve_installed/clean_resolved`; `client/new_discovery.py`; routing in `cli.py` and the REPL.
+- Additive edit to old code: `MetadataSource.flatten_edam` (a public alias).
+- The Pull Up Method for `search()` moves to batch 5, because an existing test asserts that the base `search` raises.
+- T1 is closed: the agreement test passes for every named tool in the bundled snapshot. T4 is fixed (exact install ticks).
+- 28 new tests (172 in `tests/build_core`).
+- VM smoke: `find` and `search` read-only; a real `clean` through sudo left no leftovers.
+
+Remaining: switch (4.4 criteria) and contract (4.5).
 
 Same four stages, with flag `SHELLEY_NEW_DISCOVERY` (covers `find`, `search` and `clean`):
 
