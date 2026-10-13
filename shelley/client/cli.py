@@ -7,15 +7,12 @@
 
 import os
 import sys
-from pathlib import Path
 
-from ..commands.build import build_module
 from ..commands.clean import clean_module
 from ..commands.find import find_tool_sync
 from ..commands.interactive import interactive_mode
 from ..commands.search import search_tools
-from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
-from ..utils.batch import batch_build_modules, read_tools_file
+from ..utils.args import parse_force_flag, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
     ShelleyStyle,
@@ -27,6 +24,7 @@ from ..utils.style import (
     print_version,
     print_warning,
 )
+from .build import run as run_build
 
 
 def _print_usage() -> None:
@@ -91,32 +89,8 @@ def main() -> None:
         }[command]
         sys.exit(runner(sys.argv[2:]))
 
-    if command == "build" and os.environ.get("SHELLEY_LEGACY_BUILD") != "1":
-        # New build core is the default (migration plan batch 3a);
-        # SHELLEY_LEGACY_BUILD=1 selects the old path until it is deleted in 3b.
-        from .new_build import run as run_new_build
-
-        sys.exit(run_new_build(sys.argv[2:]))
-
-    if command == "build" and len(sys.argv) > 2:
-        interactive, positional = parse_build_flags(sys.argv[2:])
-        if not positional:
-            print_warning("Missing tool name or tools file")
-            print_info(
-                "Usage: [command]shelley build <tool\\[/version]> [-i|--interactive][/command]"
-            )
-            sys.exit(1)
-        arg = positional[0]
-        p = Path(arg)
-        if p.is_file():
-            tools = read_tools_file(p)
-            if not tools:
-                print_warning(
-                    f"No tool specs found in '{arg}' (file is empty or all comments)"
-                )
-                sys.exit(1)
-            sys.exit(batch_build_modules(tools))
-        sys.exit(0 if build_module(arg, interactive=interactive) else 1)
+    if command == "build":
+        sys.exit(run_build(sys.argv[2:]))
 
     if command == "clean":
         force, positional = parse_force_flag(sys.argv[2:])

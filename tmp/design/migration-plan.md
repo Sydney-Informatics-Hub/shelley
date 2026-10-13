@@ -126,6 +126,8 @@ Once the "certain" criteria hold:
 
 ## Batch 3b: delete the old build (2 units) → 0.6.1
 
+**DONE 2026-10-13 (on `redesign`, not released; Fred asked for one build route, so the soak was skipped).** Deleted `commands/build.py`, `utils/batch.py`, `utils/args.parse_build_flags`, both flags, and every `CVMFSModuleBuilder` member except `__init__`, `_run_shpc_uninstall` and `uninstall_module` (plus `_shpc_cmd`). Old `clean` now imports the sudo helpers from `privilege`. `client/new_build.py` → `client/build.py`; `test_new_build_cli.py` → `test_build_cli.py`. Tests: deleted `test_cvmfs_builder.py`, `test_registry.py`, `test_batch_command.py`; kept the alias-discovery and shpc environment tests (`tests/test_aliases.py`); ported the shared-VM permission tests to the exposer (`test_exposer_sharing.py`, mutation-checked) and the regression-matrix upstream check to `RegistryClient` (`network`). 422 passed, 1 skipped.
+
 After one release with no regression and no use of the escape hatch, delete:
 - `CVMFSModuleBuilder.shpc_install`, `_ensure_local_registry_entry`, `_share_build_artifacts`, `_run_shpc_install`, `_compute_sha256`, `_is_registry_miss`, `search_tool_version` and their private helpers;
 - `get_registry_tags`;

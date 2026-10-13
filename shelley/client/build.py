@@ -1,9 +1,7 @@
-"""``shelley build`` on the new build core, the default since batch 3a.
+"""``shelley build``: resolve as the user, then build on the core as root.
 
-``SHELLEY_LEGACY_BUILD=1`` selects the 0.4.0 build in ``commands/build.py`` until that
-is deleted in batch 3b. Accepted arguments are the same (a spec or a tools file,
-``-i``/``--interactive``), plus the hidden ``--resolved-tag tool:tag`` that the user
-process passes to its root child.
+Accepts a spec or a tools file, and ``-i``/``--interactive``, plus the hidden
+``--resolved-tag tool:tag`` that the user process passes to its root child.
 """
 
 from datetime import datetime
@@ -46,7 +44,7 @@ def run(argv: list[str]) -> int:
 
     path = Path(positional[0])
     batch = path.is_file()
-    specs = _read_tools_file(path) if batch else [positional[0]]
+    specs = read_tools_file(path) if batch else [positional[0]]
     if batch and not specs:
         print_info(f"No tool specs found in '{path}' (file is empty or all comments)")
         return 1
@@ -208,8 +206,8 @@ def _parse(argv: list[str]) -> tuple[bool, list[str], list[str]]:
     return interactive, resolved, positional
 
 
-def _read_tools_file(path: Path) -> list[str]:
-    """One spec per line; ``#`` comments and blank lines ignored (as in 0.4.0)."""
+def read_tools_file(path: Path) -> list[str]:
+    """One spec per line; ``#`` comments and blank lines ignored."""
     specs = []
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].strip()

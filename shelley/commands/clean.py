@@ -6,8 +6,10 @@ import questionary
 from rich.panel import Panel
 
 from ..builder.cvmfs_builder import CVMFSModuleBuilder
-from ..commands.build import needs_sudo, reexec_command, sudo_env_args
 from ..commands.find import list_installed_versions
+from ..privilege import launcher as reexec_command
+from ..privilege import needs_root as needs_sudo
+from ..privilege import sudo_env_args
 from ..utils.modules import load_build_modules
 from ..utils.perms import apply_build_umask
 from ..utils.style import ShelleyStyle, console, print_error, print_info, print_warning

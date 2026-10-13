@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `shelley build` uses a new build core by default. For this release,
-  `SHELLEY_LEGACY_BUILD=1` selects the 0.4.0 build; it will be removed in the next
-  release. `SHELLEY_NEW_BUILD=1`, the earlier opt-in, is no longer needed. What changes:
+- `shelley build` runs on a new build core, and the 0.4.0 build has been removed. There
+  is no opt-in or fallback variable; `SHELLEY_NEW_BUILD` and `SHELLEY_LEGACY_BUILD` are
+  ignored. What changes:
   - a build either fully succeeds or changes nothing: a failure or a cancelled `-i`
     prompt restores the previous state, including an already-installed module;
   - "latest" follows conda's version ordering (the rule Bioconda uses), and `mulled-*`
@@ -46,6 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   top row is the version `shelley build <tool>` installs, and marks a version installed
   only on an exact match (no longer `1.1` because `1.10` is). `clean` asks before
   `sudo`, removes a version all-or-nothing, and leaves no leftover files.
+
+### Removed
+
+- The 0.4.0 build code: `commands/build.py`, `utils/batch.py`, `get_registry_tags`, and
+  `CVMFSModuleBuilder`'s build and version-lookup methods (`shpc_install`,
+  `search_tool_version`, `list_versions`, `list_versions_with_paths`). Only
+  `CVMFSModuleBuilder.uninstall_module` remains, for `shelley clean`.
 
 ### Fixed
 

@@ -1,6 +1,6 @@
 """Tests for verbose flag parsing and the build/path helper."""
 
-from shelley.utils.args import parse_build_flags, parse_verbose
+from shelley.utils.args import parse_verbose
 from shelley.utils.cache import compute_build_entries
 
 # ---------------------------------------------------------------------------
@@ -26,30 +26,6 @@ def test_double_short_flag():
 
 def test_stacked_short_flags():
     assert parse_verbose(["-v", "samtools", "-v"]) == (True, ["samtools"])
-
-
-# ---------------------------------------------------------------------------
-# parse_build_flags
-# ---------------------------------------------------------------------------
-
-
-def test_build_flags_none():
-    assert parse_build_flags(["samtools/1.21"]) == (False, ["samtools/1.21"])
-
-
-def test_build_flags_interactive_long():
-    assert parse_build_flags(["samtools/1.21", "--interactive"]) == (
-        True,
-        ["samtools/1.21"],
-    )
-
-
-def test_build_flags_interactive_short():
-    assert parse_build_flags(["samtools/1.21", "-i"]) == (True, ["samtools/1.21"])
-
-
-def test_build_flags_interactive_before_positional():
-    assert parse_build_flags(["-i", "samtools/1.21"]) == (True, ["samtools/1.21"])
 
 
 def test_stacked_long_flags():

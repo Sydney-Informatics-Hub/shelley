@@ -4,15 +4,15 @@ Why the module builder is designed the way it is.
 
 ## Which build runs
 
-`shelley build` runs on the new build core (`services.build`, with `GalaxyCatalogue` for
-discovery and `ShpcExposer` for exposure) by default. For one release,
-`SHELLEY_LEGACY_BUILD=1` selects the 0.4.0 builder (`CVMFSModuleBuilder`). The variable is
-forwarded across the `sudo` re-exec, so the root child takes the same path. The 0.4.0
-builder is deleted in the release after that.
+`shelley build` has one path: `client/build.py` resolves the request as the user, then
+`services.build` builds it, with `GalaxyCatalogue` for discovery and `ShpcExposer` for
+exposure. The 0.4.0 builder (`CVMFSModuleBuilder.shpc_install`) has been removed; only its
+`uninstall_module` remains, for the old `shelley clean`, until find, search and clean move
+to the same core.
 
-Most of this page applies to both paths: the new core uses the same pinned settings file,
-the same permissions, the same alias discovery and the same on-disk layout. Where the new
-core behaves differently, the reasons are in the decision records:
+Most of this page explains choices made in 0.4.0 that the build core keeps: the pinned
+settings file, the permissions, the alias discovery and the on-disk layout. Where the
+build core behaves differently, the reasons are in the decision records:
 
 - a build plans first and then applies its writes in a transaction, so a failure or a
   cancelled `-i` restores the previous state
@@ -138,12 +138,12 @@ The upstream [shpc-registry](https://github.com/singularityhub/shpc-registry) do
 
 A local entry is created when the requested version has no upstream registry entry, **or** whenever `--interactive` is used — even for a version that *is* upstream, so that curated aliases persist and shadow the upstream entry. When `shelley build` takes either path, it:
 
-1. Creates or updates a `container.yaml` under `/apps/local/<uri>/` (the local shpc registry path, declared in shelley's settings file rather than registered via `shpc config add`).
-2. Retries `shpc install` pointing at the local registry.
+1. Plans the entry before writing anything: fetches the upstream entry, discovers the aliases from the SIF (absent-upstream case) and asks the `-i` questions.
+2. Writes the `container.yaml` under `/apps/local/<uri>/` (the local shpc registry path, declared in shelley's settings file rather than registered via `shpc config add`), then runs `shpc install` once. shpc finds the local entry first, so there is no retry.
 
-This is transparent to the user — it adds a few minutes to the build and is logged (only for the absent-upstream case; an interactive curation of an upstream version is not itself a fallback). The `newly_created` flag in the regression matrix (see [docs/reference/data-sources.md](../reference/data-sources.md)) records which tools consistently require a local entry for this second reason. Both paths are marked with a per-version marker directory so `shelley clean` can find them later — see [clean-design.md](clean-design.md#why-per-version-marker-directories-exist).
+This is transparent to the user; alias discovery adds a few minutes to the build. The `newly_created` flag in the regression matrix (see [docs/reference/data-sources.md](../reference/data-sources.md)) records which tools consistently require a local entry for this second reason. Both paths are marked with a per-version marker directory so `shelley clean` can find them later — see [clean-design.md](clean-design.md#why-per-version-marker-directories-exist).
 
-On the new build core, a local entry is no longer also a cache of the upstream entry. Each
+Unlike in 0.4.0, a local entry is no longer also a cache of the upstream entry. Each
 build of a tool that has a local entry merges the fresh upstream tags into it, so a
 curated `-i` entry no longer hides newer upstream versions. An entry that no installed
 version uses and that has no marker directory is a 0.4.0 leftover, and the next build of

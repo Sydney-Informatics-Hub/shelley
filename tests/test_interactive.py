@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from shelley.commands.interactive import interactive_mode
 
 # ---------------------------------------------------------------------------
@@ -33,7 +31,7 @@ def _run(inputs: list, *, side_effect=None):
         patch(f"{_MODULE}.print_warning") as mock_warning,
         patch(f"{_MODULE}.find_tool_sync") as mock_find,
         patch(f"{_MODULE}.search_tools") as mock_search,
-        patch(f"{_MODULE}.build_module") as mock_build,
+        patch(f"{_MODULE}.run_build") as mock_build,
         patch(f"{_MODULE}.clean_module") as mock_clean,
     ):
         mock_console.input = input_mock
@@ -171,23 +169,20 @@ def test_search_missing_arg_warns():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.usefixtures("legacy_build")
 def test_build_dispatches():
     mocks = _run(["build samtools", "exit"])
-    mocks["build"].assert_called_once_with("samtools", interactive=False)
+    mocks["build"].assert_called_once_with(["samtools"])
 
 
-@pytest.mark.usefixtures("legacy_build")
 def test_build_interactive_flag():
     mocks = _run(["build samtools -i", "exit"])
-    mocks["build"].assert_called_once_with("samtools", interactive=True)
+    mocks["build"].assert_called_once_with(["samtools", "-i"])
 
 
-@pytest.mark.usefixtures("legacy_build")
-def test_build_missing_arg_warns():
+def test_build_without_arguments_is_left_to_the_build_command():
+    """``run_build`` prints its own usage line for an empty argument list."""
     mocks = _run(["build", "exit"])
-    mocks["build"].assert_not_called()
-    mocks["warning"].assert_called()
+    mocks["build"].assert_called_once_with([])
 
 
 # ---------------------------------------------------------------------------

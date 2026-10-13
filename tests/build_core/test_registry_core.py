@@ -139,3 +139,29 @@ def test_old_clean_still_understands_entries_written_here(monkeypatch):
     assert "1.19--h1" not in reg.read(URI)["tags"]
     assert "1.21--h50ea8bc_3" in reg.read(URI)["tags"]
     assert "1.19--h1" not in reg.markers(URI)
+
+
+# ------------------------------------------------------------------ live upstream
+# The regression tool matrix (docs/reference/data-sources.md): which canonical tags the
+# upstream shpc-registry has, and so which builds need a local entry.
+REGRESSION_MATRIX = [
+    ("fastqc", "0.12.1--hdfd78af_0", True),
+    ("multiqc", "1.19--pyhdfd78af_0", True),
+    ("salmon", "1.10.1--h7e5ed60_0", True),
+    ("bcftools", "1.23.1--hb2cee57_0", True),
+    ("bwa-mem2", "2.2.1--he70b90d_8", True),
+    ("star", "2.7.11a--h0033a41_0", True),
+    ("fastp", "0.20.0--hdbcaa40_0", False),
+    ("sambamba", "0.8.1--hadffe2f_1", False),
+    ("samblaster", "0.1.24--hc9558a2_3", False),
+    ("samtools", "1.19--h50ea8bc_0", False),
+    ("blast", "2.5.0--hc0b0e79_3", False),
+    ("star-fusion", "1.0.0--pl5.22.0_0", False),
+]
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("tool, tag, in_upstream", REGRESSION_MATRIX)
+def test_regression_matrix_matches_the_live_upstream_registry(tool, tag, in_upstream):
+    entry = RegistryClient().fetch(f"quay.io/biocontainers/{tool}") or {}
+    assert (tag in entry.get("tags", {})) is in_upstream

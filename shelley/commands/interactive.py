@@ -2,7 +2,8 @@
 
 import os
 
-from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
+from ..client.build import run as run_build
+from ..utils.args import parse_force_flag, parse_verbose
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
     ShelleyStyle,
@@ -13,7 +14,6 @@ from ..utils.style import (
     print_success,
     print_warning,
 )
-from .build import build_module
 from .clean import clean_module
 from .find import find_tool_sync
 from .search import search_tools
@@ -71,16 +71,8 @@ def interactive_mode() -> None:
                 search_tools(" ".join(parts[1:]))
             else:
                 print_warning("Usage: search <description>")
-        elif cmd == "build" and os.environ.get("SHELLEY_LEGACY_BUILD") != "1":
-            from ..client.new_build import run as run_new_build
-
-            run_new_build(parts[1:])
         elif cmd == "build":
-            interactive, positional = parse_build_flags(parts[1:])
-            if positional:
-                build_module(positional[0], interactive=interactive)
-            else:
-                print_warning("Usage: build <tool_name>[/version] [-i|--interactive]")
+            run_build(parts[1:])
         elif cmd == "clean":
             force, positional = parse_force_flag(parts[1:])
             if positional:

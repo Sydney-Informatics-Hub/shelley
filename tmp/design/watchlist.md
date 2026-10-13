@@ -14,6 +14,7 @@ Fred (2026-10-07): leftovers from testing; monitor in case `shelley clean` needs
 | 2026-10-08 04:54 (after the opt-in smoke run) | 12 regression tools built by the new path, all linked | orphans left: `last` (3 tags), `ngsfetch`, `samtools/1.24--h9dcdb79_1`, `seqtk` (2 tags). The `star` and `star-fusion` orphans were absorbed by real builds of the same tags | legacy `star-fusion` entry replaced by an authored one; `last` legacy entry still present | 12 tools |
 | 2026-10-13 (status review) | empty | `wrappers/` dir absent: all orphans gone (`last`, `ngsfetch`, `samtools`, `seqtk`) | empty (legacy `last` entry gone) | no shpc tools; only site modules. Residue: empty-looking `containers/quay.io/biocontainers/fastqc/` dir (pre-dates redesign, Sep 24) | 
 | 2026-10-13 00:55 (3a check: default `build seqtk` then new `clean`) | `seqtk/r93--0` only (built 00:36 by Fred) | `seqtk/r93--0` only | empty | `seqtk/r93--0.lua`. No 1.5 residue after a real `clean` |
+| 2026-10-13 ~01:40 (3b check: `build seqtk`, then **old** `clean` via sudo) | `seqtk/r93--0` only | `seqtk/r93--0` only | empty | `seqtk/r93--0.lua`. No 1.5 residue after the old `clean` either |
 
 Something removed the modules tree between the two snapshots (not shelley's design work; likely manual testing).
 

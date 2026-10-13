@@ -4,8 +4,6 @@ Shared modules live in root-owned ``/apps``. When this process cannot write ther
 build re-runs the *same* shelley under ``sudo``, after resolving the request as the user,
 and passes only the resolved tags (``--resolved-tag tool:tag``). So bad input is reported
 before any password prompt, and root acts only on validated values.
-
-Copied from ``commands/build.py`` for the parallel change.
 """
 
 import importlib.util
@@ -27,7 +25,7 @@ def needs_root() -> bool:
 def sudo_env_args() -> list[str]:
     """``PATH`` and every ``SHELLEY_*`` variable, passed explicitly through ``sudo env``.
 
-    This includes ``SHELLEY_LEGACY_BUILD``, so the root child takes the same build path.
+    So the root child agrees with this process about the build roots and other overrides.
     """
     args = [f"PATH={os.environ['PATH']}"]
     args += [
