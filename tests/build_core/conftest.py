@@ -12,7 +12,10 @@ from pathlib import Path
 
 import pytest
 
-# Hard cases from the version-ordering spike (tmp/design/spikes/q2_results.md):
+# Hard cases for version ordering, modelled on real Galaxy tags: numeric releases,
+# pre-releases (a, b, rc, dev), non-version tags (latest, broken, date.*), rNNN
+# revisions, _N suffixes, a leading v, several builds of one version, and t_coffee
+# vs t-coffee as two distinct containers.
 # tool -> (tags on the mount, the tag "latest" must pick).
 GOLDEN = {
     "samtools": (
