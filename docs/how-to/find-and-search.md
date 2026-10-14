@@ -19,29 +19,20 @@ shelley find bwa-mem2      # hyphens and underscores handled automatically
 
 If no exact match is found, shelley suggests close alternatives.
 
-### List all versions — `find -v`
+### List every build — `find -v`
 
-By default `find` shows only the five most recent versions. Add `-v` (or `--verbose`)
-to see every available container for a tool, sorted newest-first and paginated:
+By default `find` shows only the five most recent versions, in the order `build` uses:
+the top row is what `shelley build <tool>` installs. Add `-v` (or `--verbose`) to list
+every build instead, newest first and paginated:
 
 ```bash
 shelley find samtools -v
 shelley find bwa --verbose
 ```
 
-Use this when you need to pin an exact version for reproducibility or to test a
-specific release. Buildable status is shown for each version (✓ = in the upstream
-shpc-registry, ✗ = requires local registry fallback).
-
-Add a second `v` (`-vv`) to expand each version into its individual builds and show
-the full CVMFS container path for each:
-
-```bash
-shelley find samtools -vv
-```
-
-This lists one row per build (a version may have several `--hash` builds) with its
-buildable and installed status and the full `/cvmfs/...` image path.
+This lists one row per build (a version may have several `--hash` builds) with its date,
+whether it is installed (✓), and the full `/cvmfs/...` image path. Use it when you need
+to pin an exact build for reproducibility. `-vv` is accepted and means the same as `-v`.
 
 > **Note:** `find` is case-insensitive. `shelley find Arriba` and `shelley find arriba` return the same result.
 

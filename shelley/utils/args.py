@@ -19,23 +19,6 @@ def parse_verbose(args: list[str]) -> tuple[bool, list[str]]:
     return verbose, positional
 
 
-def parse_build_flags(args: list[str]) -> tuple[bool, list[str]]:
-    """Split ``build`` flags from positional args.
-
-    Recognises ``--interactive``/``-i``, which opens an interactive session to
-    curate the aliases the module exposes — deselect, rename, and add — for both
-    upstream and local builds. Returns ``(interactive, positionals)``.
-    """
-    interactive = False
-    positional: list[str] = []
-    for arg in args:
-        if arg in ("--interactive", "-i"):
-            interactive = True
-        else:
-            positional.append(arg)
-    return interactive, positional
-
-
 def parse_force_flag(args: list[str]) -> tuple[bool, list[str]]:
     """Split ``clean`` flags from positional args.
 

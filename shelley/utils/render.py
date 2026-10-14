@@ -33,7 +33,10 @@ def paginate(items: list, render_fn, page_size: int = 10) -> None:
             choices.append(questionary.Choice("← Previous", value="prev"))
         choices.append(questionary.Choice("Exit", value="quit"))
 
-        action = questionary.select("", choices=choices).ask()
+        try:
+            action = questionary.select("", choices=choices).ask()
+        except EOFError:  # no terminal to ask on (piped or scripted): first page only
+            break
         if action is None or action == "quit":
             break
         elif action == "next":

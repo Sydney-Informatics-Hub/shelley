@@ -6,26 +6,19 @@
 # the relevant modules.
 
 import sys
-from pathlib import Path
 
-from ..commands.build import build_module
-from ..commands.clean import clean_module
-from ..commands.find import find_tool_sync
 from ..commands.interactive import interactive_mode
-from ..commands.search import search_tools
-from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
-from ..utils.batch import batch_build_modules, read_tools_file
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
     ShelleyStyle,
     console,
     print_banner,
-    print_info,
     print_rule,
     print_update_notice,
     print_version,
-    print_warning,
 )
+from .build import run as run_build
+from .discovery import run_clean, run_find, run_search
 
 
 def _print_usage() -> None:
@@ -77,53 +70,17 @@ def main() -> None:
         print_version()
         sys.exit(0)
 
-    if command == "build" and len(sys.argv) > 2:
-        interactive, positional = parse_build_flags(sys.argv[2:])
-        if not positional:
-            print_warning("Missing tool name or tools file")
-            print_info(
-                "Usage: [command]shelley build <tool\\[/version]> [-i|--interactive][/command]"
-            )
-            sys.exit(1)
-        arg = positional[0]
-        p = Path(arg)
-        if p.is_file():
-            tools = read_tools_file(p)
-            if not tools:
-                print_warning(
-                    f"No tool specs found in '{arg}' (file is empty or all comments)"
-                )
-                sys.exit(1)
-            sys.exit(batch_build_modules(tools))
-        sys.exit(0 if build_module(arg, interactive=interactive) else 1)
-
-    if command == "clean":
-        force, positional = parse_force_flag(sys.argv[2:])
-        if not positional:
-            print_warning("Missing tool name or version")
-            print_info("Usage: [command]shelley clean <tool>:<version> [-y][/command]")
-            print_info("Example: [command]shelley clean samtools:1.21[/command]")
-            sys.exit(1)
-        sys.exit(0 if clean_module(positional[0], force=force) else 1)
+    if command == "build":
+        sys.exit(run_build(sys.argv[2:]))
 
     if command == "find":
-        verbose, positional = parse_verbose(sys.argv[2:])
-        if positional:
-            find_tool_sync(positional[0], verbose=verbose)
-        else:
-            print_warning("Missing tool name")
-            print_info("Usage: [command]shelley find <tool_name> [-v][/command]")
-            print_info("Example: [command]shelley find fastqc[/command]")
-        sys.exit(0)
+        sys.exit(run_find(sys.argv[2:]))
 
     if command == "search":
-        if len(sys.argv) > 2:
-            search_tools(" ".join(sys.argv[2:]))
-        else:
-            print_warning("Missing search terms")
-            print_info("Usage: [command]shelley search <description>[/command]")
-            print_info("Example: [command]shelley search 'quality control'[/command]")
-        sys.exit(0)
+        sys.exit(run_search(sys.argv[2:]))
+
+    if command == "clean":
+        sys.exit(run_clean(sys.argv[2:]))
 
     if command == "interactive":
         interactive_mode()

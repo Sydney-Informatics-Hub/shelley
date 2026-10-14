@@ -60,7 +60,7 @@ Run from inside a BioShell session where `/cvmfs/singularity.galaxyproject.org/a
 ```bash
 uv run pytest                              # all tests
 uv run pytest -v --tb=short               # verbose with short tracebacks
-uv run pytest tests/test_cvmfs_builder.py # single file
+uv run pytest tests/build_core/test_build_cli.py # single file
 uv run pytest -m "not network"            # exclude network tests when offline
 ```
 
