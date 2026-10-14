@@ -1,149 +1,153 @@
 # Build design
 
-Why the module builder is designed the way it is.
+Design choices for `shelley build`. For how to build modules, see
+[../how-to/build-modules.md](../how-to/build-modules.md). For the paths, owners and modes
+a build writes, see [../reference/data-sources.md](../reference/data-sources.md).
 
-## Which build runs
+## Three build paths: upstream, local and interactive
 
-`shelley build` has one path: `client/build.py` resolves the request as the user, then
-`services.build` builds it, with `GalaxyCatalogue` for discovery and `ShpcExposer` for
-exposure. `shelley find`, `search` and `clean` use the same core (`client/discovery.py`).
-The 0.4.0 builder (`CVMFSModuleBuilder`) has been removed.
+`shpc install` can only install a tag that a registry entry lists. The three paths differ
+in where that entry comes from:
 
-Most of this page explains choices made in 0.4.0 that the build core keeps: the pinned
-settings file, the permissions, the alias discovery and the on-disk layout. Where the
-build core behaves differently, the reasons are in the decision records:
+- **Upstream (default):** the version is in the [shpc-registry](https://github.com/singularityhub/shpc-registry),
+  so shpc uses upstream's entry and its aliases as they are.
+- **Local:** the version is on the Galaxy mount but absent upstream (older patch releases
+  and some tools), so shelley writes its own entry.
+- **Interactive (`-i`):** the user curates the aliases, and shelley writes them to its own
+  entry, whether or not the version is upstream.
 
-- a build plans first and then applies its writes in a transaction, so a failure or a
-  cancelled `-i` restores the previous state
-  ([ADR 0005](decisions/0005-plan-then-apply-with-compensating-transaction.md));
-- the tool, the version and the build are resolved, and any prompt is answered, before
-  `sudo` ([ADR 0007](decisions/0007-resolve-before-elevating.md));
-- "latest" follows conda's version ordering
-  ([ADR 0002](decisions/0002-tag-value-object-with-conda-ordering.md));
-- an unreachable network stops the build before it writes anything, and alias discovery
-  failures are no longer swallowed
-  ([ADR 0004](decisions/0004-fail-fast-when-network-unavailable.md));
-- local registry entries hold only what shelley authored, and store the tag value
-  `local:keep-path` instead of a hash of the whole SIF
-  ([ADR 0006](decisions/0006-local-registry-holds-authored-entries-only.md)).
+### Local registry entries
 
-## Why shelley pins shpc to its own settings file
+shelley writes its entries to `/apps/local/<uri>/container.yaml`, the local registry,
+which shpc searches first:
 
-A built module has to be usable by every user on the machine, not just whoever ran the
-build. That turns out to hinge entirely on where shpc installs.
+| Case | Aliases come from | Marker records |
+|---|---|---|
+| The version is absent upstream | Alias discovery on this version's SIF | `in_upstream: false` |
+| `-i` is used, for any version | Upstream's aliases if the version is upstream, else alias discovery; then the user's edits | `in_upstream` as fetched |
 
-shpc's central settings put every install base under `$HOME` — `module_base:
-$HOME/shpc/modules` and likewise for `container_base`, `wrapper_base` and `views_base`.
-Those keys are on shpc's environment-expansion list, so `$HOME` is expanded when the value
-is read, not when the file is written. `shelley build` re-execs under `sudo -E`, which
-preserves `HOME`. The result: **root writes the modules into the invoking user's home
-directory**, which on a default Ubuntu install is `drwxr-x---` — unreadable and even
-untraversable by anyone else. The modulefile symlink under `/apps/Modules/modulefiles`
-points into a tree nobody but the builder can enter.
+Each authored version also gets a marker, `<uri>/<tag>/aliases.yaml`, so that `clean` can
+tell which tags shelley added ([clean-design.md](clean-design.md#shelley-creates-versioned-tool-subdirectories)).
 
-So shelley writes `/apps/shpc/settings.yml` and passes it to every shpc invocation as
-`--settings-file`. That is the highest-precedence layer in shpc's resolution chain, above
-`~/.singularity-hpc/settings.yml` and above the central defaults, which makes the build
-immune to both `HOME` and a per-user shpc config. The file is *partial*: shpc always loads
-its own defaults first and merges ours over the top, so shelley declares only the five keys
-it cares about and inherits future upstream defaults for everything else.
+shpc uses the *first* entry it finds and never falls through to upstream, so a local entry
+hides upstream for every tag of that tool. The local registry therefore never caches
+upstream entries, and each build merges fresh upstream tags into an existing local entry,
+so a curated `-i` entry cannot block newer upstream versions.
 
-Three alternatives were considered and rejected:
+### Alias discovery and its limitations
 
-- **`shpc config set --central`** rewrites the ansible-managed `/opt` install shared with
-  everyone who calls `shpc` directly, and it gets clobbered on any shpc upgrade. It also
-  does not actually solve the problem: central is the *lowest* precedence layer, so a user
-  with `~/.singularity-hpc/settings.yml` would still build into their own home.
-- **`-c set:key:value` on every call** is applied after shpc has already constructed its
-  registry from the unpatched settings, so `-c set:registry:…` is silently ineffective
-  while `-c set:module_base:…` works. Asymmetric, and it leaves nothing on disk to inspect.
-- **`env HOME=/apps/shpc`** happens to work, purely because the shpc defaults contain
-  `$HOME`. It breaks silently if those defaults ever become absolute paths, gives no
-  control over `registry`, and leaks into every other `$HOME` consumer in the subprocess
-  tree — Singularity's cache, git, uv — depositing junk under `/apps/shpc`.
+Aliases become the module's wrapper scripts, the commands available after `module load`.
+For a local entry they are discovered by diffing the version's own SIF against base OS
+images ([shpc-guts](https://github.com/singularityhub/shpc-guts)); what remains should be
+the tool's own executables. `shelley/data/guts_db/` adds conda manifests to the
+subtraction, so the ~90 conda binaries in every BioContainers image (`mamba`, `pip3`, …)
+are not exposed.
 
-A corollary: shelley no longer calls `shpc config add registry` to register `/apps/local`.
-shpc's config save writes the whole *merged* settings dict, which would expand our small
-override file into a frozen snapshot of today's site defaults. The registry list is
-declared in the settings file instead.
+Aliases are never copied from another version, because container contents differ. If
+`star-fusion 1.0.0` inherited `1.10.1`'s entry, it would expose `salmon`, which only
+`1.10.1` contains, and `salmon` would fail or silently run another copy from `PATH`
+(`test_extract_aliases_star_fusion_1_0_0` guards this).
 
-## Why artifacts are root-owned 0755 rather than chowned to the builder
+The diff is a heuristic with two known limits:
 
-Builds used to end with `chown -R $SUDO_USER:$SUDO_USER` over the shpc base, to let
-subsequent non-root shpc calls write to the same paths. That is directly at odds with a
-shared install: it hands the tree to one account, and even at `0755` it lets one
-unprivileged user rewrite modules that everyone else executes.
+- **A tool named like a base binary** (`sort`, `time`, `join`) would be dropped, because
+  base-image binaries are matched by name. Discovery passes the tool's name as `keep=`.
+- **Discovery that fails for any reason other than the network** gives no aliases; the
+  build continues and warns that the module has no wrapper scripts.
 
-Artifacts now stay `root:root` with directories `0755`, files `0644` and wrapper scripts
-`0755`. Nothing but the privileged build path needs to write there, so read, traverse and
-execute for everyone is both sufficient and strictly safer. Tests that need a writable
-tree point `SHELLEY_SHPC_BASE` at a temporary directory instead of relying on ownership of
-a production path.
+Running `shelley build --interactive/i` resolves this by allowing users to
+handpick which aliases should be included. Because `aliases` is one
+field shared by every tag in a `container.yaml`, each version's list is also kept in its
+versioned subdirectory ([clean-design.md](clean-design.md#why-marker-directories-also-snapshot-that-versions-aliases)).
 
-Permissions are enforced in two layers — a `umask 022` set before anything forks, plus an
-explicit `chmod` pass over the subtrees the build touched. Neither suffices alone: the
-umask does not fix directories a previous build created under a stricter one, and the chmod
-pass would have to walk all of `/apps/shpc` to find them, which gets slower with every
-module installed. The pass is scoped per tool rather than per version, because shpc writes
-a `.version` file beside the version directories to tell Lmod which is the default — an
-unreadable one breaks a bare `module load <tool>` for everyone else.
+## Failed or cancelled builds leave nothing behind
 
-## Why local registry aliases are generated fresh from each SIF
+Earlier versions left artefacts behind when a build failed or was cancelled part-way, and
+`shelley clean` could not see them because they had no modulefile link. So a build now
+removes everything it wrote unless it finishes. It writes:
 
-`shelley build` has two paths depending on whether the requested version is in the upstream [shpc-registry](https://github.com/singularityhub/shpc-registry):
+| Artefact | Path | Written by |
+|---|---|---|
+| Local registry entry and marker (some builds) | `/apps/local/quay.io/biocontainers/<tool>/container.yaml`, `…/<tool>/<tag>/aliases.yaml` | shelley |
+| shpc module, wrapper scripts, container directory | `/apps/shpc/{modules,wrappers,containers}/quay.io/biocontainers/<tool>/<tag>/` | `shpc install` |
+| Permission changes | the directories above | shelley |
+| Lmod modulefile link | `/apps/Modules/modulefiles/<tool>/<tag>.lua` | shelley |
 
-- **Version in upstream registry** — `shpc install` is called directly; the upstream registry's `aliases` field is used as-is. The one exception is `--interactive`: curating aliases always routes through a local entry (below) so the edit persists and shadows upstream, even though the version itself is not "absent" in the sense this section otherwise describes.
-- **Version absent from upstream** — shelley creates a local `container.yaml` under `/apps/local/` (declared as the first entry in shpc's registry search path by shelley's settings file, so local entries shadow upstream ones). As part of building that entry, it calls `extract_aliases` to diff the exact CVMFS SIF and generate the `aliases` field fresh. The local entry is never copied or inherited from another version of the same tool.
+### `BuildPlan` and `BuildTransaction`
 
-The reason for the no-inheritance rule is correctness. A concrete failure mode: if `star-fusion 1.0.0` inherited the local registry entry from `star-fusion 1.10.1`, the module would expose `salmon` as an alias — because `salmon` was present in the `1.10.1` container but absent from `1.0.0`. Any user running `module load star-fusion/1.0.0` and calling `salmon` would get a command-not-found error, or silently pick up a wrong binary from elsewhere on PATH.
+1. **`plan`** decides everything before writing anything: it fetches the upstream registry
+   entry, discovers aliases, asks the `-i` questions, and returns a `BuildPlan`.
+2. **`apply`** performs the writes inside a `BuildTransaction`, which first records a
+   *pre-image* of the tool's five directories (local entry, the three shpc directories and
+   the Lmod directory): every path's type, mode, symlink target and bytes. Unless
+   `commit()` runs, it restores that pre-image: new paths deleted, changed files rewritten.
 
-The regression test `test_extract_aliases_star_fusion_1_0_0` explicitly asserts that `salmon` does not appear in the `1.0.0` alias list. `star-fusion 1.0.0` uses the local fallback path (`newly_created=True` in the regression matrix), so this test exercises the alias generation directly.
+A rebuild first renames the installed version aside (`<name>.aside`), so `apply` either
+succeeds completely or changes nothing: rebuilding `samtools/1.19` and failing part-way
+leaves the previous `samtools/1.19` in place. Cancelling `-i` on an installed version
+prints "Build cancelled; nothing was changed." and the module still runs.
 
-Regenerating aliases fresh keeps each version's own *install* correct, but `aliases` is one field shared by the whole `container.yaml` file — so building a second locally-curated version of the same tool still overwrites what's on disk with that version's own aliases. `shelley clean` addresses this by snapshotting each locally-curated version's aliases into its own marker directory; see [clean-design.md](clean-design.md#why-marker-directories-also-snapshot-that-versions-aliases).
+Two builds of the same tool would write the same directories, so the transaction holds a
+per-tool lock (`/apps/shpc/.locks/<tool>.lock`). A second build waits up to five minutes,
+then stops; builds of different tools never wait.
 
-## Why guts_db exists — the conda subtraction problem
+Two alternatives were rejected. Reordering the steps and adding `try/except` cleanup would
+not stop the next change from writing before the last prompt, whereas a plan object makes
+"no writes before `apply`" testable. Letting `clean` or a cleanup tool find orphans treats
+the symptom: shelley should not create them.
 
-`shelley build` discovers tool aliases by diffing the tool's container against a database of base OS images (the [shpc-guts](https://github.com/singularityhub/shpc-guts) database). The diff returns files that are unique to the tool container — in theory, the tool's own executables.
+## Built modules are usable by every account
 
-In practice, BioContainers conda packages install the tool _and_ a full conda stack (`python`, `pip`, `conda`, `mamba`, ~90 conda-infrastructure binaries) into `/opt/conda/bin/` or `/usr/local/bin/`. The base OS images in shpc-guts contain neither conda nor these executables, so the diff returns all ~90 conda binaries as "unique" — inflating the alias list with entries like `mamba`, `pip3`, `activate`, and so on that are not tool-specific.
+BioShell training VMs are snapshotted into images, so a module built once must work for
+every training account on every VM made from that image.
 
-`shelley/data/guts_db/` is a supplementary manifest database in the same JSON format as shpc-guts. At runtime, `extract_aliases` merges `guts_db/` into the sparse-cloned shpc-guts working directory before running the diff. This adds conda-layer manifests (`anaconda/miniconda`, `continuumio/miniconda3`) to the subtraction set, removing ~90–100 spurious entries from every BioContainers alias list.
+### Root-owned and globally accessible
 
-The two current manifests cover slightly different conda installations:
+Artefacts stay `root:root`: directories and wrapper scripts `0755`, files `0644`. Handing
+the tree to the builder (`chown -R $SUDO_USER`) was rejected, because it lets one user
+rewrite modules everyone else runs. A `umask 022` plus a `chmod` pass over the tool's
+directories ensure no level is left untraversable, which would hide every module below it.
 
-| Image | Covers |
-|---|---|
-| `anaconda/miniconda:latest` | `/opt/miniconda3/bin` |
-| `continuumio/miniconda3:latest` | `/opt/conda/bin` — the standard BioContainers layer |
+### shpc is pinned to shelley's settings file
 
-Without `continuumio/miniconda3`, roughly 100 extra conda-infrastructure executables appear as tool aliases.
+shpc's defaults put every install base under `$HOME`, and a build runs under `sudo -E`,
+which preserves `HOME`, so root would install into the builder's home, which on Ubuntu
+nobody else can enter. shelley passes `/apps/shpc/settings.yml` to every shpc call as
+`--settings-file`, the highest-precedence layer. The file is partial: it sets only the four
+install bases and `registry` (local first), and inherits shpc's defaults otherwise.
 
-## The relocation problem — why base images leaked through the diff
+The alternatives (`shpc config set --central`, `-c set:`, `HOME=/apps/shpc`) lose to a
+per-user config, are ignored for `registry`, or leak into other `$HOME` users such as git.
 
-Adding manifests to the subtraction set only helps when the base image and the tool container agree on _where_ a binary lives. They often don't, and until [container-guts](https://github.com/Sydney-Informatics-Hub/guts) grew basename matching, the diff compared whole path strings and so missed every relocated copy:
+## Build steps and error handling
 
-- shpc-guts' `busybox` manifests record every applet at `/bin/<name>`. BioContainers images built on busybox symlink the same applets into `/sbin`, `/usr/bin` and `/usr/sbin`. `/bin/devmem` and `/sbin/devmem` are different strings, so `devmem` came back as unique to the tool.
-- Ubuntu keeps ncurses at `/usr/bin/{clear,reset,tic,tput}`; conda ships its own copies under `/usr/local/bin/`. Same failure.
+A build runs in four steps: resolve the request as the user, elevate with `sudo`, `plan` as
+root, then `apply`. Each failure is reported at the earliest step that can detect it, so
+a typo never costs a password and nothing reaches `apply` that could fail in `plan`:
 
-On the `biocontainers/samtools` reference diff in the guts repo this accounted for 22 of 29 alias candidates — `devmem`, `freeramdisk`, `makedevs`, `runlevel`, `dnsd`, `inetd`, `telnet`, `tftp`, `lspci`, `clear`, `reset`, `tic`, `tput` and friends. Crucially, **adding base images does not fix it**: all 29 still survived with `debian`, `centos` and `fedora` added to the subtraction set, because the problem was never a missing image. That measurement is also why those three families are deliberately absent from `BASE_IMAGE_NAMESPACES` — once basename matching is doing the work, `ubuntu` and `busybox` plus the conda manifests supply every name the other families would, and the reference diff returns an identical alias list either way.
+| Failure | Example | Reported |
+|---|---|---|
+| Unknown tool or version | `shelley build samtools/9.9` | Before the password prompt, with the available versions |
+| A version with several builds | `shelley build samtools/1.21` | Before the password prompt: the user picks one |
+| A `mulled-*` container with no tag | `shelley build mulled-v2-…` | Before the password prompt, listing the tags |
+| Galaxy mount absent, or the SIF missing from it | — | Before the password prompt |
+| GitHub unreachable | — | After the password prompt, in `plan`, before any write |
+| `-i` cancelled | — | After the password prompt, in `plan`, before any write |
 
-The fix lives in guts, not shelley: `Database.diff` now also drops entries whose *basename* belongs to a base image, and reports them under a new `shadowed_paths` key. An executable on PATH is identified by its name, not its absolute location, so this belongs in the library where every guts consumer benefits. `unique_fs` is deliberately left as a plain path-level difference, since `guts similar` scores off it.
+The root child receives only the resolved tag, and accepts only a `tool:tag` it can verify
+on the mount:
 
-Shelley keeps one piece of policy on top: basename matching would also drop a tool legitimately named like a base binary (`sort`, `time`, `join`), so `extract_aliases` takes a `keep=` argument — the tool name — and pulls that one back out of `shadowed_paths`.
+```
+sudo -E env PATH=… SHELLEY_…=… python -m shelley build --resolved-tag samtools:1.21--h50ea8bc_3
+```
 
-## Local registry fallback — when and why it triggers
+Network failures and `-i` come after it because `plan` runs in the root child.
 
-The upstream [shpc-registry](https://github.com/singularityhub/shpc-registry) does not carry every version of every tool. Older patch releases and some tools are present in CVMFS but absent from the registry.
+"Not upstream" and "unreachable" are kept distinct: only HTTP 404 means a tag is absent
+upstream. If an outage were read as "not upstream", the build would write a local entry
+with no aliases, and that entry would keep hiding upstream, leaving a module without its
+command even after the network returned. Any other failure of the registry fetch, or of
+the clone of the base-image manifests for alias discovery, stops the build in `plan`:
 
-A local entry is created when the requested version has no upstream registry entry, **or** whenever `--interactive` is used — even for a version that *is* upstream, so that curated aliases persist and shadow the upstream entry. When `shelley build` takes either path, it:
-
-1. Plans the entry before writing anything: fetches the upstream entry, discovers the aliases from the SIF (absent-upstream case) and asks the `-i` questions.
-2. Writes the `container.yaml` under `/apps/local/<uri>/` (the local shpc registry path, declared in shelley's settings file rather than registered via `shpc config add`), then runs `shpc install` once. shpc finds the local entry first, so there is no retry.
-
-This is transparent to the user; alias discovery adds a few minutes to the build. The `newly_created` flag in the regression matrix (see [docs/reference/data-sources.md](../reference/data-sources.md)) records which tools consistently require a local entry for this second reason. Both paths are marked with a per-version marker directory so `shelley clean` can find them later — see [clean-design.md](clean-design.md#why-per-version-marker-directories-exist).
-
-Unlike in 0.4.0, a local entry is no longer also a cache of the upstream entry. Each
-build of a tool that has a local entry merges the fresh upstream tags into it, so a
-curated `-i` entry no longer hides newer upstream versions. An entry that no installed
-version uses and that has no marker directory is a 0.4.0 leftover, and the next build of
-that tool removes it ([ADR 0006](decisions/0006-local-registry-holds-authored-entries-only.md)).
+> Couldn't reach GitHub (raw.githubusercontent.com): the request timed out after 10 s.
+> Try again in a few seconds.

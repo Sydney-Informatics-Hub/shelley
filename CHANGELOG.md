@@ -25,10 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Architecture documentation: start at `docs/explanation/architecture-design.md`.
-  Reference pages are in `docs/reference/architecture/` (glossary, current and target
-  state, traceability); explanation pages cover the design review, the scenario
-  evaluation and the decision records in `docs/explanation/decisions/`.
 - conda's version-ordering code is vendored in `shelley/_vendor/` (BSD-3-Clause,
   licence included), because conda cannot be installed as a library dependency.
 
