@@ -74,6 +74,8 @@ shelley interactive
 | How-to | [docs/how-to/developer-setup.md](docs/how-to/developer-setup.md) | Dev environment and tests |
 | Reference | [docs/reference/cli.md](docs/reference/cli.md) | All CLI commands |
 | Reference | [docs/reference/data-sources.md](docs/reference/data-sources.md) | Data artifacts and schemas |
+| Reference | [docs/reference/architecture/glossary.md](docs/reference/architecture/glossary.md) | Domain terms used in the code, docs and architecture diagrams |
+| Reference | [docs/reference/architecture/target-state.md](docs/reference/architecture/target-state.md) | Class, package, sequence and lifecycle diagrams of the current design |
 | Explanation | [docs/explanation/install-design.md](docs/explanation/install-design.md) | Why shelley installs with uv |
 | Explanation | [docs/explanation/search-design.md](docs/explanation/search-design.md) | Why the search is designed this way |
 | Explanation | [docs/explanation/build-design.md](docs/explanation/build-design.md) | Why the build is designed this way |

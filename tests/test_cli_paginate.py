@@ -122,6 +122,20 @@ def test_paginate_none_from_questionary_exits(monkeypatch):
     assert log == [0]
 
 
+def test_paginate_without_a_terminal_shows_the_first_page_only(monkeypatch):
+    """Piped or scripted output: prompt_toolkit raises EOFError; no traceback."""
+
+    class NoTerminal:
+        def ask(self):
+            raise EOFError
+
+    monkeypatch.setattr(questionary, "select", lambda *a, **kw: NoTerminal())
+
+    log = []
+    _paginate(list(range(25)), lambda items, page, *_: log.append(page), page_size=10)
+    assert log == [0]
+
+
 # ---------------------------------------------------------------------------
 # Async-context regression: questionary from running event loop
 # ---------------------------------------------------------------------------

@@ -2,7 +2,8 @@ name: Refresh data
 
 on:
   schedule:
-    - cron: "0 18 1 * *"  # 18:00 UTC on the 1st, i.e. early morning on the 2nd in Sydney
+    - cron: "30 23 1,15 * *" # 11:30pm every 1st and 15th of the month
+      timezone: 'Australia/Sydney'
   workflow_dispatch:
 
 concurrency:

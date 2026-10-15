@@ -1,6 +1,7 @@
 """Interactive command — guided REPL for shelley."""
 
-from ..utils.args import parse_build_flags, parse_force_flag, parse_verbose
+from ..client.build import run as run_build
+from ..client.discovery import run_clean, run_find, run_search
 from ..utils.commands import CORE_COMMANDS
 from ..utils.style import (
     ShelleyStyle,
@@ -11,10 +12,6 @@ from ..utils.style import (
     print_success,
     print_warning,
 )
-from .build import build_module
-from .clean import clean_module
-from .find import find_tool_sync
-from .search import search_tools
 
 _COMMANDS = CORE_COMMANDS + [
     {"command": "help", "description": "Show this help table", "example": "help"},
@@ -49,27 +46,12 @@ def interactive_mode() -> None:
         elif cmd == "help":
             console.print(help_table)
         elif cmd == "find":
-            verbose, positional = parse_verbose(parts[1:])
-            if positional:
-                find_tool_sync(positional[0], verbose=verbose)
-            else:
-                print_warning("Usage: find <tool_name> [-v]")
+            run_find(parts[1:])
         elif cmd == "search":
-            if len(parts) > 1:
-                search_tools(" ".join(parts[1:]))
-            else:
-                print_warning("Usage: search <description>")
+            run_search(parts[1:])
         elif cmd == "build":
-            interactive, positional = parse_build_flags(parts[1:])
-            if positional:
-                build_module(positional[0], interactive=interactive)
-            else:
-                print_warning("Usage: build <tool_name>[/version] [-i|--interactive]")
+            run_build(parts[1:])
         elif cmd == "clean":
-            force, positional = parse_force_flag(parts[1:])
-            if positional:
-                clean_module(positional[0], force=force)
-            else:
-                print_warning("Usage: clean <tool>:<version> [-y]")
+            run_clean(parts[1:])
         else:
             print_warning(f"Unknown command: '{cmd}'. Type help for usage.")

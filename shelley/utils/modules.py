@@ -5,7 +5,7 @@ use. This helper loads them into the current process environment so subsequent
 subprocess calls (shpc, and singularity via container-guts) inherit an environment
 where those tools are on PATH.
 
-It is called ONLY from the build path (shelley.commands.build.build_module) so that
+It is called ONLY from the build path (shelley.client.build and the clean commands) so that
 read-only commands (find, search, versions) remain uvx-able on non-BioShell systems
 and never touch the module system. On hosts without Lmod, or if the load fails, it
 warns and continues, relying on whatever shpc/singularity are already on PATH.

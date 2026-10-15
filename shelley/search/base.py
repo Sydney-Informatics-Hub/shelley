@@ -116,6 +116,10 @@ class MetadataSource:
 
         return results
 
+    def flatten_edam(self, value) -> list[str]:
+        """Public name for ``_flatten_edam``, for callers outside the search package."""
+        return self._flatten_edam(value)
+
     def _load_stopwords(self) -> set[str]:
         """
         Return the union of all STOP_WORDS categories as a flat set.

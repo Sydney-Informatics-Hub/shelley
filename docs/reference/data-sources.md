@@ -234,7 +234,7 @@ The base OS families themselves are not committed here — they are sparse-clone
 
 ## Regression tool matrix
 
-Canonical regression set for `shelley build`. Verified by `test_ensure_local_registry_entry_newly_created` and `test_ensure_local_registry_entry_upstream_known` in `tests/test_cvmfs_builder.py`.
+Canonical regression set for `shelley build`. The "In upstream registry" column is checked against the live registry by `test_regression_matrix_matches_the_live_upstream_registry` in `tests/build_core/test_registry_core.py` (marked `network`). "newly_created" means the build writes a local registry entry.
 
 | Tool | Canonical version (CVMFS) | In upstream registry | newly_created | Key aliases |
 |---|---|---|---|---|
@@ -250,8 +250,8 @@ Canonical regression set for `shelley build`. Verified by `test_ensure_local_reg
 | blast | `2.5.0--hc0b0e79_3` | ✗ | True | `blastn`, `blastp`, `blastx` |
 | star | `2.7.11a--h0033a41_0` | ✓ | False | `STAR` |
 | star-fusion | `1.0.0--pl5.22.0_0` | ✗ (only ≥1.9.1) | True | `STAR` (not `salmon`) |
-| parabricks | n/a | ✗ | n/a | not in CVMFS — raises `ValueError` |
-| seurat | n/a | ✗ | n/a | not in CVMFS — raises `ValueError` |
+| parabricks | n/a | ✗ | n/a | not in CVMFS — reported before `sudo` |
+| seurat | n/a | ✗ | n/a | not in CVMFS — reported before `sudo` |
 
 > **star-fusion 1.0.0 regression note:** `salmon` must NOT appear as an alias. It was incorrectly present when aliases were inherited from a newer build. The fix (always regenerate aliases from the specific SIF) is tested by `test_extract_aliases_star_fusion_1_0_0` (requires Singularity on PATH).
 
@@ -267,7 +267,7 @@ All `shelley build` operations and CVMFS integration tests call `shpc` as a subp
 module load shpc
 ```
 
-In environments without the module system (e.g. GitHub Actions CI), `test_run_shpc_install_missing_cvmfs_path` will fail with `FileNotFoundError` rather than being skipped. This is a tracked known issue; the test is intentionally left as a documented failure until shpc path discovery is added to the builder.
+shelley falls back to `/opt/shpc/bin/shpc` when `shpc` is not on PATH, and the build loads the `shpc` and `singularity` modules itself. The environment checks `test_shpc_is_executable` and `test_shpc_on_path` in `tests/test_aliases.py` are marked `cvmfs`, so they are skipped where the mount is missing (e.g. GitHub Actions CI); on a VM, `test_shpc_on_path` fails in a shell that has not run `module load shpc`.
 
 ### The shared settings file must exist before it is named
 

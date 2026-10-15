@@ -5,6 +5,45 @@ All notable changes to shelley are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-15
+
+### Changed
+
+- Major refactor of `shelley` to be more modular and less repetitive to support
+  incoming CVMFS repos
+- Large and messy `CVMFSModuleBuilder` class replaced with a new set of core classes and functions
+  for better error handling and reusability
+- New logic for `build` so artefacts are deleted when a build is cancelled or
+  fails. This ensures `shelley clean` doesn't leave any stray artefacts.
+- Version ordering follows the same rules as Bioconda to account for uncommon version
+  specs (e.g. 0.4.0-dev for dev work, seqtk/r93)
+- If GitHub cannot be reached, the build stops before writing anything and says so,
+  e.g. "Couldn't reach GitHub (raw.githubusercontent.com): the request timed out
+  after 10 s. Try again in a few seconds.", instead of building a module without
+  the tool's command
+- Improved CVMFS error handling (e.g. all errors do not raise generic "check if CVMFS is mounted")
+- Upgrade python dependencies for `packaging`, `pytest`, `pytest-asyncio`, `mypy`
+
+### Added
+
+- conda's version-ordering code is vendored in `shelley/_vendor/` (BSD-3-Clause,
+  licence included), because conda cannot be installed as a library dependency.
+
+### Removed
+
+- The 0.4.0 command code: `commands/build.py`, `commands/find.py`, `commands/search.py`,
+  `commands/clean.py`, `utils/batch.py`, `utils/cache.py` and `builder/cvmfs_builder.py`.
+  `shelley.CVMFSModuleBuilder` is no longer exported; `shelley.cli_main` is the only
+  public name.
+
+### Fixed
+
+- `shelley search` and `shelley find -v` no longer end in a traceback when output is
+  piped or run from a script; with no terminal to page on, they print the first page.
+- CI: `ruff` no longer checks the design notes under `tmp/`, which had made lint fail
+- `find` version ordering fixed
+- `build` correctly selects latest tool version
+
 ## [0.4.0] - 2026-10-02
 
 ### Added
@@ -164,7 +203,7 @@ First tagged release.
 - Installation guide covering system-wide (`uv tool install` into `/opt`),
   per-user, and `uvx` (experimental) paths.
 
-[Unreleased]: https://github.com/Sydney-Informatics-Hub/shelley/compare/v0.4.0...HEAD
+[0.5.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Sydney-Informatics-Hub/shelley/releases/tag/v0.2.0
