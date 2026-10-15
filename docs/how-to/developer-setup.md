@@ -147,7 +147,7 @@ dependencies current. It is configured in
 | `github-actions` | The SHA-pinned actions in `.github/workflows/`, along with their `# vX.Y.Z` comments |
 | `uv` | Package versions in `uv.lock` |
 
-Updates are checked **monthly** and **grouped**, so expect at most one PR per
+Updates are checked **fortnightly** and **grouped**, so expect at most one PR per
 ecosystem per month rather than one per package. PRs target **`dev`**, like
 feature work, and reach `main` at the next release. Commit messages use the
 `MAINT` prefix.
