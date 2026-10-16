@@ -161,10 +161,11 @@ def _render_result(result: BuildResult) -> None:
 
 
 def _render_error(title: str, error: BaseException | None) -> None:
-    suggestion = ""
-    if not isinstance(error, ShelleyError):
-        suggestion = "Check that CVMFS is mounted and the tool exists"
-    console.print(ShelleyStyle.create_error_panel(title, str(error), suggestion))
+    message = str(error)
+    if error is not None and not isinstance(error, ShelleyError):
+        # Unexpected failure (likely a bug): name the exception so it isn't mistaken for a user error.
+        message = f"{type(error).__name__}: {error}"
+    console.print(ShelleyStyle.create_error_panel(title, message))
 
 
 def _render_summary(results: list[BuildResult]) -> None:

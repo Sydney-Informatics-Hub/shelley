@@ -91,6 +91,53 @@ SHELLEY_THEME = Theme(
     }
 )
 
+
+
+def build_textual_theme():
+    """Return the Shelley theme for Textual apps, built from BIOCOMMONS_COLORS.
+
+    Imported lazily so the CLI doesn't pay Textual's import cost unless a
+    Textual app is actually launched.
+    """
+    from textual.theme import Theme as TextualTheme
+
+    c = BIOCOMMONS_COLORS
+    return TextualTheme(
+        name="shelley",
+        # Native ANSI mode: "ansi_default" surfaces render as the terminal's own
+        # background/foreground (transparent), matching the Rich CLI output.
+        ansi=True,
+        primary=c["primary"],
+        secondary=c["teal"],
+        accent=c["accent"],
+        success=c["success"],
+        warning=c["warning"],
+        error=c["error"],
+        foreground="ansi_default",
+        background="ansi_default",
+        surface="ansi_default",
+        panel="ansi_default",
+        boost="ansi_default",
+        dark=True,
+        # Required by ANSI themes (Textual's inline Screen CSS references
+        # $ansi-background); values mirror Textual's built-in "ansi-dark".
+        variables={
+            "ansi-background": "ansi_black",
+            "ansi-foreground": "ansi_white",
+            "border-blurred": "ansi_black",
+            "block-cursor-foreground": "ansi_black",
+            "block-cursor-background": c["primary"],
+            "input-cursor-background": "ansi_black",
+            "input-cursor-foreground": "ansi_bright_white",
+            "input-cursor-text-style": "none",
+            "input-selection-background": c["secondary"],
+            "input-selection-foreground": "ansi_bright_white",
+            "screen-selection-background": c["secondary"],
+            "screen-selection-foreground": "ansi_bright_white",
+        },
+    )
+
+
 # Global console instance with BioCommons theme
 console = Console(theme=SHELLEY_THEME, width=120)
 
