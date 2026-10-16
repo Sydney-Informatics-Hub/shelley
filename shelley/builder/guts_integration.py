@@ -122,6 +122,7 @@ def extract_aliases(cvmfs_path: str, keep: str | None = None) -> list[dict]:
         if tmpdir:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
+
 def edit_aliases_interactive(aliases: list[dict]) -> list[dict]:
     """Interactively deselect, rename, and add module aliases.
 

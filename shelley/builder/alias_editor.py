@@ -69,7 +69,7 @@ class AliasEditorApp(App):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel":
             self.exit()
-        
+
         if event.button.id == "confirm":
             # output list of selected aliases and paths
             table = self.query_one(DataTable)
@@ -80,4 +80,3 @@ class AliasEditorApp(App):
                 if tick == "✓"
             ]
             self.exit(result)
-

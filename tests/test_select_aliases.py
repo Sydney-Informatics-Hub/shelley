@@ -1,10 +1,10 @@
 """Tests for the interactive alias editor used by `build -i/--interactive`."""
 
 import pytest
+from textual.widgets import Button, DataTable
 
 from shelley.builder.alias_editor import AliasEditorApp, normalize_aliases
 
-from textual.widgets import DataTable, Button
 
 @pytest.fixture
 def input_aliases() -> list[dict]:
@@ -41,6 +41,7 @@ def input_aliases() -> list[dict]:
 def test_normalize_aliases_dict_form(input_aliases, index, expected):
     result = normalize_aliases(input_aliases[index])
     assert result == expected
+
 
 @pytest.mark.parametrize("empty", [None, [], {}])
 def test_normalize_aliases_empty(empty):
@@ -84,10 +85,9 @@ def test_init_app(input_aliases, index, expected_aliases, expected_rows):
     assert app.rows == expected_rows
     assert app.edited == []
 
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "index, nrows", [(0, 1), (1, 3)]
-)
+@pytest.mark.parametrize("index, nrows", [(0, 1), (1, 3)])
 async def test_nrows_on_mount(input_aliases, index, nrows):
     app = AliasEditorApp(input_aliases[index])
 
