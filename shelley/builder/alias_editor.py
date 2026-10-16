@@ -2,16 +2,37 @@ from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Header
 
 
+def normalize_aliases(aliases) -> list[dict]:
+    """Return aliases in the canonical ``[{"name", "command"}]`` list form.
+
+    shpc registries store aliases either as a ``{name: command}`` dict (upstream
+    shpc-registry ``container.yaml``), as a list of ``{"name", "command"}``
+    dicts (what shelley writes), or as a list of ``{name: command}`` dicts (what
+    guts emits). Accept any and return the list form so the
+    rest of the code has a single shape to work with.
+    """
+    if not aliases:
+        return []
+    if isinstance(aliases, dict):
+        return [{"name": name, "command": command} for name, command in aliases.items()]
+    result = []
+    for a in aliases:
+        if "name" in a and "command" in a:
+            result.append({"name": a["name"], "command": a["command"]})
+        else:  # a {name: command} mapping, possibly with several entries
+            result.extend({"name": n, "command": c} for n, c in a.items())
+    return result
+
+
 class AliasEditorApp(App):
     TITLE = "Shelley interactive aliases editor"
     SUB_TITLE = "Select and edit aliases for modules"
 
-    def __init__(self, aliases: list[tuple]):
+    def __init__(self, aliases):
         super().__init__()
-        self.aliases = aliases
-        self.rows = [
-            tuple(" ") + a for a in self.aliases
-        ]  # prepend a blank " " for selection
+        self.aliases = normalize_aliases(aliases)
+        # DataTable rows are tuples; prepend a blank " " for the selection column
+        self.rows = [(" ", a["name"], a["command"]) for a in self.aliases]
         self.edited = []
 
     def compose(self) -> ComposeResult:
@@ -42,10 +63,13 @@ class AliasEditorApp(App):
                 value=self.update_tick(str(event.value)),
             )
 
-        if event.cell_key.column_key == self.name or self.path:
+        if event.cell_key.column_key == self.alias or self.path:
             pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.exit()
+        
         if event.button.id == "confirm":
             # output list of selected aliases and paths
             table = self.query_one(DataTable)
@@ -56,3 +80,4 @@ class AliasEditorApp(App):
                 if tick == "✓"
             ]
             self.exit(result)
+
