@@ -133,7 +133,7 @@ def edit_aliases_interactive(aliases: list[dict]) -> list[dict]:
     Raises:
         ValueError: If the user cancels any step.
     """
-    app = AliasEditorApp(aliases)
-    edited = app.run(inline=True)
-    print(f"{edited}")
+    edited = AliasEditorApp(aliases).run(inline=True)
+    if edited is None:
+        raise ValueError("Alias editing was cancelled.")
     return edited
