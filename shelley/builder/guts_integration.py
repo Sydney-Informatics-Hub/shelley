@@ -7,6 +7,8 @@ from pathlib import Path
 
 import questionary
 from container_guts.main import ManifestGenerator
+from textual.app import App, ComposeResult
+from textual.widgets import DataTable
 
 _SUPPLEMENTARY_DB = Path(__file__).parent.parent / "data" / "guts_db"
 
@@ -279,3 +281,23 @@ def edit_aliases_interactive(aliases: list[dict]) -> list[dict]:
     aliases = _add_aliases(aliases)
     aliases = _rename_aliases(aliases)
     return aliases
+
+class AliasEditorApp(App):
+
+    def __init__(self, aliases: list[tuple]):
+        super().__init__()
+        self.aliases = aliases
+
+    def compose(self) -> ComposeResult:
+        yield DataTable()
+
+    def on_mount(self) -> None:
+        table = self.query_one(DataTable)
+        table.add_columns('Alias name', 'Path in container')
+        table.add_rows(self.aliases)
+
+def textual(aliases: list[tuple]) -> None: 
+    # textual DataTable must take in tuples
+    aliases_norm = [(a["name"], a["command"]) for a in normalize_aliases(aliases)]
+    app = AliasEditorApp(aliases_norm)
+    app.run(inline=True)

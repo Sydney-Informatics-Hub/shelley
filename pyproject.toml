@@ -31,6 +31,7 @@ dependencies = [
     "rich>=13.0",
     "packaging>=21",
     "container-guts",
+    "textual>=8.2.8",
 ]
 
 [project.optional-dependencies]

@@ -12,7 +12,7 @@ from rich.box import ROUNDED
 from rich.table import Table
 
 from .. import privilege, services
-from ..builder.guts_integration import edit_aliases_interactive
+from ..builder.guts_integration import textual
 from ..errors import AmbiguousTag, ShelleyError
 from ..galaxy.catalogue import GalaxyCatalogue
 from ..galaxy.exposer import ShpcExposer
@@ -100,7 +100,7 @@ def _apply_and_render(items: list[Resolved], interactive: bool, batch: bool) -> 
         )
         return 1
     exposer = ShpcExposer(lmod=lmod)
-    curate = edit_aliases_interactive if interactive else None
+    curate = textual if interactive else None
     results = []
     for item in items:
         if curate is not None:  # the alias prompts own the terminal: no spinner
@@ -161,10 +161,11 @@ def _render_result(result: BuildResult) -> None:
 
 
 def _render_error(title: str, error: BaseException | None) -> None:
-    suggestion = ""
-    if not isinstance(error, ShelleyError):
-        suggestion = "Check that CVMFS is mounted and the tool exists"
-    console.print(ShelleyStyle.create_error_panel(title, str(error), suggestion))
+    message = str(error)
+    if error is not None and not isinstance(error, ShelleyError):
+        # Unexpected failure (likely a bug): name the exception so it isn't mistaken for a user error.
+        message = f"{type(error).__name__}: {error}"
+    console.print(ShelleyStyle.create_error_panel(title, message))
 
 
 def _render_summary(results: list[BuildResult]) -> None:
