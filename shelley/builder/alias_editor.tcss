@@ -1,0 +1,5 @@
+Static { margin: 1 5; }
+DataTable { margin: 1 5; }
+Input { margin: 1 5; }
+Horizontal { dock: bottom; height: auto; align-horizontal: center; }
+Button { margin: 1 5; }

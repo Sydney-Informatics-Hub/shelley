@@ -1,11 +1,10 @@
-from textual.app import App, ComposeResult
+from rich.text import Text
 from textual import events
+from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.coordinate import Coordinate
 from textual.widgets import Button, DataTable, Header, Input, Static
-
-from ..utils.style import build_textual_theme
 
 
 def normalize_aliases(aliases) -> list[dict]:
@@ -54,47 +53,43 @@ class AliasEditorApp(App):
     INSTR_INPUT = (
         "   Press ENTER to confirm • Press ESC to cancel"
     )
-    CSS = """
-    DataTable { margin: 1 0; }
-    Horizontal { dock: bottom; height: auto; align-horizontal: center; }
-    Button { margin: 0 1; }
-    """
+    CSS_PATH = "alias_editor.tcss"
 
     def __init__(self, aliases):
         super().__init__()
         self.aliases = normalize_aliases(aliases)
         # DataTable rows; the leading " " is the selection ("Include") column
-        self.rows = [(" ", a["name"], a["command"]) for a in self.aliases]
+        self.rows = [(Text(" ", justify="center"), a["name"], a["command"]) for a in self.aliases]
         self.edited = []
         self._renaming = None  # row key of the name currently being edited
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Static(self.INSTR_MAIN, id="instruct_main")
-        yield AliasTable()
         yield Input(id="rename", placeholder="New alias name")
         yield Static(self.INSTR_INPUT, id="instruct_input")
+        yield AliasTable()
         with Horizontal():
             yield Button("Confirm", id="confirm", variant="success")
             yield Button("Cancel", id="cancel", variant="warning")
 
     def on_mount(self) -> None:
-        self.register_theme(build_textual_theme())
-        self.theme = "shelley"
+        #self.register_theme(build_textual_theme())
+        #self.theme = "shelley"
         table = self.query_one(AliasTable)
         table.cursor_type = "cell"
         self.tick, self.alias, self.path = table.add_columns(
-            "Include", "Alias name", "Command"
+            Text("Include", justify="center"), "Alias name", "Command"
         )
         table.add_rows(self.rows)
         # Hide alias rename widgets by default
         self.query_one(Input).display = False
         self.query_one("#instruct_input", Static).display = False
 
-    def update_tick(self, val: str) -> str:
+    def update_tick(self, val: str) -> Text:
         if val == "✓":
-            return " "
-        return "✓"
+            return Text(" ", justify="center")
+        return Text("✓", justify="center")
 
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         column = event.cell_key.column_key
@@ -145,6 +140,6 @@ class AliasEditorApp(App):
             result = [
                 {"name": alias, "command": path}
                 for tick, alias, path in rows
-                if tick == "✓"
+                if str(tick) == "✓"
             ]
             self.exit(result)
