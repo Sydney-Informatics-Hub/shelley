@@ -12,7 +12,7 @@ from rich.box import ROUNDED
 from rich.table import Table
 
 from .. import privilege, services
-from ..builder.guts_integration import textual
+from ..builder.guts_integration import edit_aliases_interactive
 from ..errors import AmbiguousTag, ShelleyError
 from ..galaxy.catalogue import GalaxyCatalogue
 from ..galaxy.exposer import ShpcExposer
@@ -100,7 +100,7 @@ def _apply_and_render(items: list[Resolved], interactive: bool, batch: bool) -> 
         )
         return 1
     exposer = ShpcExposer(lmod=lmod)
-    curate = textual if interactive else None
+    curate = edit_aliases_interactive if interactive else None
     results = []
     for item in items:
         if curate is not None:  # the alias prompts own the terminal: no spinner
