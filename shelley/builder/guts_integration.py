@@ -7,6 +7,7 @@ from pathlib import Path
 
 import questionary
 from container_guts.main import ManifestGenerator
+
 from ..builder.alias_editor import AliasEditorApp
 
 _SUPPLEMENTARY_DB = Path(__file__).parent.parent / "data" / "guts_db"
@@ -280,4 +281,4 @@ def edit_aliases_interactive(aliases: list[dict]) -> list[dict]:
     app = AliasEditorApp(aliases_norm)
     edited = app.run(inline=True)
     print(f"{edited}")
-    return edited 
+    return edited
