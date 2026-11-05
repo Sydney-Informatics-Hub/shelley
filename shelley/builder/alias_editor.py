@@ -42,24 +42,25 @@ class AliasTable(DataTable):
         if meta.get("row", -1) >= 0 and meta.get("column", -1) >= 0:
             self.cursor_coordinate = Coordinate(meta["row"], meta["column"])
 
+
 class AliasEditorApp(App):
     TITLE = "Shelley interactive alias editor"
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
-    INSTR_MAIN= (
+    INSTR_MAIN = (
         "Click a ✓ cell to include or exclude an alias. Click a name to rename "
         "it (Enter to apply). Confirm keeps the included aliases; Cancel or Esc "
         "aborts."
     )
-    INSTR_INPUT = (
-        "   Press ENTER to confirm • Press ESC to cancel"
-    )
+    INSTR_INPUT = "   Press ENTER to confirm • Press ESC to cancel"
     CSS_PATH = "alias_editor.tcss"
 
     def __init__(self, aliases):
         super().__init__()
         self.aliases = normalize_aliases(aliases)
         # DataTable rows; the leading " " is the selection ("Include") column
-        self.rows = [(Text(" ", justify="center"), a["name"], a["command"]) for a in self.aliases]
+        self.rows = [
+            (Text(" ", justify="center"), a["name"], a["command"]) for a in self.aliases
+        ]
         self.edited = []
         self._renaming = None  # row key of the name currently being edited
 
@@ -118,9 +119,7 @@ class AliasEditorApp(App):
     def on_input_submitted(self, event: Input.Submitted) -> None:
         name = event.value.strip()
         if name and self._renaming is not None:
-            self.query_one(AliasTable).update_cell(
-                self._renaming, self.alias, name
-            )
+            self.query_one(AliasTable).update_cell(self._renaming, self.alias, name)
         self._stop_renaming()
 
     def action_cancel(self) -> None:
