@@ -74,8 +74,7 @@ class AliasEditorApp(App):
             yield Button("Cancel", id="cancel", variant="warning")
 
     def on_mount(self) -> None:
-        #self.register_theme(build_textual_theme())
-        #self.theme = "shelley"
+        self.theme = "catppuccin-macchiato"
         table = self.query_one(AliasTable)
         table.cursor_type = "cell"
         self.tick, self.alias, self.path = table.add_columns(
