@@ -4,6 +4,9 @@ Shelley Styling Module
 
 Rich-based styling for Shelley following Australian BioCommons design guidelines.
 Provides consistent colors, themes, and output formatting across the application.
+
+Rules (docs/reference/style-guide.md): hex values live here, callers use
+role names ("error", "version", "command"), Rich output never sets a text colour.
 """
 
 from pathlib import Path
@@ -29,67 +32,135 @@ from rich.theme import Theme
 BIOCOMMONS_COLORS = {
     # Primary BioCommons brand colors
     "primary": "#2cb77c",  # PANTONE 2413 - Bright Green (primary brand)
-    "secondary": "#205a86",  # PANTONE 2161 - Dark Blue
+    "secondary": "#205a86",  # PANTONE 2161 - Dark Blue (selection fill only, not text)
     "accent": "#f49f1d",  # PANTONE 7408 - Orange
     # BioCommons logo colors
     "magenta": "#ed087c",  # PANTONE 226 - Bright Pink/Magenta
     "teal": "#5ac3b1",  # PANTONE 7465 - Teal/Turquoise
-    "purple": "#b21e8d",  # PANTONE 241 - Purple/Magenta
+    "purple": "#b21e8d",  # PANTONE 241 - Purple/Magenta (not for text: fails contrast)
     "sage": "#8ea869",  # PANTONE 5777 - Sage Green
     # Status colors (adapted from BioCommons palette)
     "success": "#2cb77c",  # Bright Green
     "warning": "#f49f1d",  # Orange
-    "error": "#ed087c",  # Bright Pink
+    "error": "#f35eaa",  # Bright Pink, lightened 35% for 4.5:1 contrast
     "info": "#5ac3b1",  # Teal
-    # UI colors
-    "muted": "#708090",  # Slate Gray - muted text
-    "border": "#205a86",  # Dark Blue - borders/dividers
-    "text": "#000000",  # Black - main text
+    # UI colors (no text colour: body text uses the terminal's own foreground)
+    "muted": "#8a96a3",  # Slate Gray, lightened - muted text
+    "border": "#2cb77c",  # Bright Green - panel and table borders
     # Tool colors
     "tool": "#2cb77c",  # Bright Green - tool names
-    "version": "#205a86",  # Dark Blue - version numbers
+    "version": "#799cb6",  # Dark Blue, lightened 40% - version numbers
     "command": "#8ea869",  # Sage Green - commands
     "path": "#5ac3b1",  # Teal - file paths
+    # Textual widget grounds (not used for Rich output)
+    "background": "#1c1d20",  # typical dark terminal background
+    "surface": "#2a2c31",  # raised surface: list rows, key bar
+    "panel": "#33363c",  # title bars, column headings
+    "foreground": "#e6e6e6",  # widget text
+    "cancel": "#3a3d44",  # neutral Cancel button fill
+    "on_selection": "#ffffff",  # text on the secondary (selection) fill
 }
+
+# Roles that must never be used as text on the Textual panel colour (below 4.5:1 there).
+NOT_ON_PANEL = ("error", "version", "muted")
 
 # Rich Theme Definition
 SHELLEY_THEME = Theme(
     {
         # Basic styling
         "primary": BIOCOMMONS_COLORS["primary"],
-        "secondary": BIOCOMMONS_COLORS["secondary"],
-        "accent": BIOCOMMONS_COLORS["accent"],
         "success": BIOCOMMONS_COLORS["success"],
         "warning": BIOCOMMONS_COLORS["warning"],
         "error": BIOCOMMONS_COLORS["error"],
         "info": BIOCOMMONS_COLORS["info"],
         "muted": BIOCOMMONS_COLORS["muted"],
         # Semantic styling
-        "tool": f"bold {BIOCOMMONS_COLORS['tool']}",
-        "version": f"bold {BIOCOMMONS_COLORS['version']}",
-        "command": f"bold {BIOCOMMONS_COLORS['command']}",
-        "path": f"{BIOCOMMONS_COLORS['path']}",
-        "directory": f"bold {BIOCOMMONS_COLORS['info']}",
+        "version": BIOCOMMONS_COLORS["version"],
+        "command": BIOCOMMONS_COLORS["command"],
+        "path": BIOCOMMONS_COLORS["path"],
         # Status styling
         "status.success": f"bold {BIOCOMMONS_COLORS['success']}",
         "status.warning": f"bold {BIOCOMMONS_COLORS['warning']}",
         "status.error": f"bold {BIOCOMMONS_COLORS['error']}",
         "status.info": f"bold {BIOCOMMONS_COLORS['info']}",
         # UI elements
-        "header": f"bold {BIOCOMMONS_COLORS['primary']}",
-        "subheader": f"bold {BIOCOMMONS_COLORS['primary']}",
+        "heading": f"bold {BIOCOMMONS_COLORS['primary']}",
+        "label": f"bold {BIOCOMMONS_COLORS['primary']}",
         "prompt": f"bold {BIOCOMMONS_COLORS['primary']}",
-        "border": BIOCOMMONS_COLORS["primary"],
-        "highlight": f"bold {BIOCOMMONS_COLORS['primary']}",
-        # Table styling
-        "table.header": f"bold {BIOCOMMONS_COLORS['primary']}",
-        "table.border": BIOCOMMONS_COLORS["primary"],
+        "border": BIOCOMMONS_COLORS["border"],
+        "hint": BIOCOMMONS_COLORS["muted"],
+        "hint.command": f"bold {BIOCOMMONS_COLORS['command']}",
+        "yes": f"bold {BIOCOMMONS_COLORS['primary']}",
+        "no": BIOCOMMONS_COLORS["muted"],
         # Progress bars
-        "progress.bar": BIOCOMMONS_COLORS["primary"],
-        "progress.complete": BIOCOMMONS_COLORS["success"],
         "progress.remaining": BIOCOMMONS_COLORS["muted"],
     }
 )
+
+# Symbols to ensure interoperability (WGL4 with exceptions). No emojis as it inconsistently break rendering for borders
+STATUS = {
+    # kind: (symbol, word)
+    "success": ("√", "Done:"),
+    "info": ("i", "Note:"),
+    "warning": ("!", "Warning:"),
+    "error": ("×", "Error:"),  # U+00D7 multiplication sign, not the letter x
+}
+SPINNER = "dots"  # braille, not WGL4: kept by choice; the words carry the meaning
+TICK_ON, TICK_OFF = "[x]", "[ ]"
+POINTER = "›"
+FOCUS_LEFT, FOCUS_RIGHT = "›", "‹"  # focused button: "› Confirm ‹"
+MORE_ABOVE, MORE_BELOW = "▲", "▼"
+SEP = " · "
+ELLIPSIS = "…"
+YES, NO = "yes", "no"
+
+# Banned in any output (tests scan the source tree for these). May not be supported across all terminals and systems
+BANNED_CHARS = "✓✔✗✘⚠ℹ"
+BANNED_RANGES = [
+    (0x1F300, 0x1FAFF),  # emoji blocks
+    (0xFE0F, 0xFE0F),  # emoji variation selector
+]
+
+
+def status_markup(kind: str, message: str) -> str:
+    """One status line head + message, e.g. status_markup("error", 'No tool matches "x".')."""
+    symbol, word = STATUS[kind]
+    return f"[status.{kind}]{symbol} {word}[/] {message}"
+
+
+def make_textual_theme():
+    """Return the BioCommons Textual theme, built from BIOCOMMONS_COLORS.
+
+    Register it in the App's __init__, not on_mount (the app's CSS is parsed before mount,
+    so variables such as $shelley-cancel would be undefined), and run the App with
+    ansi_color=False, otherwise Textual ignores these values and uses the terminal palette.
+    Textual is imported lazily to keep it off the CLI's import path.
+    """
+    from textual.theme import Theme as TextualTheme
+
+    c = BIOCOMMONS_COLORS
+    return TextualTheme(
+        name="biocommons",
+        primary=c["primary"],
+        secondary=c["secondary"],  # selection fill
+        accent=c["warning"],  # reserved for warnings in dialogs
+        foreground=c["foreground"],
+        background=c["background"],
+        surface=c["surface"],
+        panel=c["panel"],
+        success=c["success"],
+        warning=c["warning"],
+        error=c["error"],
+        dark=True,
+        variables={
+            # usable in TCSS as $shelley-cancel etc.
+            "shelley-cancel": c["cancel"],
+            "shelley-muted": c["muted"],
+            "shelley-on-primary": c["background"],  # dark text on green buttons
+            "shelley-on-selection": c["on_selection"],
+        },
+    )
+
 
 # Global console instance with BioCommons theme
 console = Console(theme=SHELLEY_THEME, width=120)
@@ -146,7 +217,9 @@ class ShelleyStyle:
         pad = " " * max(1, BANNER_WIDTH - 2 - len(left) - len(right))
         welcome = f"{left}{pad}{right}"
 
-        return Text.from_markup(f"[bold info]{BANNER_ART.format(welcome=welcome)}[/]")
+        return Text.from_markup(
+            f"[bold][info]{BANNER_ART.format(welcome=welcome)}[/info][/bold]"
+        )
 
     @staticmethod
     def create_help_table(commands: list[dict[str, str]]) -> Table:
