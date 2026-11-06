@@ -122,7 +122,8 @@ def test_good_spec_reexecs_once_with_the_resolved_tag(catalogue, sudo):
     assert sudo == [["build", "--resolved-tag", "samtools:1.21--h50ea8bc_3"]]
 
 
-def test_interactive_flag_is_passed_to_the_root_child(catalogue, sudo):
+def test_interactive_flag_is_passed_to_the_root_child(catalogue, sudo, monkeypatch):
+    monkeypatch.setattr(build, "interactive_terminal", lambda: True)
     build.run(["samtools/1.10", "-i"])
     assert sudo == [
         ["build", "--resolved-tag", "samtools:1.10--h2e538c0_3", "--interactive"]
@@ -183,12 +184,12 @@ def test_in_process_build_when_apps_is_writable(catalogue, fake_build_env):
 @pytest.mark.parametrize(
     "argv, parsed",
     [
-        (["samtools/1.21"], (False, [], ["samtools/1.21"])),
-        (["samtools/1.21", "--interactive"], (True, [], ["samtools/1.21"])),
-        (["samtools/1.21", "-i"], (True, [], ["samtools/1.21"])),
-        (["-i", "samtools/1.21"], (True, [], ["samtools/1.21"])),
-        (["--resolved-tag", "samtools:1.21"], (False, ["samtools:1.21"], [])),
-        (["--resolved-tag=samtools:1.21"], (False, ["samtools:1.21"], [])),
+        (["samtools/1.21"], (False, False, [], ["samtools/1.21"])),
+        (["samtools/1.21", "--interactive"], (True, False, [], ["samtools/1.21"])),
+        (["samtools/1.21", "-i"], (True, False, [], ["samtools/1.21"])),
+        (["-i", "samtools/1.21"], (True, False, [], ["samtools/1.21"])),
+        (["--resolved-tag", "samtools:1.21"], (False, False, ["samtools:1.21"], [])),
+        (["--resolved-tag=samtools:1.21"], (False, False, ["samtools:1.21"], [])),
     ],
 )
 def test_parse_build_flags(argv, parsed):
