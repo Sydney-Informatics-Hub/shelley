@@ -24,7 +24,7 @@ from .discovery import run_clean, run_find, run_search
 def _print_usage() -> None:
     console.clear()
     print_banner()
-    print_rule("Command Usage", "secondary")
+    print_rule("Command Usage", "border")
 
     usage_commands = [
         {**c, "example": f"shelley {c['example']}"} for c in CORE_COMMANDS

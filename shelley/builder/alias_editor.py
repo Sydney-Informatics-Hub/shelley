@@ -1,0 +1,229 @@
+from rich.text import Text
+from textual import events
+from textual.app import App, ComposeResult
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
+from textual.coordinate import Coordinate
+from textual.screen import ModalScreen
+from textual.widgets import Button, DataTable, Footer, Header, Input, Static
+
+from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme
+
+
+def normalize_aliases(aliases) -> list[dict]:
+    """Return aliases in the canonical ``[{"name", "command"}]`` list form.
+
+    shpc registries store aliases either as a ``{name: command}`` dict (upstream
+    shpc-registry ``container.yaml``), as a list of ``{"name", "command"}``
+    dicts (what shelley writes), or as a list of ``{name: command}`` dicts (what
+    guts emits). Accept any and return the list form so the
+    rest of the code has a single shape to work with.
+    """
+    if not aliases:
+        return []
+    if isinstance(aliases, dict):
+        return [{"name": name, "command": command} for name, command in aliases.items()]
+    result = []
+    for a in aliases:
+        if "name" in a and "command" in a:
+            result.append({"name": a["name"], "command": a["command"]})
+        else:  # a {name: command} mapping, possibly with several entries
+            result.extend({"name": n, "command": c} for n, c in a.items())
+    return result
+
+
+class AliasTable(DataTable):
+    """DataTable whose cells are selected by a single click.
+
+    Stock DataTable only posts CellSelected when the clicked cell is already
+    highlighted, so the first click just moves the cursor. Moving the cursor
+    here, before DataTable's own click handler runs, makes every click select.
+    """
+
+    def on_click(self, event: events.Click) -> None:
+        meta = event.style.meta
+        if meta.get("row", -1) >= 0 and meta.get("column", -1) >= 0:
+            self.cursor_coordinate = Coordinate(meta["row"], meta["column"])
+
+
+class DiscardDialog(ModalScreen[bool]):
+    """Ask before throwing away the ticks and renames. Dismisses with True to discard."""
+
+    BINDINGS = [Binding("escape", "keep", "Keep editing")]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="dialog"):
+            yield Static("[bold]Discard and exit?[/bold]")
+            yield Static(
+                "Nothing will be built, and your ticks and renames will be lost."
+            )
+            with Horizontal(classes="buttons"):
+                yield Button("Keep editing", id="keep")
+                yield Button("Discard and exit", id="discard")
+
+    def on_mount(self) -> None:
+        self.query_one("#keep", Button).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id == "discard")
+
+    def action_keep(self) -> None:
+        self.dismiss(False)
+
+
+class AliasEditorApp(App):
+    TITLE = "Shelley interactive alias editor"
+    BINDINGS = [
+        Binding("escape", "cancel", "Exit"),
+        # priority: also wins over copy in the rename Input
+        Binding("ctrl+c", "abort", "Quit now", priority=True),
+    ]
+    INSTR0 = (
+        "An alias is a command from this container that you will need to run in "
+        "your shell or scripts, such as [bold]samtools[/bold], "
+        "[bold]vcftools[/bold] or [bold]STAR[/bold]."
+    )
+    INSTR1 = (
+        "Leave out helper commands and scripts you won't run yourself, such as "
+        "[bold]blast2sam.pl[/bold], [bold]htsfile[/bold] "
+        "or [bold]guess-ploidy.py[/bold]."
+    )
+    INSTR2 = (
+        "    • [bold]Click \\[ ][/bold] to tick each command you want to alias. "
+        "To change them later, run the interactive build again."
+    )
+    INSTR3 = "    • [bold]Click an alias name[/bold] to rename it."
+    INSTR_INPUT = "Press Enter to save, or Esc to cancel the rename."
+    RENAME_ERROR = "Alias names can't contain spaces or /."
+    CONFIRM_HINT = "Tick at least one alias to confirm."
+    CSS_PATH = "alias_editor.tcss"
+
+    def __init__(self, aliases):
+        super().__init__(ansi_color=False)  # use the theme colours in all terminals
+        self.register_theme(make_textual_theme())
+        self.theme = "biocommons"
+        self.aliases = normalize_aliases(aliases)
+        # DataTable rows; the first cell is the tick ("Include") column. Ticks are
+        # Text, not str: DataTable parses str cells as markup and "[x]" would vanish.
+        self.rows = [
+            (Text(TICK_OFF, justify="center"), a["name"], a["command"])
+            for a in self.aliases
+        ]
+        self.original = {}  # row key -> name before any rename, for the summary
+        self._renaming = None  # row key of the name currently being edited
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield Static(self.INSTR0)
+        yield Static(self.INSTR1)
+        yield Static(self.INSTR2)
+        yield Static(self.INSTR3)
+        yield AliasTable()
+        with Vertical(id="rename_bar"):  # the edit bar, shown while renaming
+            yield Static(id="rename_label")
+            yield Input(id="rename", placeholder="New alias name")
+            yield Static(id="rename_error")
+            yield Static(self.INSTR_INPUT)
+        yield Static(self.CONFIRM_HINT, id="confirm_hint")
+        with Horizontal(id="buttons", classes="buttons"):
+            yield Button("Confirm", id="confirm", disabled=True)
+            yield Button("Cancel", id="cancel")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        table = self.query_one(AliasTable)
+        table.cursor_type = "cell"
+        self.tick, self.alias, self.path = table.add_columns(
+            Text("Include", justify="center"), "Alias name", "Command"
+        )
+        keys = table.add_rows(self.rows)
+        self.original = {key: row[1] for key, row in zip(keys, self.rows, strict=True)}
+        self.query_one("#rename_bar").display = False
+
+    def update_tick(self, val: str) -> Text:
+        if val == TICK_ON:
+            return Text(TICK_OFF, justify="center")
+        return Text(TICK_ON, justify="center")
+
+    def _update_confirm(self) -> None:
+        """Enable Confirm, and hide its hint, once at least one row is ticked."""
+        ticks = self.query_one(AliasTable).get_column(self.tick)
+        ticked = any(str(t) == TICK_ON for t in ticks)
+        self.query_one("#confirm", Button).disabled = not ticked
+        self.query_one("#confirm_hint").display = not ticked
+
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        column = event.cell_key.column_key
+        if column == self.tick:
+            event.data_table.update_cell(
+                row_key=event.cell_key.row_key,
+                column_key=self.tick,
+                value=self.update_tick(str(event.value)),
+            )
+            self._update_confirm()
+        elif column == self.alias:
+            self._start_renaming(event.cell_key.row_key, str(event.value))
+
+    def _start_renaming(self, row_key, name: str) -> None:
+        self._renaming = row_key
+        self.query_one("#rename_label", Static).update(
+            Text.assemble("Rename ", (name, "bold"), " to:")
+        )
+        self.query_one("#rename_error", Static).update("")
+        self.query_one("#rename_bar").display = True
+        box = self.query_one(Input)
+        box.value = name
+        box.focus()
+
+    def _stop_renaming(self) -> None:
+        self._renaming = None
+        self.query_one("#rename_bar").display = False
+        self.query_one(AliasTable).focus()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if self._renaming is None:
+            return
+        table = self.query_one(AliasTable)
+        name = event.value.strip()
+        old = str(table.get_cell(self._renaming, self.alias))
+        if not name or name == old:  # nothing to change
+            self._stop_renaming()
+            return
+        if any(c.isspace() for c in name) or "/" in name:
+            self.query_one("#rename_error", Static).update(self.RENAME_ERROR)
+            return  # keep the bar open so the name can be fixed
+        table.update_cell(self._renaming, self.alias, name)
+        table.update_cell(self._renaming, self.tick, Text(TICK_ON, justify="center"))
+        self._update_confirm()
+        self._stop_renaming()
+
+    def action_cancel(self) -> None:
+        if self._renaming is not None:  # Esc while renaming cancels the rename only
+            self._stop_renaming()
+            return
+        self._ask_discard()
+
+    def action_abort(self) -> None:
+        self.exit(None)
+
+    def _ask_discard(self) -> None:
+        def done(discard: bool | None) -> None:
+            if discard:
+                self.exit(None)
+
+        self.push_screen(DiscardDialog(), done)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self._ask_discard()
+
+        if event.button.id == "confirm":
+            # output list of selected aliases and paths
+            table = self.query_one(AliasTable)
+            rows = (table.get_row(key) for key in table.rows)
+            result = [
+                {"name": alias, "command": path}
+                for tick, alias, path in rows
+                if str(tick) == TICK_ON
+            ]
+            self.exit(result)

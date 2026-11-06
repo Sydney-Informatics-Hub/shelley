@@ -31,6 +31,7 @@ dependencies = [
     "rich>=13.0",
     "packaging>=21",
     "container-guts",
+    "textual>=8.2.8",
 ]
 
 [project.optional-dependencies]
@@ -41,6 +42,7 @@ dev = [
     "pytest-timeout",
     "ruff>=0.16,<0.17",
     "mypy",
+    "textual-dev>=1.8.0",
 ]
 
 [project.scripts]

@@ -1,0 +1,26 @@
+Static { margin: 1 5; }
+#rename_bar { height: auto; }
+#rename_bar Static, #rename_bar Input { margin: 0 5; }
+DataTable { margin: 1 5; }
+Input { margin: 1 5; }
+.buttons { height: auto; align-horizontal: center; }
+#buttons { dock: bottom; margin-bottom: 1; }  /* clear the Footer */
+Button { margin: 1 5; }
+
+/* BioCommons theme (registered in AliasEditorApp.__init__) */
+Header { background: $panel; }
+DataTable > .datatable--header { background: $panel; }
+DataTable > .datatable--cursor { background: $secondary; color: $shelley-on-selection; }
+#confirm { background: $primary; color: $shelley-on-primary; }
+#confirm:disabled { background: $shelley-cancel; color: $shelley-muted; }
+#cancel { background: $shelley-cancel; }
+#confirm_hint { color: $shelley-muted; margin: 0 5; }
+#rename_error { color: $error; }
+
+/* "Discard and exit?" dialog */
+DiscardDialog { align: center middle; }
+#dialog { width: 64; height: auto; padding: 1 2; background: $panel; border: round $warning; }
+#dialog Static { margin: 0 0 1 0; }
+#dialog Button { margin: 0 2; }
+#keep { background: $secondary; color: $shelley-on-selection; }
+#discard { background: $warning; color: $shelley-on-primary; }

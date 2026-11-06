@@ -161,21 +161,22 @@ def _render_result(result: BuildResult) -> None:
 
 
 def _render_error(title: str, error: BaseException | None) -> None:
-    suggestion = ""
-    if not isinstance(error, ShelleyError):
-        suggestion = "Check that CVMFS is mounted and the tool exists"
-    console.print(ShelleyStyle.create_error_panel(title, str(error), suggestion))
+    message = str(error)
+    if error is not None and not isinstance(error, ShelleyError):
+        # Unexpected failure (likely a bug): name the exception so it isn't mistaken for a user error.
+        message = f"{type(error).__name__}: {error}"
+    console.print(ShelleyStyle.create_error_panel(title, message))
 
 
 def _render_summary(results: list[BuildResult]) -> None:
     print_rule("Build Results")
     table = Table(
-        title="[header]Build Summary[/header]",
+        title="[heading]Build Summary[/heading]",
         box=ROUNDED,
         border_style="border",
-        header_style="table.header",
+        header_style="heading",
     )
-    table.add_column("Tool", style="tool")
+    table.add_column("Tool", style="primary")
     table.add_column("Status", justify="center")
     table.add_column("Result", style="muted")
     for r in results:

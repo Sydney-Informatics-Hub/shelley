@@ -1,44 +1,32 @@
 """Tests for the interactive alias editor used by `build -i/--interactive`."""
 
-from unittest.mock import MagicMock, patch
-
 import pytest
+from rich.text import Text
+from textual.coordinate import Coordinate
+from textual.widgets import Button, DataTable, Input
 
-from shelley.builder.guts_integration import (
-    edit_aliases_interactive,
+from shelley.builder.alias_editor import (
+    AliasEditorApp,
+    DiscardDialog,
     normalize_aliases,
-    select_aliases,
 )
+from shelley.utils.style import TICK_OFF, TICK_ON
 
 
-def _scripted_questionary(*, checkbox=None, confirm=None, text=None):
-    """A questionary stub whose checkbox/confirm/text .ask() pop scripted answers.
+def rich_text_center() -> Text:
+    return Text(TICK_OFF, justify="center")
 
-    Each keyword is a list consumed in call order. ``Choice`` is passed through
-    to the real questionary so the code under test can still build choices.
-    """
-    from shelley.builder.guts_integration import questionary as real_q
 
-    stub = MagicMock()
-    stub.Choice = real_q.Choice
-    queues = {
-        "checkbox": list(checkbox or []),
-        "confirm": list(confirm or []),
-        "text": list(text or []),
-    }
-
-    def make(kind):
-        def _call(*_a, **_k):
-            resp = MagicMock()
-            resp.ask.return_value = queues[kind].pop(0)
-            return resp
-
-        return _call
-
-    stub.checkbox.side_effect = make("checkbox")
-    stub.confirm.side_effect = make("confirm")
-    stub.text.side_effect = make("text")
-    return stub
+@pytest.fixture
+def input_aliases() -> list[dict]:
+    return [
+        {"STAR": "/usr/local/bin/STAR"},
+        {
+            "plassembler.py": "/usr/local/bin/plassembler.py",
+            "log.py": "/usr/local/bin/log.py",
+            "capnpc-c++": "/usr/local/bin/capnpc-c++",
+        },
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -46,168 +34,292 @@ def _scripted_questionary(*, checkbox=None, confirm=None, text=None):
 # ---------------------------------------------------------------------------
 
 
-def test_normalize_aliases_dict_form():
-    assert normalize_aliases({"STAR": "/usr/local/bin/STAR"}) == [
-        {"name": "STAR", "command": "/usr/local/bin/STAR"}
-    ]
+@pytest.mark.parametrize(
+    "index, expected",
+    [
+        (0, [{"name": "STAR", "command": "/usr/local/bin/STAR"}]),
+        (
+            1,
+            [
+                {"name": "plassembler.py", "command": "/usr/local/bin/plassembler.py"},
+                {"name": "log.py", "command": "/usr/local/bin/log.py"},
+                {"name": "capnpc-c++", "command": "/usr/local/bin/capnpc-c++"},
+            ],
+        ),
+    ],
+    ids=["single-entry", "multi-entry"],
+)
+def test_normalize_aliases_dict_form(input_aliases, index, expected):
+    result = normalize_aliases(input_aliases[index])
+    assert result == expected
 
 
-def test_normalize_aliases_list_form():
-    aliases = [{"name": "bwa", "command": "bwa"}]
-    assert normalize_aliases(aliases) == aliases
-
-
-def test_normalize_aliases_empty():
-    assert normalize_aliases(None) == []
-    assert normalize_aliases([]) == []
-    assert normalize_aliases({}) == []
+@pytest.mark.parametrize("empty", [None, [], {}])
+def test_normalize_aliases_empty(empty):
+    result = normalize_aliases(empty)
+    assert result == []
 
 
 # ---------------------------------------------------------------------------
-# select_aliases (the deselect step)
+# alias_editor textual App
 # ---------------------------------------------------------------------------
 
 
-def test_select_aliases_empty_returns_empty_without_prompt():
-    with patch("shelley.builder.guts_integration.questionary") as mock_q:
-        assert select_aliases([]) == []
-        mock_q.checkbox.assert_not_called()
+@pytest.mark.parametrize(
+    "index, expected_aliases, expected_rows",
+    [
+        (
+            0,
+            [{"name": "STAR", "command": "/usr/local/bin/STAR"}],
+            [(rich_text_center(), "STAR", "/usr/local/bin/STAR")],
+        ),
+        (
+            1,
+            [
+                {"name": "plassembler.py", "command": "/usr/local/bin/plassembler.py"},
+                {"name": "log.py", "command": "/usr/local/bin/log.py"},
+                {"name": "capnpc-c++", "command": "/usr/local/bin/capnpc-c++"},
+            ],
+            [
+                (rich_text_center(), "plassembler.py", "/usr/local/bin/plassembler.py"),
+                (rich_text_center(), "log.py", "/usr/local/bin/log.py"),
+                (rich_text_center(), "capnpc-c++", "/usr/local/bin/capnpc-c++"),
+            ],
+        ),
+    ],
+    ids=["single-entry", "multi-entry"],
+)
+def test_init_app(input_aliases, index, expected_aliases, expected_rows):
+    app = AliasEditorApp(input_aliases[index])
+
+    assert app.aliases == expected_aliases
+    assert app.rows == expected_rows
 
 
-def test_select_aliases_returns_chosen_subset():
-    aliases = [
-        {"name": "vcftools", "command": "vcftools"},
-        {"name": "telnet", "command": "telnet"},
-    ]
-    chosen = [aliases[0]]
-    with patch(
-        "shelley.builder.guts_integration.questionary",
-        _scripted_questionary(checkbox=[chosen]),
-    ):
-        assert select_aliases(aliases) == chosen
+@pytest.mark.asyncio
+@pytest.mark.parametrize("index, nrows", [(0, 1), (1, 3)])
+async def test_nrows_on_mount(input_aliases, index, nrows):
+    app = AliasEditorApp(input_aliases[index])
+
+    async with app.run_test():
+        # simulate the app starting with asyncio
+        table = app.query_one(DataTable)
+        buttons = app.query(Button)
+
+        assert table.row_count == nrows
+        assert len(buttons) == 2
 
 
-def test_select_aliases_cancel_raises():
-    aliases = [{"name": "vcftools", "command": "vcftools"}]
-    with patch(
-        "shelley.builder.guts_integration.questionary",
-        _scripted_questionary(checkbox=[None]),
-    ):
-        with pytest.raises(ValueError):
-            select_aliases(aliases)
+@pytest.mark.asyncio
+async def test_theme_is_biocommons(input_aliases):
+    app = AliasEditorApp(input_aliases[0])
+
+    async with app.run_test():
+        assert app.theme == "biocommons"
 
 
-def test_select_aliases_choices_start_unchecked():
-    """Regression: choices must NOT be pre-checked.
+async def tick(pilot, row: int) -> None:
+    """Toggle the tick on ``row`` with DataTable's own Enter."""
+    table = pilot.app.query_one(DataTable)
+    table.focus()
+    table.cursor_coordinate = Coordinate(row, 0)
+    await pilot.press("enter")
 
-    With ``use_search_filter``, the filter only hides rows — it never unchecks
-    them — so pre-checking everything returns the whole list regardless of what
-    the user filtered to. Starting unchecked is what makes "filter → check the
-    one you want → enter" return just that one.
-    """
-    aliases = [
+
+@pytest.mark.asyncio
+async def test_confirm_disabled_until_ticked(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        confirm = app.query_one("#confirm", Button)
+        assert confirm.disabled
+
+        await tick(pilot, 0)
+        assert not confirm.disabled
+
+        await tick(pilot, 0)  # untick
+        assert confirm.disabled
+
+
+@pytest.mark.asyncio
+async def test_confirm_returns_ticked_rows(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await tick(pilot, 0)
+        await tick(pilot, 2)
+        await pilot.click("#confirm")
+
+    assert app.return_value == [
         {"name": "plassembler.py", "command": "/usr/local/bin/plassembler.py"},
-        {"name": "log.py", "command": "/usr/local/bin/log.py"},
-    ]
-    stub = _scripted_questionary(checkbox=[[aliases[0]]])
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        select_aliases(aliases)
-
-    passed_choices = stub.checkbox.call_args.kwargs["choices"]
-    assert [c.checked for c in passed_choices] == [False, False]
-
-
-# ---------------------------------------------------------------------------
-# edit_aliases_interactive (deselect -> rename -> add)
-# ---------------------------------------------------------------------------
-
-
-def test_edit_deselect_only():
-    """Deselect one; decline rename and add."""
-    aliases = [
-        {"name": "vcftools", "command": "vcftools"},
-        {"name": "devmem", "command": "devmem"},
-    ]
-    kept = [aliases[0]]
-    stub = _scripted_questionary(
-        checkbox=[kept],  # deselect step keeps vcftools
-        confirm=[False, False],  # rename? no; add? no
-    )
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        assert edit_aliases_interactive(aliases) == kept
-
-
-def test_edit_rename_name_only_preserves_command():
-    """Rename STAR -> star; command is untouched. Flow order: deselect, add, rename."""
-    aliases = [{"name": "STAR", "command": "/usr/local/bin/STAR"}]
-    stub = _scripted_questionary(
-        checkbox=[aliases, aliases],  # deselect keeps all; rename picks STAR
-        confirm=[False, True],  # add? no; rename? yes
-        text=["star"],  # new name
-    )
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        result = edit_aliases_interactive(aliases)
-    assert result == [{"name": "star", "command": "/usr/local/bin/STAR"}]
-
-
-def test_edit_add_new_alias():
-    """Empty source (e.g. bandage): no confirm gate, drop straight into the add loop."""
-    stub = _scripted_questionary(
-        confirm=[False],  # only "Add another?" (no "Add new aliases?" gate)
-        text=["bandage", "Bandage"],  # name, command
-    )
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        result = edit_aliases_interactive([])
-    assert result == [{"name": "bandage", "command": "Bandage"}]
-    # the empty case tells the user before prompting
-    stub.print.assert_called_once()
-
-
-def test_edit_add_command_defaults_to_name():
-    """Blank command falls back to the alias name."""
-    stub = _scripted_questionary(
-        confirm=[False],  # only "Add another?"
-        text=["bandage", ""],  # name, blank command -> defaults to name
-    )
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        result = edit_aliases_interactive([])
-    assert result == [{"name": "bandage", "command": "bandage"}]
-
-
-def test_edit_plassembler_flow_keeps_only_selected_with_real_binary():
-    """The plassembler failing case: from a large upstream alias set, keep only
-    plassembler.py and rename it to plassembler.
-
-    The result must be a single alias whose command is the real in-container
-    binary (``/usr/local/bin/plassembler.py``) — not the bare module name
-    ``plassembler`` (which does not exist in the container and made the built
-    module fail to run), and none of the other candidates leak through.
-    """
-    source = {
-        "plassembler.py": "/usr/local/bin/plassembler.py",
-        "log.py": "/usr/local/bin/log.py",
-        "capnpc-c++": "/usr/local/bin/capnpc-c++",
-    }
-    plassembler = {"name": "plassembler.py", "command": "/usr/local/bin/plassembler.py"}
-    stub = _scripted_questionary(
-        checkbox=[
-            [plassembler],
-            [plassembler],
-        ],  # select keeps only plassembler.py; rename picks it
-        confirm=[False, True],  # add? no; rename? yes
-        text=["plassembler"],  # new invocation name
-    )
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        result = edit_aliases_interactive(source)
-    assert result == [
-        {"name": "plassembler", "command": "/usr/local/bin/plassembler.py"}
+        {"name": "capnpc-c++", "command": "/usr/local/bin/capnpc-c++"},
     ]
 
 
-def test_edit_cancel_raises():
-    """Cancelling the deselect step aborts the whole edit."""
-    aliases = [{"name": "bwa", "command": "bwa"}]
-    stub = _scripted_questionary(checkbox=[None])
-    with patch("shelley.builder.guts_integration.questionary", stub):
-        with pytest.raises(ValueError):
-            edit_aliases_interactive(aliases)
+async def rename(pilot, row: int, new: str) -> None:
+    """Open the edit bar on ``row`` with Enter on its name cell, type ``new`` and save."""
+    table = pilot.app.query_one(DataTable)
+    table.focus()
+    table.cursor_coordinate = Coordinate(row, 1)
+    await pilot.press("enter")
+    pilot.app.query_one(Input).value = new
+    await pilot.press("enter")
+
+
+def cells(app, row: int) -> tuple[str, str]:
+    """The (tick, name) shown on ``row``."""
+    table = app.query_one(DataTable)
+    tick, name, _ = table.get_row_at(row)
+    return str(tick), str(name)
+
+
+@pytest.mark.asyncio
+async def test_rename_opens_bar_with_old_name(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        assert not app.query_one("#rename_bar").display
+        table = app.query_one(DataTable)
+        table.focus()
+        table.cursor_coordinate = Coordinate(1, 1)
+        await pilot.press("enter")
+
+        assert app.query_one("#rename_bar").display
+        assert app.query_one(Input).value == "log.py"
+        assert "Rename log.py to:" in str(app.query_one("#rename_label").render())
+
+
+@pytest.mark.asyncio
+async def test_rename_saves_and_ticks(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await rename(pilot, 1, "plassembler-log")
+
+        assert cells(app, 1) == (TICK_ON, "plassembler-log")
+        assert not app.query_one("#rename_bar").display
+        assert not app.query_one("#confirm", Button).disabled
+        assert "log.py" in app.original.values()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "new", ["log.py", "  ", ""], ids=["unchanged", "spaces", "blank"]
+)
+async def test_rename_unchanged_or_blank_does_nothing(input_aliases, new):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await rename(pilot, 1, new)
+
+        assert cells(app, 1) == (TICK_OFF, "log.py")
+        assert not app.query_one("#rename_bar").display
+        assert app.query_one("#confirm", Button).disabled
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("new", ["log py", "bin/log"], ids=["space", "slash"])
+async def test_rename_refuses_space_and_slash(input_aliases, new):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await rename(pilot, 1, new)
+
+        assert cells(app, 1) == (TICK_OFF, "log.py")
+        assert app.query_one("#rename_bar").display  # still open to fix the name
+        assert "spaces or /" in str(app.query_one("#rename_error").render())
+
+
+@pytest.mark.asyncio
+async def test_esc_cancels_rename_only(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        table = app.query_one(DataTable)
+        table.focus()
+        table.cursor_coordinate = Coordinate(1, 1)
+        await pilot.press("enter")
+        app.query_one(Input).value = "changed"
+        await pilot.press("escape")
+
+        assert app.is_running
+        assert not app.query_one("#rename_bar").display
+        assert cells(app, 1) == (TICK_OFF, "log.py")
+
+
+@pytest.mark.asyncio
+async def test_confirm_hint_hides_once_ticked(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        hint = app.query_one("#confirm_hint")
+        assert hint.display
+        await tick(pilot, 0)
+        assert not hint.display
+        await tick(pilot, 0)
+        assert hint.display
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("opener", ["escape", "#cancel"], ids=["esc", "cancel-button"])
+async def test_exit_opens_discard_dialog(input_aliases, opener):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        if opener == "escape":
+            await pilot.press("escape")
+        else:
+            await pilot.click(opener)
+
+        assert isinstance(app.screen, DiscardDialog)
+        assert app.focused.id == "keep"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("answer", ["escape", "#keep"], ids=["esc", "keep-button"])
+async def test_dialog_keep_editing_returns_to_list(input_aliases, answer):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await tick(pilot, 0)
+        await pilot.press("escape")
+        if answer == "escape":
+            await pilot.press("escape")
+        else:
+            await pilot.click(answer)
+
+        assert app.is_running
+        assert not isinstance(app.screen, DiscardDialog)
+        assert cells(app, 0)[0] == TICK_ON  # ticks kept
+
+
+@pytest.mark.asyncio
+async def test_dialog_discard_exits_with_none(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await tick(pilot, 0)
+        await pilot.press("escape")
+        await pilot.click("#discard")
+        await pilot.pause()
+        assert not app.is_running
+
+    assert app.return_value is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("renaming", [False, True], ids=["list", "renaming"])
+async def test_ctrl_c_exits_without_dialog(input_aliases, renaming):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await tick(pilot, 0)
+        if renaming:
+            table = app.query_one(DataTable)
+            table.cursor_coordinate = Coordinate(1, 1)
+            await pilot.press("enter")
+        await pilot.press("ctrl+c")
+        await pilot.pause()
+        assert not app.is_running
+
+    assert app.return_value is None
