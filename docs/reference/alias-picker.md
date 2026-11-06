@@ -263,7 +263,7 @@ After Confirm (Rich markup, 80 columns; see [`style-guide-screens.md`](style-gui
   [muted]To add or change aliases, run the build again:[/]  [hint.command]build samtools/1.21 -i[/]
 ```
 
-- Table: rounded, `primary` border and bold headings; alias in `command` bold; path in `path`; the
+- Table: rounded, `primary` border and bold headings; alias in `hint.command`; path in `path`; the
   "(renamed from …)" note in `muted`. Full paths, never shortened; if a path doesn't fit at 80 columns, let Rich wrap the Command cell onto a
   second line rather than cut it (the summary is the record people copy from).
 - The hint is written for where the user is: `build …` at the `shelley>` prompt, `shelley build …` in the shell.
