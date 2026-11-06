@@ -32,7 +32,7 @@ from rich.theme import Theme
 BIOCOMMONS_COLORS = {
     # Primary BioCommons brand colors
     "primary": "#2cb77c",  # PANTONE 2413 - Bright Green (primary brand)
-    "secondary": "#205a86",  # PANTONE 2161 - Dark Blue (selection fill only, not text)
+    "selection": "#205a86",  # PANTONE 2161 - Dark Blue (Textual selection fill only, not text)
     "accent": "#f49f1d",  # PANTONE 7408 - Orange
     # BioCommons logo colors
     "magenta": "#ed087c",  # PANTONE 226 - Bright Pink/Magenta
@@ -58,7 +58,7 @@ BIOCOMMONS_COLORS = {
     "panel": "#33363c",  # title bars, column headings
     "foreground": "#e6e6e6",  # widget text
     "cancel": "#3a3d44",  # neutral Cancel button fill
-    "on_selection": "#ffffff",  # text on the secondary (selection) fill
+    "on_selection": "#ffffff",  # text on the selection fill
 }
 
 # Roles that must never be used as text on the Textual panel colour (below 4.5:1 there).
@@ -142,7 +142,7 @@ def make_textual_theme():
     return TextualTheme(
         name="biocommons",
         primary=c["primary"],
-        secondary=c["secondary"],  # selection fill
+        secondary=c["selection"],
         accent=c["warning"],  # reserved for warnings in dialogs
         foreground=c["foreground"],
         background=c["background"],
