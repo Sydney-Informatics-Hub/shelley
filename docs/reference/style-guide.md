@@ -4,8 +4,8 @@ One visual and interaction language for everything shelley prints or draws in a 
 Australian BioCommons palette. Designed for dark terminals at 80 columns first.
 
 Source of truth for the design: the canvas "shelley style guide (BioCommons)" (agreed 5–6 November 2026).
-Example screens: [`docs/style-guide/screens.md`](style-guide/screens.md).
-Colour values: `style.py` (the only place hex values may appear).
+Example screens: [`style-guide-screens.md`](style-guide-screens.md).
+Colour values: [`shelley/utils/style.py`](../../shelley/utils/style.py) (the only place hex values may appear).
 
 ## How to use this guide (humans and agents)
 
@@ -13,9 +13,9 @@ Colour values: `style.py` (the only place hex values may appear).
 - The rules marked **must** are enforced by tests (`tests/test_style.py`) or by review. Do not work around a test;
   if a rule blocks something, raise it.
 - Refer to colours by **role name** (`error`, `command`, …), never by hex value or colour name. Hex values
-  live only in `style.py`; this document deliberately contains none, so it cannot drift from the code.
+  live only in `shelley/utils/style.py`; this document deliberately contains none, so it cannot drift from the code.
 - When this guide and an older design note disagree, this guide wins. When this guide and a component spec
-  (for example `docs/specs/alias-picker.md`) disagree about that component's layout, keys or copy, the spec wins;
+  (for example [`alias-picker.md`](alias-picker.md)) disagree about that component's layout, keys or copy, the spec wins;
   for colours, symbols and printed output, this guide wins.
 
 ## Decisions
@@ -49,8 +49,10 @@ Colour values: `style.py` (the only place hex values may appear).
 
 ## Colour roles
 
-Use these names as Rich theme styles (`[error bold]…[/]`, `console.print(x, style="version")`) and as the basis
-of the Textual theme.
+Use these names as Rich theme styles (`[error]…[/]`, `console.print(x, style="version")`) and as the basis
+of the Textual theme. Rich can't combine a theme style with another attribute in one tag (`[error bold]` renders
+unstyled), so the bold variants are theme styles of their own: `status.*`, `heading`, `label`, `prompt`,
+`hint.command` and `yes`.
 
 | Role (style name) | BioCommons source | Used for |
 |---|---|---|
@@ -65,13 +67,13 @@ of the Textual theme.
 | `muted` | Slate, lightened | Dates, sizes, secondary labels, "Try …" lead-ins, scroll hints |
 | text | the terminal's own foreground | Body text. **Never set a fixed text colour in Rich output.** |
 | `selection` (Textual only) | Dark Blue 2161, as a background | Highlighted row and title bars in Textual widgets, with white text |
-| `reserved` | Purple 241 | Not for text (fails contrast). Available for the mascot or illustration. |
+| `purple` | Purple 241 | Not for text (fails contrast). |
 
 Rules:
 
 - **must** A colour always means the same role. Green is never a warning; version blue is never a path.
 - **must** Colour is never the only signal. Status lines start with a symbol and a word; tables say "yes" / "no".
-- **must** No hex values outside `style.py`. No fixed text colour (in particular never black text).
+- **must** No hex values outside `shelley/utils/style.py`. No fixed text colour (in particular never black text).
 - **must** Every text role reaches 4.5:1 on the terminal background and on the Textual surface (tested).
 - Bold is for labels, headings and status words. Body text stays regular.
 - At most three hues on one screen besides `muted` and text. If a screen needs more, simplify the content.
@@ -82,7 +84,7 @@ Rules:
 
 ### Textual theme
 
-The BioCommons Textual theme is built in `style.py` from the same roles. Textual widgets must run with
+The BioCommons Textual theme is built in `shelley/utils/style.py` from the same roles. Textual widgets must run with
 `ansi_color=False` so the theme's colours are used (with ANSI colour mode on, Textual ignores theme hex values
 and uses the terminal's palette).
 
@@ -150,11 +152,11 @@ on emoji width, which breaks panel borders (seen in the `build star` panel on th
 Status line anatomy (Rich markup):
 
 ```
-[success bold]√ Done:[/] Module built for star.
-[info bold]i Note:[/] Running with elevated privileges.
-[warning bold]! Warning:[/] No version given, so building the latest.
-[error bold]× Error:[/] No tool or container matches "lsdkfjsldkfj".
-  [muted]Try searching by what it does:[/]  [command bold]search quality control[/]
+[status.success]√ Done:[/] Module built for star.
+[status.info]i Note:[/] Running with elevated privileges.
+[status.warning]! Warning:[/] No version given, so building the latest.
+[status.error]× Error:[/] No tool or container matches "lsdkfjsldkfj".
+  [muted]Try searching by what it does:[/]  [hint.command]search quality control[/]
 ```
 
 Follow-up lines line up two spaces in from the symbol.

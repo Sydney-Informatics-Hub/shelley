@@ -4,7 +4,7 @@ The step in `shelley build <tool[/version]> -i` that turns the commands inside a
 Source: the design canvas "shelley-bio alias picker redesign" (all recommendations accepted 5 November 2026),
 updated 6 November 2026 to use the BioCommons Textual theme instead of Catppuccin Macchiato.
 
-Read with: [`docs/style-guide.md`](../style-guide.md) (colours, symbols, printed output) and
+Read with: [`style-guide.md`](style-guide.md) (colours, symbols, printed output) and
 [`alias-picker-screens.md`](alias-picker-screens.md) (every state, cell-accurate, at 80×24 and 120×40).
 
 Precedence: for this widget's layout, keys and on-screen copy, this spec wins. For colours, symbols and anything
@@ -13,7 +13,7 @@ canvas.
 
 Stack (from the October 2026 TUI decision record): Textual 8.x inline mode (`App.run(inline=True)`), behind the
 `shelley/ui` facade, `textual>=8.2,<9`. Mouse on by default; `--no-mouse` or `SHELLEY_MOUSE=0` turns it off.
-**Changed 6 Nov:** `ansi_color=False` and the BioCommons theme from `style.py` (not `ansi_color=True` /
+**Changed 6 Nov:** `ansi_color=False` and the BioCommons theme from `shelley/utils/style.py` (not `ansi_color=True` /
 `ansi-dark`).
 
 ## The design in one paragraph
@@ -102,7 +102,7 @@ All eight are drawn in [`alias-picker-screens.md`](alias-picker-screens.md):
 
 ## Colours (BioCommons Textual theme)
 
-Decided 6 Nov. Replaces the canvas's 16-colour ANSI table. Theme values are in `style.py`; contrast figures
+Decided 6 Nov. Replaces the canvas's 16-colour ANSI table. Theme values are in `shelley/utils/style.py`; contrast figures
 below are checked by the style tests.
 
 | Element | Theme value | Cue that works without colour | Contrast |
@@ -250,17 +250,17 @@ The widget clears itself (inline mode leaves nothing behind), then prints to the
 **Decided 6 Nov:** this follows the style guide's "Printed alias summary", replacing the canvas's plain-text
 `sum.*` rows.
 
-After Confirm (Rich markup, 80 columns; see `docs/style-guide/screens.md`):
+After Confirm (Rich markup, 80 columns; see [`style-guide-screens.md`](style-guide-screens.md)):
 
 ```
-[success bold]√ Done:[/] Aliases chosen for samtools 1.21: 5 of 27
+[status.success]√ Done:[/] Aliases chosen for samtools 1.21: 5 of 27
 ╭───────────┬───────────────────────────────────────────────────────╮
 │ Alias     │ Command                                               │
 ├───────────┼───────────────────────────────────────────────────────┤
 │ bgzip     │ /usr/local/bin/bgzip                                  │
 │ sam2vcf   │ /usr/local/bin/sam2vcf.pl  (renamed from sam2vcf.pl)  │
 ╰───────────┴───────────────────────────────────────────────────────╯
-  [muted]To add or change aliases, run the build again:[/]  [command bold]build samtools/1.21 -i[/]
+  [muted]To add or change aliases, run the build again:[/]  [hint.command]build samtools/1.21 -i[/]
 ```
 
 - Table: rounded, `primary` border and bold headings; alias in `command` bold; path in `path`; the
