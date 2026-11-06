@@ -1,9 +1,14 @@
 """Tests for the interactive alias editor used by `build -i/--interactive`."""
 
 import pytest
+from rich.text import Text
 from textual.widgets import Button, DataTable
 
 from shelley.builder.alias_editor import AliasEditorApp, normalize_aliases
+
+
+def rich_text_center() -> Text:
+    return Text(" ", justify="center")
 
 
 @pytest.fixture
@@ -60,7 +65,7 @@ def test_normalize_aliases_empty(empty):
         (
             0,
             [{"name": "STAR", "command": "/usr/local/bin/STAR"}],
-            [(" ", "STAR", "/usr/local/bin/STAR")],
+            [(rich_text_center(), "STAR", "/usr/local/bin/STAR")],
         ),
         (
             1,
@@ -70,9 +75,9 @@ def test_normalize_aliases_empty(empty):
                 {"name": "capnpc-c++", "command": "/usr/local/bin/capnpc-c++"},
             ],
             [
-                (" ", "plassembler.py", "/usr/local/bin/plassembler.py"),
-                (" ", "log.py", "/usr/local/bin/log.py"),
-                (" ", "capnpc-c++", "/usr/local/bin/capnpc-c++"),
+                (rich_text_center(), "plassembler.py", "/usr/local/bin/plassembler.py"),
+                (rich_text_center(), "log.py", "/usr/local/bin/log.py"),
+                (rich_text_center(), "capnpc-c++", "/usr/local/bin/capnpc-c++"),
             ],
         ),
     ],
