@@ -1,8 +1,14 @@
-"""Tests for normalize_aliases, the canonical alias shape used by `build`."""
+"""Tests for the interactive alias editor used by `build -i/--interactive`."""
 
 import pytest
+from rich.text import Text
+from textual.widgets import Button, DataTable
 
-from shelley.builder.guts_integration import normalize_aliases
+from shelley.builder.alias_editor import AliasEditorApp, normalize_aliases
+
+
+def rich_text_center() -> Text:
+    return Text(" ", justify="center")
 
 
 @pytest.fixture
@@ -46,3 +52,54 @@ def test_normalize_aliases_dict_form(input_aliases, index, expected):
 def test_normalize_aliases_empty(empty):
     result = normalize_aliases(empty)
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# alias_editor textual App
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "index, expected_aliases, expected_rows",
+    [
+        (
+            0,
+            [{"name": "STAR", "command": "/usr/local/bin/STAR"}],
+            [(rich_text_center(), "STAR", "/usr/local/bin/STAR")],
+        ),
+        (
+            1,
+            [
+                {"name": "plassembler.py", "command": "/usr/local/bin/plassembler.py"},
+                {"name": "log.py", "command": "/usr/local/bin/log.py"},
+                {"name": "capnpc-c++", "command": "/usr/local/bin/capnpc-c++"},
+            ],
+            [
+                (rich_text_center(), "plassembler.py", "/usr/local/bin/plassembler.py"),
+                (rich_text_center(), "log.py", "/usr/local/bin/log.py"),
+                (rich_text_center(), "capnpc-c++", "/usr/local/bin/capnpc-c++"),
+            ],
+        ),
+    ],
+    ids=["single-entry", "multi-entry"],
+)
+def test_init_app(input_aliases, index, expected_aliases, expected_rows):
+    app = AliasEditorApp(input_aliases[index])
+
+    assert app.aliases == expected_aliases
+    assert app.rows == expected_rows
+    assert app.edited == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("index, nrows", [(0, 1), (1, 3)])
+async def test_nrows_on_mount(input_aliases, index, nrows):
+    app = AliasEditorApp(input_aliases[index])
+
+    async with app.run_test():
+        # simulate the app starting with asyncio
+        table = app.query_one(DataTable)
+        buttons = app.query(Button)
+
+        assert table.row_count == nrows
+        assert len(buttons) == 2

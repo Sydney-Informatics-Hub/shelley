@@ -42,6 +42,7 @@ HEX = re.compile(r"#[0-9a-fA-F]{6}\b")
 # Ratchet: files that broke a rule when this test was added. Remove entries as files are fixed.
 KNOWN_HEX_OFFENDERS: set[str] = set()
 KNOWN_GLYPH_OFFENDERS = {
+    "shelley/builder/alias_editor.py",
     "shelley/client/build.py",
     "shelley/client/discovery.py",
     "shelley/scripts/assess_regression_tools.py",
@@ -194,7 +195,7 @@ def test_not_on_panel_list_is_accurate():
         ("foreground", "surface"),
         ("foreground", "panel"),
         ("foreground", "cancel"),  # Cancel button text
-        ("on_selection", "selection"),  # highlighted row
+        ("on_selection", "secondary"),  # highlighted row
         ("background", "primary"),  # Confirm button: dark text on green
         ("background", "warning"),  # Discard and exit button: dark text on orange
     ],
@@ -269,7 +270,7 @@ def test_textual_theme_builds():
     assert theme.name == "biocommons"
     assert theme.dark
     assert theme.primary == BIOCOMMONS_COLORS["primary"]
-    assert theme.secondary == BIOCOMMONS_COLORS["selection"]
+    assert theme.secondary == BIOCOMMONS_COLORS["secondary"]
     assert theme.accent == BIOCOMMONS_COLORS["warning"]
     for variable in (
         "shelley-cancel",

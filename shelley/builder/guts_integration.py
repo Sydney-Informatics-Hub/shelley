@@ -7,7 +7,7 @@ from pathlib import Path
 
 from container_guts.main import ManifestGenerator
 
-from ..ui import alias_picker
+from ..builder.alias_editor import AliasEditorApp
 
 _SUPPLEMENTARY_DB = Path(__file__).parent.parent / "data" / "guts_db"
 
@@ -123,40 +123,17 @@ def extract_aliases(cvmfs_path: str, keep: str | None = None) -> list[dict]:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 
-def normalize_aliases(aliases) -> list[dict]:
-    """Return aliases in the canonical ``[{"name", "command"}]`` list form.
+def edit_aliases_interactive(aliases: list[dict]) -> list[dict]:
+    """Interactively deselect, rename, and add module aliases.
 
-    shpc registries store aliases either as a ``{name: command}`` dict (upstream
-    shpc-registry ``container.yaml``), as a list of ``{"name", "command"}``
-    dicts (what shelley writes), or as a list of ``{name: command}`` dicts (what
-    guts emits). Accept any and return the list form so the
-    rest of the code has a single shape to work with.
-    """
-    if not aliases:
-        return []
-    if isinstance(aliases, dict):
-        return [{"name": name, "command": command} for name, command in aliases.items()]
-    result = []
-    for a in aliases:
-        if "name" in a and "command" in a:
-            result.append({"name": a["name"], "command": a["command"]})
-        else:  # a {name: command} mapping, possibly with several entries
-            result.extend({"name": n, "command": c} for n, c in a.items())
-    return result
-
-
-def edit_aliases_interactive(
-    aliases: list[dict], container: str, version: str, *, mouse: bool = True
-) -> list[dict]:
-    """Let the user tick and rename module aliases in the alias picker.
-
-    Returns the ticked aliases as the canonical ``[{"name", "command"}]`` list. There is
-    no add step: the picker only ticks and renames the commands found in the container.
+    Runs three questionary steps in sequence — a pre-checked deselect checkbox,
+    an optional rename pass (invocation name only), and an optional add loop —
+    and returns the resulting canonical ``[{"name", "command"}]`` list.
 
     Raises:
-        ValueError: If the user cancels (Cancel, Discard and exit, Esc or Ctrl+C).
+        ValueError: If the user cancels any step.
     """
-    picked = alias_picker(normalize_aliases(aliases), container, version, mouse=mouse)
-    if picked is None:
+    edited = AliasEditorApp(aliases).run(inline=True)
+    if edited is None:
         raise ValueError("Alias editing was cancelled.")
-    return [{"name": p.name, "command": p.command} for p in picked]
+    return edited

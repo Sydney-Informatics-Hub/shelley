@@ -1,11 +1,10 @@
 """``shelley build``: resolve as the user, then build on the core as root.
 
-Accepts a spec or a tools file, ``-i``/``--interactive`` (with ``--no-mouse``), plus the
-hidden ``--resolved-tag tool:tag`` that the user process passes to its root child.
+Accepts a spec or a tools file, and ``-i``/``--interactive``, plus the hidden
+``--resolved-tag tool:tag`` that the user process passes to its root child.
 """
 
 from datetime import datetime
-from functools import partial
 from pathlib import Path
 
 import questionary
@@ -19,29 +18,15 @@ from ..galaxy.catalogue import GalaxyCatalogue
 from ..galaxy.exposer import ShpcExposer
 from ..results import BuildResult, Resolved
 from ..tools.lmod import Lmod
-from ..ui import NO_MOUSE_FLAG, interactive_terminal, mouse_enabled
-from ..utils.style import (
-    ShelleyStyle,
-    console,
-    print_error,
-    print_info,
-    print_rule,
-    status_markup,
-)
+from ..utils.style import ShelleyStyle, console, print_error, print_info, print_rule
 
 RESOLVED_FLAG = "--resolved-tag"
 
 
 def run(argv: list[str]) -> int:
     """Entry point for ``shelley build ...``; returns the process exit code."""
-    interactive, no_mouse, resolved_values, positional = _parse(argv)
-    mouse = mouse_enabled(no_mouse)
+    interactive, resolved_values, positional = _parse(argv)
     catalogue = GalaxyCatalogue()
-
-    if interactive and not interactive_terminal():
-        spec = positional[0] if positional else "<tool[/version]>"
-        _render_no_terminal(spec)
-        return 1
 
     if resolved_values:  # we are the root child: build exactly these tags
         try:
@@ -49,7 +34,7 @@ def run(argv: list[str]) -> int:
         except ShelleyError as e:
             _render_error("Build Failed", e)
             return 1
-        return _apply_and_render(items, interactive, batch=len(items) > 1, mouse=mouse)
+        return _apply_and_render(items, interactive, batch=len(items) > 1)
 
     if not positional:
         print_info(
@@ -90,33 +75,17 @@ def run(argv: list[str]) -> int:
             args += [RESOLVED_FLAG, f"{item.tool}:{item.tag.raw}"]
         if interactive:
             args.append("--interactive")
-            if not mouse:
-                args.append(NO_MOUSE_FLAG)
         print_info(
             f"Running with elevated privileges: build {' '.join(r.spec for r in resolved)}"
         )
         code = privilege.reexec(args)
         return 1 if (code or failed) else 0
 
-    code = _apply_and_render(resolved, interactive, batch=batch, mouse=mouse)
+    code = _apply_and_render(resolved, interactive, batch=batch)
     return 1 if (code or failed) else 0
 
 
-def _render_no_terminal(spec: str) -> None:
-    """``-i`` opens the alias picker, which needs a terminal for keys and drawing."""
-    console.print(
-        status_markup("error", "-i/--interactive needs an interactive terminal.")
-    )
-    console.print(
-        "  [muted]To build without choosing aliases:[/]  "
-        f"[hint.command]shelley build {spec}[/]",
-        highlight=False,
-    )
-
-
-def _apply_and_render(
-    items: list[Resolved], interactive: bool, batch: bool, mouse: bool = True
-) -> int:
+def _apply_and_render(items: list[Resolved], interactive: bool, batch: bool) -> int:
     lmod = Lmod()
     try:
         services.prepare_build_environment(lmod.load_build_modules)
@@ -131,15 +100,10 @@ def _apply_and_render(
         )
         return 1
     exposer = ShpcExposer(lmod=lmod)
+    curate = edit_aliases_interactive if interactive else None
     results = []
     for item in items:
-        if interactive:  # the alias picker owns the terminal: no spinner
-            curate = partial(
-                edit_aliases_interactive,
-                container=item.tool,
-                version=item.tag.raw,
-                mouse=mouse,
-            )
+        if curate is not None:  # the alias prompts own the terminal: no spinner
             results += services.build_resolved([item], exposer, curate=curate)
             continue
         with ShelleyStyle.create_status(
@@ -228,21 +192,19 @@ def _render_summary(results: list[BuildResult]) -> None:
 
 
 # ------------------------------------------------------------------ parsing
-def _parse(argv: list[str]) -> tuple[bool, bool, list[str], list[str]]:
-    interactive, no_mouse, resolved, positional = False, False, [], []
+def _parse(argv: list[str]) -> tuple[bool, list[str], list[str]]:
+    interactive, resolved, positional = False, [], []
     it = iter(argv)
     for arg in it:
         if arg in ("-i", "--interactive"):
             interactive = True
-        elif arg == NO_MOUSE_FLAG:
-            no_mouse = True
         elif arg == RESOLVED_FLAG:
             resolved.append(next(it, ""))
         elif arg.startswith(RESOLVED_FLAG + "="):
             resolved.append(arg.split("=", 1)[1])
         else:
             positional.append(arg)
-    return interactive, no_mouse, resolved, positional
+    return interactive, resolved, positional
 
 
 def read_tools_file(path: Path) -> list[str]:
