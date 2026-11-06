@@ -6,6 +6,8 @@ from textual.containers import Horizontal
 from textual.coordinate import Coordinate
 from textual.widgets import Button, DataTable, Header, Input, Static
 
+from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme
+
 
 def normalize_aliases(aliases) -> list[dict]:
     """Return aliases in the canonical ``[{"name", "command"}]`` list form.
@@ -46,27 +48,44 @@ class AliasTable(DataTable):
 class AliasEditorApp(App):
     TITLE = "Shelley interactive alias editor"
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
-    INSTR_MAIN = (
-        "Click a ✓ cell to include or exclude an alias. Click a name to rename "
-        "it (Enter to apply). Confirm keeps the included aliases; Cancel or Esc "
-        "aborts."
+    INSTR0 = (
+        "An alias is a command from this container that you will need to run in "
+        "your shell or scripts, such as [bold]samtools[/bold], "
+        "[bold]vcftools[/bold] or [bold]STAR[/bold]."
     )
+    INSTR1 = (
+        "Leave out helper commands and scripts you won't run yourself, such as "
+        "[bold]blast2sam.pl[/bold], [bold]htsfile[/bold] "
+        "or [bold]guess-ploidy.py[/bold]."
+    )
+    INSTR2 = (
+        "    • [bold]Click \\[ ][/bold] to tick each command you want to alias. "
+        "To change them later, run the interactive build again."
+    )
+    INSTR3 = "    • [bold]Click an alias name[/bold] to rename it."
     INSTR_INPUT = "   Press ENTER to confirm • Press ESC to cancel"
     CSS_PATH = "alias_editor.tcss"
 
     def __init__(self, aliases):
-        super().__init__()
+        super().__init__(ansi_color=False)  # use the theme colours in all terminals
+        self.register_theme(make_textual_theme())
+        self.theme = "biocommons"
         self.aliases = normalize_aliases(aliases)
-        # DataTable rows; the leading " " is the selection ("Include") column
+        # DataTable rows; the first cell is the tick ("Include") column. Ticks are
+        # Text, not str: DataTable parses str cells as markup and "[x]" would vanish.
         self.rows = [
-            (Text(" ", justify="center"), a["name"], a["command"]) for a in self.aliases
+            (Text(TICK_OFF, justify="center"), a["name"], a["command"])
+            for a in self.aliases
         ]
         self.edited = []
         self._renaming = None  # row key of the name currently being edited
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Static(self.INSTR_MAIN, id="instruct_main")
+        yield Static(self.INSTR0)
+        yield Static(self.INSTR1)
+        yield Static(self.INSTR2)
+        yield Static(self.INSTR3)
         yield Input(id="rename", placeholder="New alias name")
         yield Static(self.INSTR_INPUT, id="instruct_input")
         yield AliasTable()
@@ -75,7 +94,6 @@ class AliasEditorApp(App):
             yield Button("Cancel", id="cancel", variant="warning")
 
     def on_mount(self) -> None:
-        self.theme = "catppuccin-macchiato"
         table = self.query_one(AliasTable)
         table.cursor_type = "cell"
         self.tick, self.alias, self.path = table.add_columns(
@@ -87,9 +105,9 @@ class AliasEditorApp(App):
         self.query_one("#instruct_input", Static).display = False
 
     def update_tick(self, val: str) -> Text:
-        if val == "✓":
-            return Text(" ", justify="center")
-        return Text("✓", justify="center")
+        if val == TICK_ON:
+            return Text(TICK_OFF, justify="center")
+        return Text(TICK_ON, justify="center")
 
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         column = event.cell_key.column_key
@@ -138,6 +156,6 @@ class AliasEditorApp(App):
             result = [
                 {"name": alias, "command": path}
                 for tick, alias, path in rows
-                if str(tick) == "✓"
+                if str(tick) == TICK_ON
             ]
             self.exit(result)

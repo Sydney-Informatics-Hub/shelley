@@ -3,3 +3,10 @@ DataTable { margin: 1 5; }
 Input { margin: 1 5; }
 Horizontal { dock: bottom; height: auto; align-horizontal: center; }
 Button { margin: 1 5; }
+
+/* BioCommons theme (registered in AliasEditorApp.__init__) */
+Header { background: $panel; }
+DataTable > .datatable--header { background: $panel; }
+DataTable > .datatable--cursor { background: $secondary; color: $shelley-on-selection; }
+#confirm { background: $primary; color: $shelley-on-primary; }
+#cancel { background: $shelley-cancel; }

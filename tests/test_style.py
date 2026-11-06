@@ -42,7 +42,6 @@ HEX = re.compile(r"#[0-9a-fA-F]{6}\b")
 # Ratchet: files that broke a rule when this test was added. Remove entries as files are fixed.
 KNOWN_HEX_OFFENDERS: set[str] = set()
 KNOWN_GLYPH_OFFENDERS = {
-    "shelley/builder/alias_editor.py",
     "shelley/client/build.py",
     "shelley/client/discovery.py",
     "shelley/scripts/assess_regression_tools.py",

@@ -5,10 +5,11 @@ from rich.text import Text
 from textual.widgets import Button, DataTable
 
 from shelley.builder.alias_editor import AliasEditorApp, normalize_aliases
+from shelley.utils.style import TICK_OFF
 
 
 def rich_text_center() -> Text:
-    return Text(" ", justify="center")
+    return Text(TICK_OFF, justify="center")
 
 
 @pytest.fixture
@@ -103,3 +104,11 @@ async def test_nrows_on_mount(input_aliases, index, nrows):
 
         assert table.row_count == nrows
         assert len(buttons) == 2
+
+
+@pytest.mark.asyncio
+async def test_theme_is_biocommons(input_aliases):
+    app = AliasEditorApp(input_aliases[0])
+
+    async with app.run_test():
+        assert app.theme == "biocommons"
