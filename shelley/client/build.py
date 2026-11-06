@@ -171,12 +171,12 @@ def _render_error(title: str, error: BaseException | None) -> None:
 def _render_summary(results: list[BuildResult]) -> None:
     print_rule("Build Results")
     table = Table(
-        title="[header]Build Summary[/header]",
+        title="[heading]Build Summary[/heading]",
         box=ROUNDED,
         border_style="border",
-        header_style="table.header",
+        header_style="heading",
     )
-    table.add_column("Tool", style="tool")
+    table.add_column("Tool", style="primary")
     table.add_column("Status", justify="center")
     table.add_column("Result", style="muted")
     for r in results:

@@ -13,7 +13,7 @@ def test_interactive_rendering():
     """Test the interactive mode rendering without MCP server."""
     console.clear()
     print_banner()
-    print_rule("Interactive Mode", "accent")
+    print_rule("Interactive Mode", "border")
 
     # Create help table
     commands = [

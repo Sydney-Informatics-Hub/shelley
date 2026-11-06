@@ -123,9 +123,9 @@ class ShelleyStyle:
     def create_header(title: str, subtitle: str = "") -> Panel:
         """Create a styled header panel."""
         if subtitle:
-            content = f"[header]{title}[/header]\n[muted]{subtitle}[/muted]"
+            content = f"[heading]{title}[/heading]\n[muted]{subtitle}[/muted]"
         else:
-            content = f"[header]{title}[/header]"
+            content = f"[heading]{title}[/heading]"
 
         return Panel(
             Align.center(content), box=DOUBLE, border_style="primary", padding=(1, 2)
@@ -146,9 +146,7 @@ class ShelleyStyle:
         pad = " " * max(1, BANNER_WIDTH - 2 - len(left) - len(right))
         welcome = f"{left}{pad}{right}"
 
-        return Text.from_markup(
-            f"[bold {BIOCOMMONS_COLORS['teal']}]{BANNER_ART.format(welcome=welcome)}[/]"
-        )
+        return Text.from_markup(f"[bold info]{BANNER_ART.format(welcome=welcome)}[/]")
 
     @staticmethod
     def create_help_table(commands: list[dict[str, str]]) -> Table:
@@ -157,7 +155,7 @@ class ShelleyStyle:
             title="[primary][bold]Available Commands[/bold][/primary]",
             box=ROUNDED,
             border_style="primary",
-            header_style="table.header",
+            header_style="heading",
             show_lines=True,
         )
 
@@ -177,7 +175,7 @@ class ShelleyStyle:
             title=f"[primary][bold]Available Versions for[/bold][/primary] [primary][bold]{tool_name}[/bold][/primary]",
             box=ROUNDED,
             border_style="primary",
-            header_style="table.header",
+            header_style="heading",
             show_header=False,
         )
 
@@ -198,12 +196,12 @@ class ShelleyStyle:
             title=f"[primary][bold]Available Versions for[/bold][/primary] [primary][bold]{tool_name}[/bold][/primary]",
             box=ROUNDED,
             border_style="primary",
-            header_style="table.header",
+            header_style="heading",
             show_header=False,
         )
 
         table.add_column("Version", style="primary", no_wrap=True)
-        table.add_column("Container Path", style="accent")
+        table.add_column("Container Path", style="path")
 
         for version, path in version_path_pairs:
             table.add_row(version, path)
@@ -218,13 +216,13 @@ class ShelleyStyle:
             tools = tools[:limit]
 
         table = Table(
-            title=f"[header]Bioinformatics Tools[/header] [muted]({len(tools)} shown{f' of {display_count}' if limit else ''})[/muted]",
+            title=f"[heading]Bioinformatics Tools[/heading] [muted]({len(tools)} shown{f' of {display_count}' if limit else ''})[/muted]",
             box=ROUNDED,
             border_style="border",
-            header_style="table.header",
+            header_style="heading",
         )
 
-        table.add_column("Tool", style="tool", no_wrap=True)
+        table.add_column("Tool", style="primary", no_wrap=True)
         table.add_column("Description", style="muted", ratio=2)
         table.add_column("Category", style="info")
 
@@ -244,14 +242,14 @@ class ShelleyStyle:
         """Create a styled build success message."""
         content = f"""[status.success]✅ Module Built Successfully![/status.success]
 
-[header]Tool:[/header] [tool]{tool_name}[/tool]
-[header]Version:[/header] [version]{version}[/version]
-[header]Module Path:[/header] [path]{module_path}[/path]
+[label]Tool:[/label] [primary]{tool_name}[/primary]
+[label]Version:[/label] [version]{version}[/version]
+[label]Module Path:[/label] [path]{module_path}[/path]
 
-[header]To load this module:[/header]
+[label]To load this module:[/label]
 [command]module load {tool_name}/{version}[/command]
 
-[header]To list all modules:[/header]
+[label]To list all modules:[/label]
 [command]module avail[/command]"""
 
         return Panel(
@@ -277,13 +275,13 @@ class ShelleyStyle:
 
         content = f"""[status.info]ℹ️  Version Selection[/status.info]
 
-[header]Available versions for[/header] [tool]{tool_name}[/tool]:
+[label]Available versions for[/label] [primary]{tool_name}[/primary]:
 {versions_text}
 
 [status.warning]⚠️  No version specified[/status.warning]
-[header]Building latest version:[/header] [version]{version}[/version]
+[label]Building latest version:[/label] [version]{version}[/version]
 
-[header]To specify a version:[/header]
+[label]To specify a version:[/label]
 [command]shelley build {tool_name}/{version}[/command]"""
 
         return Panel(
@@ -299,7 +297,7 @@ class ShelleyStyle:
         """Create a styled error panel."""
         content = f"[status.error]❌ {message}[/status.error]"
         if suggestion:
-            content += f"\n\n[header]Suggestion:[/header]\n[info]{suggestion}[/info]"
+            content += f"\n\n[label]Suggestion:[/label]\n[info]{suggestion}[/info]"
 
         return Panel(
             content,
@@ -335,10 +333,10 @@ class ShelleyStyle:
     def format_command_examples() -> Table:
         """Create a table of command examples."""
         table = Table(
-            title="[header]Command Examples[/header]",
+            title="[heading]Command Examples[/heading]",
             box=SIMPLE,
             border_style="border",
-            header_style="table.header",
+            header_style="heading",
         )
 
         table.add_column("Use Case", style="muted", ratio=1)
@@ -369,7 +367,7 @@ class ShelleyStyle:
         # whether shelley is pip-installed or run from a source checkout.
         from .. import __version__
 
-        return f"[header]Shelley[/header] [version]{__version__}[/version]"
+        return f"[heading]Shelley[/heading] [version]{__version__}[/version]"
 
     @staticmethod
     def create_progress_bar(description: str) -> Progress:
@@ -377,9 +375,7 @@ class ShelleyStyle:
         return Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            BarColumn(
-                bar_width=None, style="progress.bar", complete_style="progress.complete"
-            ),
+            BarColumn(bar_width=None, style="primary", complete_style="success"),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TimeElapsedColumn(),
             console=console,
@@ -403,7 +399,7 @@ class ShelleyStyle:
             style = "error"
             icon = "❌"
 
-        content = f"{icon} [header]Successfully completed:[/header] [highlight]{success}/{total}[/highlight] {operation}s"
+        content = f"{icon} [label]Successfully completed:[/label] [label]{success}/{total}[/label] {operation}s"
 
         return Panel(
             content, title=title, box=ROUNDED, border_style=style, padding=(1, 2)
@@ -412,7 +408,9 @@ class ShelleyStyle:
     @staticmethod
     def create_status(message: str) -> Status:
         """Create a styled status indicator."""
-        return Status(message, spinner="dots", spinner_style="primary", console=console)
+        return Status(
+            message, spinner=SPINNER, spinner_style="primary", console=console
+        )
 
 
 # Convenience functions for common operations
