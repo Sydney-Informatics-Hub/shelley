@@ -7,7 +7,8 @@ from pathlib import Path
 
 from container_guts.main import ManifestGenerator
 
-from ..builder.alias_editor import AliasEditorApp
+from ..builder.alias_editor import AliasEditorApp, alias_summary
+from ..utils.style import console
 
 _SUPPLEMENTARY_DB = Path(__file__).parent.parent / "data" / "guts_db"
 
@@ -123,17 +124,24 @@ def extract_aliases(cvmfs_path: str, keep: str | None = None) -> list[dict]:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 
-def edit_aliases_interactive(aliases: list[dict]) -> list[dict]:
-    """Interactively deselect, rename, and add module aliases.
+def edit_aliases_interactive(
+    aliases: list[dict], *, tool: str = "", version: str = ""
+) -> list[dict]:
+    """Let the user tick and rename module aliases in the alias picker.
 
-    Runs three questionary steps in sequence — a pre-checked deselect checkbox,
-    an optional rename pass (invocation name only), and an optional add loop —
-    and returns the resulting canonical ``[{"name", "command"}]`` list.
+    ``tool`` and ``version`` only label the picker's title bar. Returns the ticked
+    aliases as a canonical ``[{"name", "command"}]`` list.
 
     Raises:
-        ValueError: If the user cancels any step.
+        ValueError: If the user cancels (Discard and exit, or Ctrl+C).
     """
-    edited = AliasEditorApp(aliases).run(inline=True)
+    app = AliasEditorApp(aliases, tool=tool, version=version)
+    edited = app.run(inline=True)
     if edited is None:
         raise ValueError("Alias editing was cancelled.")
+    console.print(
+        alias_summary(
+            tool, version, edited, total=len(app.aliases), renamed=app.renamed
+        )
+    )
     return edited

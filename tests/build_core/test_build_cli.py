@@ -246,3 +246,43 @@ def test_ambiguous_version_without_a_terminal_is_a_clean_cancel(
     monkeypatch.setattr(build.questionary, "select", lambda *a, **k: NoTerminal())
     assert build.run(["seqtk/1.5"]) == 1
     assert sudo == []
+
+
+# ------------------------------------------------------------------ alias picker
+def test_interactive_build_passes_tool_and_tag_to_the_picker(
+    catalogue, fake_build_env, monkeypatch
+):
+    seen = {}
+
+    def picker(aliases, **kwargs):
+        seen.update(kwargs)
+        return aliases
+
+    monkeypatch.setattr(build, "edit_aliases_interactive", picker)
+    assert build.run(["samtools/1.10", "-i"]) == 0
+    assert seen == {"tool": "samtools", "version": "1.10--h2e538c0_3"}
+
+
+def test_cancelled_picker_is_a_note_not_an_error(
+    catalogue, fake_build_env, monkeypatch, capsys
+):
+    def cancel(aliases, **kwargs):
+        raise ValueError("Alias editing was cancelled.")
+
+    monkeypatch.setattr(build, "edit_aliases_interactive", cancel)
+    assert build.run(["samtools/1.10", "-i"]) == 1
+    out = capsys.readouterr().out
+    assert "i Note: Cancelled. No aliases were saved and nothing was built." in out
+    assert "Build Failed" not in out
+    assert fake_build_env.calls == []
+
+
+def test_cancelled_version_choice_is_a_note(catalogue, sudo, monkeypatch, capsys):
+    class NoTerminal:
+        def ask(self):
+            raise EOFError
+
+    monkeypatch.setattr(build.questionary, "select", lambda *a, **k: NoTerminal())
+    assert build.run(["seqtk/1.5"]) == 1
+    out = capsys.readouterr().out
+    assert "i Note: Version selection cancelled. Nothing was changed." in out

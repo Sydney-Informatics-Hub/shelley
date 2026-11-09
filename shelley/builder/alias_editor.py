@@ -1,3 +1,6 @@
+from rich.box import ROUNDED
+from rich.console import Group
+from rich.table import Table
 from rich.text import Text
 from textual import events
 from textual.app import App, ComposeResult
@@ -7,7 +10,7 @@ from textual.coordinate import Coordinate
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Static
 
-from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme
+from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme, status_markup
 
 
 def normalize_aliases(aliases) -> list[dict]:
@@ -30,6 +33,39 @@ def normalize_aliases(aliases) -> list[dict]:
         else:  # a {name: command} mapping, possibly with several entries
             result.extend({"name": n, "command": c} for n, c in a.items())
     return result
+
+
+def alias_summary(
+    tool: str,
+    version: str,
+    chosen: list[dict],
+    total: int,
+    renamed: dict[str, str] | None = None,
+) -> Group:
+    """The record printed after Confirm: a Done line, the chosen aliases, a re-run hint.
+
+    ``renamed`` maps a chosen alias name to its name before the rename.
+    """
+    renamed = renamed or {}
+    table = Table(box=ROUNDED, border_style="primary", header_style="heading")
+    table.add_column("Alias", style="hint.command", no_wrap=True)
+    table.add_column("Command", style="path", overflow="fold")  # wrap, never cut
+    for alias in chosen:
+        command = Text(alias["command"])
+        if alias["name"] in renamed:
+            command.append(f"  (renamed from {renamed[alias['name']]})", style="muted")
+        table.add_row(Text(alias["name"]), command)
+    done = Text.from_markup(
+        status_markup("success", f"Aliases chosen for {tool} {version}: ")
+    )
+    done.append(f"{len(chosen)} of {total}")
+    hint = Text.assemble(
+        "  ",
+        ("To add or change aliases, run the build again:", "muted"),
+        "\n  ",  # own line, so a long tag never splits the command
+        (f"shelley build {tool}/{version} -i", "hint.command"),
+    )
+    return Group(done, table, hint)
 
 
 class AliasTable(DataTable):
@@ -72,7 +108,7 @@ class DiscardDialog(ModalScreen[bool]):
 
 
 class AliasEditorApp(App):
-    TITLE = "Shelley interactive alias editor"
+    TITLE = "Choose aliases"
     BINDINGS = [
         Binding("escape", "cancel", "Exit"),
         # priority: also wins over copy in the rename Input
@@ -98,8 +134,10 @@ class AliasEditorApp(App):
     CONFIRM_HINT = "Tick at least one alias to confirm."
     CSS_PATH = "alias_editor.tcss"
 
-    def __init__(self, aliases):
+    def __init__(self, aliases, tool: str = "", version: str = ""):
         super().__init__(ansi_color=False)  # use the theme colours in all terminals
+        if tool:
+            self.title = f"Choose aliases — {tool} {version}".rstrip()
         self.register_theme(make_textual_theme())
         self.theme = "biocommons"
         self.aliases = normalize_aliases(aliases)
@@ -110,6 +148,7 @@ class AliasEditorApp(App):
             for a in self.aliases
         ]
         self.original = {}  # row key -> name before any rename, for the summary
+        self.renamed = {}  # set on Confirm: chosen name -> name before the rename
         self._renaming = None  # row key of the name currently being edited
 
     def compose(self) -> ComposeResult:
@@ -220,10 +259,12 @@ class AliasEditorApp(App):
         if event.button.id == "confirm":
             # output list of selected aliases and paths
             table = self.query_one(AliasTable)
-            rows = (table.get_row(key) for key in table.rows)
-            result = [
-                {"name": alias, "command": path}
-                for tick, alias, path in rows
-                if str(tick) == TICK_ON
-            ]
+            result = []
+            for key in table.rows:
+                tick, name, command = table.get_row(key)
+                if str(tick) != TICK_ON:
+                    continue
+                result.append({"name": name, "command": command})
+                if name != self.original[key]:
+                    self.renamed[name] = self.original[key]
             self.exit(result)

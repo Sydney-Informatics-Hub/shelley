@@ -1,7 +1,7 @@
 Static { margin: 1 5; }
 #rename_bar { height: auto; }
 #rename_bar Static, #rename_bar Input { margin: 0 5; }
-DataTable { margin: 1 5; }
+AliasTable { margin: 1 5; }
 Input { margin: 1 5; }
 .buttons { height: auto; align-horizontal: center; }
 #buttons { dock: bottom; margin-bottom: 1; }  /* clear the Footer */

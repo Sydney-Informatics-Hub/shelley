@@ -1,6 +1,7 @@
 """Tests for the interactive alias editor used by `build -i/--interactive`."""
 
 import pytest
+from rich.console import Console
 from rich.text import Text
 from textual.coordinate import Coordinate
 from textual.widgets import Button, DataTable, Input
@@ -8,9 +9,10 @@ from textual.widgets import Button, DataTable, Input
 from shelley.builder.alias_editor import (
     AliasEditorApp,
     DiscardDialog,
+    alias_summary,
     normalize_aliases,
 )
-from shelley.utils.style import TICK_OFF, TICK_ON
+from shelley.utils.style import SHELLEY_THEME, TICK_OFF, TICK_ON
 
 
 def rich_text_center() -> Text:
@@ -323,3 +325,78 @@ async def test_ctrl_c_exits_without_dialog(input_aliases, renaming):
         assert not app.is_running
 
     assert app.return_value is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "kwargs, title",
+    [
+        (
+            {"tool": "samtools", "version": "1.21--h50ea8bc_3"},
+            "Choose aliases — samtools 1.21--h50ea8bc_3",
+        ),
+        ({}, "Choose aliases"),
+    ],
+    ids=["tool-version", "no-tool"],
+)
+async def test_title_names_tool_and_version(input_aliases, kwargs, title):
+    app = AliasEditorApp(input_aliases[0], **kwargs)
+
+    async with app.run_test():
+        assert app.title == title
+
+
+# ---------------------------------------------------------------------------
+# summary printed after Confirm
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_confirm_records_renames(input_aliases):
+    app = AliasEditorApp(input_aliases[1])
+
+    async with app.run_test() as pilot:
+        await rename(pilot, 1, "plassembler-log")
+        await tick(pilot, 0)
+        await pilot.click("#confirm")
+
+    assert app.renamed == {"plassembler-log": "log.py"}
+    assert {"name": "plassembler-log", "command": "/usr/local/bin/log.py"} in (
+        app.return_value
+    )
+
+
+def render(renderable, width: int = 80) -> str:
+    console = Console(theme=SHELLEY_THEME, width=width, record=True)
+    console.print(renderable)
+    return console.export_text()
+
+
+def test_alias_summary():
+    chosen = [
+        {"name": "bgzip", "command": "/usr/local/bin/bgzip"},
+        {"name": "sam2vcf", "command": "/usr/local/bin/sam2vcf.pl"},
+    ]
+    out = render(
+        alias_summary(
+            "samtools", "1.21--h50ea8bc_3", chosen, 27, {"sam2vcf": "sam2vcf.pl"}
+        )
+    )
+
+    assert "√ Done: Aliases chosen for samtools 1.21--h50ea8bc_3: 2 of 27" in out
+    assert "╭" in out  # rounded box
+    assert "/usr/local/bin/sam2vcf.pl  (renamed from sam2vcf.pl)" in out
+    assert "(renamed from" not in out.split("bgzip")[1].split("\n")[0]
+    assert "To add or change aliases, run the build again:" in out
+    assert "shelley build samtools/1.21--h50ea8bc_3 -i" in out
+
+
+def test_alias_summary_wraps_long_paths_instead_of_cutting():
+    path = "/usr/local/" + "deep/" * 20 + "tool.py"
+    out = render(alias_summary("t", "1", [{"name": "tool", "command": path}], 1))
+
+    joined = "".join(
+        line.split("│")[2].strip() for line in out.splitlines() if "│" in line
+    )
+    assert path in joined
+    assert "…" not in out
