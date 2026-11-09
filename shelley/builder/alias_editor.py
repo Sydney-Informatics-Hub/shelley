@@ -108,7 +108,7 @@ class DiscardDialog(ModalScreen[bool]):
 
 
 class AliasEditorApp(App):
-    TITLE = "Choose aliases"
+    TITLE = "Shelley interactive alias editor"
     BINDINGS = [
         Binding("escape", "cancel", "Exit"),
         # priority: also wins over copy in the rename Input
