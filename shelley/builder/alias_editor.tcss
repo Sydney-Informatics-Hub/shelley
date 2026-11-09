@@ -1,4 +1,5 @@
 Screen > Static { margin: 1 5; }
+HeaderTitle { content-align: left middle; padding: 0 2; }
 #rename_bar { height: auto; }
 #rename_bar Static, #rename_bar Input { margin: 0 5; }
 AliasTable { 

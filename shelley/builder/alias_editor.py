@@ -123,15 +123,20 @@ class AliasEditorApp(App):
         "Leave out helper commands and scripts you won't run yourself, such as "
         "[bold]blast2sam.pl[/bold], [bold]htsfile[/bold] "
         "or [bold]guess-ploidy.py[/bold]."
+        "\n"
+        "\n"
+        "To change these later, run the interactive build again."
     )
     INSTR2 = (
-        "    • [bold]Click \\[ ][/bold] to tick each command you want to alias. "
-        "To change them later, run the interactive build again."
+        "[u]Usage:[/u]\n"
+        "    1. [bold]Click \\[ ][/bold] to include an alias.\n"
+        "    2. \\[Optional] [bold]Click an alias name[/bold] to rename it.\n"
+        "    3. You do not need to do anything with [bold]Command[/bold]"
+        " - these are the binaries from the container that the aliases will call."
     )
-    INSTR3 = "    • [bold]Click an alias name[/bold] to rename it."
     INSTR_INPUT = "Press Enter to save, or Esc to cancel the rename."
     RENAME_ERROR = "Alias names can't contain spaces or /."
-    CONFIRM_HINT = "Tick at least one alias to confirm."
+    CONFIRM_HINT = "Select at least one alias to proceed."
     CSS_PATH = "alias_editor.tcss"
     ENABLE_COMMAND_PALETTE = False
 
@@ -157,7 +162,6 @@ class AliasEditorApp(App):
         yield Static(self.INSTR0)
         yield Static(self.INSTR1)
         yield Static(self.INSTR2)
-        yield Static(self.INSTR3)
         yield AliasTable()
         with Vertical(id="rename_bar"):  # the edit bar, shown while renaming
             yield Static(id="rename_label")
@@ -179,6 +183,8 @@ class AliasEditorApp(App):
         keys = table.add_rows(self.rows)
         self.original = {key: row[1] for key, row in zip(keys, self.rows, strict=True)}
         self.query_one("#rename_bar").display = False
+        # ensure screen starts at the top of the page
+        self.call_after_refresh(self.screen.scroll_home, animate=False)
 
     def update_tick(self, val: str) -> Text:
         if val == TICK_ON:
