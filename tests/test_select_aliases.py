@@ -329,21 +329,22 @@ async def test_ctrl_c_exits_without_dialog(input_aliases, renaming):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "kwargs, title",
+    "kwargs, sub_title",
     [
         (
             {"tool": "samtools", "version": "1.21--h50ea8bc_3"},
-            "Choose aliases — samtools 1.21--h50ea8bc_3",
+            "samtools 1.21--h50ea8bc_3",
         ),
-        ({}, "Choose aliases"),
+        ({}, ""),
     ],
     ids=["tool-version", "no-tool"],
 )
-async def test_title_names_tool_and_version(input_aliases, kwargs, title):
+async def test_subtitle_names_tool_and_version(input_aliases, kwargs, sub_title):
     app = AliasEditorApp(input_aliases[0], **kwargs)
 
     async with app.run_test():
-        assert app.title == title
+        assert app.title == "Shelley alias editor"
+        assert app.sub_title == sub_title
 
 
 # ---------------------------------------------------------------------------

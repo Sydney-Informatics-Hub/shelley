@@ -108,7 +108,7 @@ class DiscardDialog(ModalScreen[bool]):
 
 
 class AliasEditorApp(App):
-    TITLE = "Shelley interactive alias editor"
+    TITLE = "Shelley alias editor"
     BINDINGS = [
         Binding("escape", "cancel", "Exit"),
         # priority: also wins over copy in the rename Input
@@ -133,11 +133,12 @@ class AliasEditorApp(App):
     RENAME_ERROR = "Alias names can't contain spaces or /."
     CONFIRM_HINT = "Tick at least one alias to confirm."
     CSS_PATH = "alias_editor.tcss"
+    ENABLE_COMMAND_PALETTE = False
 
     def __init__(self, aliases, tool: str = "", version: str = ""):
         super().__init__(ansi_color=False)  # use the theme colours in all terminals
         if tool:
-            self.title = f"Choose aliases — {tool} {version}".rstrip()
+            self.sub_title = f"{tool} {version}".rstrip()
         self.register_theme(make_textual_theme())
         self.theme = "biocommons"
         self.aliases = normalize_aliases(aliases)
