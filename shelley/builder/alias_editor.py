@@ -9,8 +9,7 @@ from textual.containers import Horizontal, Vertical
 from textual.coordinate import Coordinate
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Static
-
-from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme, status_markup
+from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme, status_markup, BIOCOMMONS_COLORS
 
 
 def normalize_aliases(aliases) -> list[dict]:
@@ -94,8 +93,8 @@ class DiscardDialog(ModalScreen[bool]):
                 "Nothing will be built, and your ticks and renames will be lost."
             )
             with Horizontal(classes="buttons"):
-                yield Button("Keep editing", id="keep")
-                yield Button("Discard and exit", id="discard")
+                yield Button("Keep editing", id="keep", flat=True)
+                yield Button("Discard and exit", id="discard", flat=True)
 
     def on_mount(self) -> None:
         self.query_one("#keep", Button).focus()
@@ -150,7 +149,9 @@ class AliasEditorApp(App):
         # DataTable rows; the first cell is the tick ("Include") column. Ticks are
         # Text, not str: DataTable parses str cells as markup and "[x]" would vanish.
         self.rows = [
-            (Text(TICK_OFF, justify="center"), a["name"], a["command"])
+            (Text(TICK_OFF, justify="center"), 
+             Text(a["name"], style=BIOCOMMONS_COLORS["command"]), #sage
+             Text(a["command"], style=BIOCOMMONS_COLORS["path"])) #teal
             for a in self.aliases
         ]
         self.original = {}  # row key -> name before any rename, for the summary
@@ -170,8 +171,8 @@ class AliasEditorApp(App):
             yield Static(self.INSTR_INPUT)
         yield Static(self.CONFIRM_HINT, id="confirm_hint")
         with Horizontal(id="buttons", classes="buttons"):
-            yield Button("Confirm", id="confirm", disabled=True)
-            yield Button("Cancel", id="cancel")
+            yield Button("Confirm", id="confirm", disabled=True, flat=True)
+            yield Button("Cancel", id="cancel",flat=True)
         yield Footer()
 
     def on_mount(self) -> None:
