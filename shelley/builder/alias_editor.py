@@ -116,22 +116,16 @@ class AliasEditorApp(App):
     INSTR0 = (
         "An alias is a command from this container that you will need to run in "
         "your shell or scripts, such as [bold]samtools[/bold], "
-        "[bold]vcftools[/bold] or [bold]STAR[/bold]."
-    )
-    INSTR1 = (
+        "[bold]vcftools[/bold] or [bold]STAR[/bold]. "
         "Leave out helper commands and scripts you won't run yourself, such as "
         "[bold]blast2sam.pl[/bold], [bold]htsfile[/bold] "
-        "or [bold]guess-ploidy.py[/bold]."
-        "\n"
-        "\n"
+        "or [bold]guess-ploidy.py[/bold]. "
         "To change these later, run the interactive build again."
     )
-    INSTR2 = (
-        "[u]Usage:[/u]\n"
-        "    1. [bold]Click \\[ ][/bold] to include an alias.\n"
-        "    2. \\[Optional] [bold]Click an alias name[/bold] to rename it.\n"
-        "    3. You do not need to do anything with [bold]Command[/bold]"
-        " - these are the binaries from the container that the aliases will call."
+    INSTR1 = (
+    "Tick [bold]\\[ ][/bold] the commands you'll run yourself, such as [bold]samtools[/bold], "
+    "not helper scripts like [bold]blast2sam.pl[/bold].\n"
+    "Click a name to rename it. Run the build again to change these later."
     )
     INSTR_INPUT = "Press Enter to save, or Esc to cancel the rename."
     RENAME_ERROR = "Alias names can't contain spaces or /."
@@ -160,9 +154,7 @@ class AliasEditorApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Static(self.INSTR0)
         yield Static(self.INSTR1)
-        yield Static(self.INSTR2)
         yield AliasTable()
         with Vertical(id="rename_bar"):  # the edit bar, shown while renaming
             yield Static(id="rename_label")
@@ -186,6 +178,10 @@ class AliasEditorApp(App):
         self.query_one("#rename_bar").display = False
         # ensure screen starts at the top of the page
         self.call_after_refresh(self.screen.scroll_home, animate=False)
+
+    def on_resize(self, event: events.Resize) -> None:
+    # everything but the table takes ~12 rows: header, text, hint, buttons, footer
+        self.query_one(AliasTable).styles.max_height = max(5, event.size.height - 12)
 
     def update_tick(self, val: str) -> Text:
         if val == TICK_ON:

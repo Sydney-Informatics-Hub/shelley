@@ -1,18 +1,21 @@
+Screen:inline { border-top: none; border-bottom: none }
 Screen > Static { margin: 1 5; }
-HeaderTitle { content-align: left middle; padding: 0 2; }
+HeaderTitle { content-align: left middle; padding: 0 1; }
 #rename_bar { height: auto; }
 #rename_bar Static, #rename_bar Input { margin: 0 5; }
 AliasTable {
-    margin: 1 5;
-    height: 1fr;  /* fill the space left, so only the table scrolls */
-    min-height: 5;  /* tiny windows scroll the whole page instead */
-    scrollbar-size-vertical: 1;
+    margin: 1 1 0 4;
+    height: auto;
+    max-height: 40vh;
+    min-height: 5;  /*Display min 5 rows*/
+    scrollbar-size-vertical: 2;
     scrollbar-color: $primary;
 }
 Input { margin: 1 5; }
-.buttons { height: auto; align-horizontal: center; }
-#buttons { dock: bottom; margin-bottom: 1; }  /* clear the Footer */
-Button { margin: 1 5; }
+#confirm_hint { margin: 0 1; }
+.buttons { height: auto; align-horizontal: right; }
+#buttons { dock: bottom; margin-bottom: 1 }
+Button { margin: 0 2; }
 
 /* BioCommons theme (registered in AliasEditorApp.__init__) */
 Header { background: $primary; color: $shelley-on-primary; text-style: bold; }
