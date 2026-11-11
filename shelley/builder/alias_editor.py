@@ -87,8 +87,8 @@ class DiscardDialog(ModalScreen[bool]):
     BINDINGS = [Binding("escape", "keep", "Keep editing")]
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="dialog"):
-            yield Static("[bold]Discard and exit?[/bold]")
+        with Vertical(id="dialog") as dialog:
+            dialog.border_title = "Discard and exit?"  # shown in the panel border
             yield Static(
                 "Nothing will be built, and your ticks and renames will be lost."
             )
@@ -158,7 +158,8 @@ class AliasEditorApp(App):
         yield Header()
         yield Static(self.INSTR1)
         yield AliasTable()
-        with Vertical(id="rename_bar"):  # the edit bar, shown while renaming
+        with Vertical(id="rename_bar") as bar:  # the edit bar, shown while renaming
+            bar.border_title = "Rename alias"  # shown in the panel border
             with Horizontal(id="rename_row"):  # "Rename x to: [input]" on one line
                 yield Static(id="rename_label")
                 yield Input(id="rename", placeholder="New alias name", compact=True)
@@ -176,7 +177,7 @@ class AliasEditorApp(App):
             Text("Include", justify="center"), "Alias name", "Command"
         )
         keys = table.add_rows(self.rows)
-        self.original = {key: row[1] for key, row in zip(keys, self.rows, strict=True)}
+        self.original = {key: str(row[1]) for key, row in zip(keys, self.rows, strict=True)}
         self.query_one("#rename_bar").display = False
         # ensure screen starts at the top of the page
         self.call_after_refresh(self.screen.scroll_home, animate=False)
@@ -253,7 +254,9 @@ class AliasEditorApp(App):
             error.update(self.RENAME_ERROR)
             error.add_class("-error")
             return  # keep the bar open so the name can be fixed
-        table.update_cell(self._renaming, self.alias, name)
+        table.update_cell(
+            self._renaming, self.alias, Text(name, style=BIOCOMMONS_COLORS["command"])
+        )
         table.update_cell(self._renaming, self.tick, Text(TICK_ON, justify="center"))
         self._update_confirm()
         self._stop_renaming()
@@ -283,7 +286,7 @@ class AliasEditorApp(App):
             table = self.query_one(AliasTable)
             result = []
             for key in table.rows:
-                tick, name, command = table.get_row(key)
+                tick, name, command = map(str, table.get_row(key))
                 if str(tick) != TICK_ON:
                     continue
                 result.append({"name": name, "command": command})

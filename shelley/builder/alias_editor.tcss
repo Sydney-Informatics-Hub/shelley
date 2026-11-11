@@ -27,13 +27,30 @@ DataTable > .datatable--cursor { background: $secondary; color: $shelley-on-sele
 #confirm:disabled { background: $shelley-cancel; color: $shelley-muted; }
 #cancel { background: $shelley-cancel; }
 #confirm_hint { color: $shelley-muted; margin: 0 1 0 5; }  /* in line with the table text */
-#rename_bar { background: $panel; border: round $primary; }  /* stands out when it opens */
+#rename_bar {  /* stands out when it opens */
+    background: $panel;
+    border: panel $primary;
+    border-title-color: $shelley-on-primary;
+    border-title-style: bold;
+    padding: 1 0 0 1
+}
 #rename_error { color: $shelley-muted; }
 #rename_error.-error { color: $error; }
 
 /* "Discard and exit?" dialog */
+DiscardDialog:inline { height: 100vh; }
 DiscardDialog { align: center middle; }
-#dialog { width: 64; height: auto; padding: 1 2; background: $panel; border: round $warning; }
-#dialog Static { margin: 0 0 1 0; }
+#dialog {
+    width: 64;
+    height: auto;
+    padding: 1;
+    background: $panel;
+    border: panel $warning;
+    border-title-color: $shelley-on-primary;  /* dark text on orange */
+    border-title-style: bold;
+}
+
+#dialog Static { margin: 0 2; }
+#dialog Button { margin: 1 1 0 1; }
 #keep { background: $secondary; color: $shelley-on-selection; }
 #discard { background: $warning; color: $shelley-on-primary; }

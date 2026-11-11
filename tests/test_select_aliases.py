@@ -95,7 +95,8 @@ def test_init_app(input_aliases, index, expected_aliases, expected_rows):
     app = AliasEditorApp(input_aliases[index])
 
     assert app.aliases == expected_aliases
-    assert app.rows == expected_rows
+    # name and command cells are styled Text; compare their plain strings
+    assert [(tick, str(n), str(c)) for tick, n, c in app.rows] == expected_rows
 
 
 @pytest.mark.asyncio
