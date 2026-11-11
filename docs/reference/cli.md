@@ -48,14 +48,13 @@ Keyword search across tool metadata. Matches on name, description, EDAM operatio
 ## `build`
 
 ```bash
-shelley build <tool_spec> [-i] [--no-mouse]
+shelley build <tool_spec> [-i]
 ```
 
 | Argument | Type | Required | Format |
 |---|---|---|---|
 | `tool_spec` | string | Yes | `<tool>`, `<tool>/<version>`, `<tool>:<version>--<hash>`, or a path to a text file of tool specs |
 | `-i`, `--interactive` | flag | No | Choose and rename the module's aliases in the alias picker before building ([spec](alias-picker.md)). Needs an interactive terminal; not supported for a tools file |
-| `--no-mouse` | flag | No | With `-i`: keyboard only, for terminals where mouse clicks don't arrive. `SHELLEY_MOUSE=0` does the same |
 
 When `tool_spec` is an existing file, each non-blank non-comment line is treated as a tool spec and built in sequence. See [Build multiple modules](../how-to/build-modules.md).
 
