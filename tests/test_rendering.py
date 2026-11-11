@@ -15,7 +15,7 @@ def test_interactive_display():
     """Show the improved interactive mode display."""
     console.clear()
     print_banner()
-    print_rule("Interactive Mode", "accent")
+    print_rule("Interactive Mode", "border")
 
     # Create help table with fixed command syntax
     commands = [

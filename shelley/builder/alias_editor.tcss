@@ -1,0 +1,56 @@
+Screen:inline { border-top: none; border-bottom: none }
+Screen > Static { margin: 1 5; }
+HeaderTitle { content-align: left middle; padding: 0 1; }
+AliasTable {
+    margin: 1 1 0 4;
+    height: auto;
+    max-height: 40vh;
+    min-height: 5;  /*Display min 5 rows*/
+    scrollbar-size-vertical: 2;
+    scrollbar-color: $primary;
+}
+Input { margin: 1; }
+#rename_bar { height: auto; margin: 0 1 0 4; padding: 0 1; }  /* lines up with the table */
+#rename_row { height: auto; }
+#rename_label { width: auto; margin: 0 1 0 0; }
+#rename { width: 1fr; margin: 0; }  /* overrides the Input margin above */
+.buttons { height: auto; align-horizontal: right; }
+#buttons { dock: bottom; margin-bottom: 1 }
+Button { margin: 1 2; padding: 1 0 }
+
+/* BioCommons theme (registered in AliasEditorApp.__init__) */
+Header { background: $primary; color: $shelley-on-primary; text-style: bold; }
+HeaderIcon { display: none; }
+DataTable > .datatable--header { background: $panel; }
+DataTable > .datatable--cursor { background: $secondary; color: $shelley-on-selection; }
+#confirm { background: $primary; color: $shelley-on-primary; }
+#confirm:disabled { background: $shelley-cancel; color: $shelley-muted; }
+#cancel { background: $shelley-cancel; }
+#confirm_hint { color: $shelley-muted; margin: 0 1 0 5; }  /* in line with the table text */
+#rename_bar {  /* stands out when it opens */
+    background: $panel;
+    border: panel $primary;
+    border-title-color: $shelley-on-primary;
+    border-title-style: bold;
+    padding: 1 0 0 1
+}
+#rename_error { color: $shelley-muted; }
+#rename_error.-error { color: $error; }
+
+/* "Discard and exit?" dialog */
+DiscardDialog:inline { height: 100vh; }
+DiscardDialog { align: center middle; }
+#dialog {
+    width: 64;
+    height: auto;
+    padding: 1;
+    background: $panel;
+    border: panel $warning;
+    border-title-color: $shelley-on-primary;  /* dark text on orange */
+    border-title-style: bold;
+}
+
+#dialog Static { margin: 0 2; }
+#dialog Button { margin: 1 1 0 1; }
+#keep { background: $secondary; color: $shelley-on-selection; }
+#discard { background: $warning; color: $shelley-on-primary; }
