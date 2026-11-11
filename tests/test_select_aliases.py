@@ -250,16 +250,17 @@ async def test_esc_cancels_rename_only(input_aliases):
 
 
 @pytest.mark.asyncio
-async def test_confirm_hint_hides_once_ticked(input_aliases):
+async def test_confirm_hint_counts_ticks(input_aliases):
     app = AliasEditorApp(input_aliases[1])
+    total = len(app.aliases)
 
     async with app.run_test() as pilot:
         hint = app.query_one("#confirm_hint")
-        assert hint.display
+        assert str(hint.render()) == AliasEditorApp.CONFIRM_HINT
         await tick(pilot, 0)
-        assert not hint.display
+        assert str(hint.render()) == f"1 of {total} ticked"
         await tick(pilot, 0)
-        assert hint.display
+        assert str(hint.render()) == AliasEditorApp.CONFIRM_HINT
 
 
 @pytest.mark.asyncio

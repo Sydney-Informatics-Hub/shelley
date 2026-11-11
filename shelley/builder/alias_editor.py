@@ -93,8 +93,8 @@ class DiscardDialog(ModalScreen[bool]):
                 "Nothing will be built, and your ticks and renames will be lost."
             )
             with Horizontal(classes="buttons"):
-                yield Button("Keep editing", id="keep", flat=True)
-                yield Button("Discard and exit", id="discard", flat=True)
+                yield Button("Keep editing", id="keep", compact=True)
+                yield Button("Discard and exit", id="discard", compact=True)
 
     def on_mount(self) -> None:
         self.query_one("#keep", Button).focus()
@@ -123,13 +123,15 @@ class AliasEditorApp(App):
         "To change these later, run the interactive build again."
     )
     INSTR1 = (
-    "Tick [bold]\\[ ][/bold] the commands you'll run yourself, such as [bold]samtools[/bold], "
-    "not helper scripts like [bold]blast2sam.pl[/bold].\n"
-    "Click a name to rename it. Run the build again to change these later."
+    "Tick [bold]\\[ ][/bold] the commands you'll run yourself, such as [bold]samtools[/bold]. "
+    "Omit helper scripts like [bold]blast2sam.pl[/bold].\n"
+    "Optionally, click an alias name to rename it."
     )
     INSTR_INPUT = "Press Enter to save, or Esc to cancel the rename."
+    RENAME_BAR_ROWS = 4  # border, label + input row, help/error row, border
     RENAME_ERROR = "Alias names can't contain spaces or /."
     CONFIRM_HINT = "Select at least one alias to proceed."
+    TICK_COUNT = "{ticked} of {total} ticked"
     CSS_PATH = "alias_editor.tcss"
     ENABLE_COMMAND_PALETTE = False
 
@@ -157,14 +159,14 @@ class AliasEditorApp(App):
         yield Static(self.INSTR1)
         yield AliasTable()
         with Vertical(id="rename_bar"):  # the edit bar, shown while renaming
-            yield Static(id="rename_label")
-            yield Input(id="rename", placeholder="New alias name")
-            yield Static(id="rename_error")
-            yield Static(self.INSTR_INPUT)
-        yield Static(self.CONFIRM_HINT, id="confirm_hint")
+            with Horizontal(id="rename_row"):  # "Rename x to: [input]" on one line
+                yield Static(id="rename_label")
+                yield Input(id="rename", placeholder="New alias name", compact=True)
+            yield Static(id="rename_error")  # the Enter/Esc help, or the error
+        yield Static(id="confirm_hint")
         with Horizontal(id="buttons", classes="buttons"):
-            yield Button("Confirm", id="confirm", disabled=True, flat=True)
-            yield Button("Cancel", id="cancel",flat=True)
+            yield Button("Confirm", id="confirm", disabled=True, compact=True)
+            yield Button("Cancel", id="cancel",compact=True)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -178,10 +180,16 @@ class AliasEditorApp(App):
         self.query_one("#rename_bar").display = False
         # ensure screen starts at the top of the page
         self.call_after_refresh(self.screen.scroll_home, animate=False)
+        self._update_confirm()  # show "0 of N ticked" from the start
 
     def on_resize(self, event: events.Resize) -> None:
-    # everything but the table takes ~12 rows: header, text, hint, buttons, footer
-        self.query_one(AliasTable).styles.max_height = max(5, event.size.height - 12)
+        self._fit_table()
+
+    def _fit_table(self) -> None:
+        """Cap the table so the rest of the page, and the rename bar if open, fits."""
+        # everything but the table takes ~12 rows: header, text, hint, buttons, footer
+        reserved = 12 + (self.RENAME_BAR_ROWS if self._renaming is not None else 0)
+        self.query_one(AliasTable).styles.max_height = max(5, self.size.height - reserved)
 
     def update_tick(self, val: str) -> Text:
         if val == TICK_ON:
@@ -189,11 +197,15 @@ class AliasEditorApp(App):
         return Text(TICK_ON, justify="center")
 
     def _update_confirm(self) -> None:
-        """Enable Confirm, and hide its hint, once at least one row is ticked."""
+        """Update the tick counter, and enable Confirm once at least one row is ticked."""
         ticks = self.query_one(AliasTable).get_column(self.tick)
-        ticked = any(str(t) == TICK_ON for t in ticks)
+        ticked = sum(str(t) == TICK_ON for t in ticks)
         self.query_one("#confirm", Button).disabled = not ticked
-        self.query_one("#confirm_hint").display = not ticked
+        self.query_one("#confirm_hint", Static).update(
+            self.TICK_COUNT.format(ticked=ticked, total=len(self.aliases))
+            if ticked
+            else self.CONFIRM_HINT
+        )
 
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         column = event.cell_key.column_key
@@ -212,8 +224,11 @@ class AliasEditorApp(App):
         self.query_one("#rename_label", Static).update(
             Text.assemble("Rename ", (name, "bold"), " to:")
         )
-        self.query_one("#rename_error", Static).update("")
+        error = self.query_one("#rename_error", Static)
+        error.update(self.INSTR_INPUT)
+        error.remove_class("-error")
         self.query_one("#rename_bar").display = True
+        self._fit_table()
         box = self.query_one(Input)
         box.value = name
         box.focus()
@@ -221,6 +236,7 @@ class AliasEditorApp(App):
     def _stop_renaming(self) -> None:
         self._renaming = None
         self.query_one("#rename_bar").display = False
+        self._fit_table()
         self.query_one(AliasTable).focus()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -233,7 +249,9 @@ class AliasEditorApp(App):
             self._stop_renaming()
             return
         if any(c.isspace() for c in name) or "/" in name:
-            self.query_one("#rename_error", Static).update(self.RENAME_ERROR)
+            error = self.query_one("#rename_error", Static)
+            error.update(self.RENAME_ERROR)
+            error.add_class("-error")
             return  # keep the bar open so the name can be fixed
         table.update_cell(self._renaming, self.alias, name)
         table.update_cell(self._renaming, self.tick, Text(TICK_ON, justify="center"))
