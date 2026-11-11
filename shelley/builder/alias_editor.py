@@ -9,7 +9,14 @@ from textual.containers import Horizontal, Vertical
 from textual.coordinate import Coordinate
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Static
-from shelley.utils.style import TICK_OFF, TICK_ON, make_textual_theme, status_markup, BIOCOMMONS_COLORS
+
+from shelley.utils.style import (
+    BIOCOMMONS_COLORS,
+    TICK_OFF,
+    TICK_ON,
+    make_textual_theme,
+    status_markup,
+)
 
 
 def normalize_aliases(aliases) -> list[dict]:
@@ -123,9 +130,9 @@ class AliasEditorApp(App):
         "To change these later, run the interactive build again."
     )
     INSTR1 = (
-    "Tick [bold]\\[ ][/bold] the commands you'll run yourself, such as [bold]samtools[/bold]. "
-    "Omit helper scripts like [bold]blast2sam.pl[/bold].\n"
-    "Optionally, click an alias name to rename it."
+        "Tick [bold]\\[ ][/bold] the commands you'll run yourself, such as [bold]samtools[/bold]. "
+        "Omit helper scripts like [bold]blast2sam.pl[/bold].\n"
+        "Optionally, click an alias name to rename it."
     )
     INSTR_INPUT = "Press Enter to save, or Esc to cancel the rename."
     RENAME_BAR_ROWS = 4  # border, label + input row, help/error row, border
@@ -145,9 +152,11 @@ class AliasEditorApp(App):
         # DataTable rows; the first cell is the tick ("Include") column. Ticks are
         # Text, not str: DataTable parses str cells as markup and "[x]" would vanish.
         self.rows = [
-            (Text(TICK_OFF, justify="center"), 
-             Text(a["name"], style=BIOCOMMONS_COLORS["command"]), #sage
-             Text(a["command"], style=BIOCOMMONS_COLORS["path"])) #teal
+            (
+                Text(TICK_OFF, justify="center"),
+                Text(a["name"], style=BIOCOMMONS_COLORS["command"]),  # sage
+                Text(a["command"], style=BIOCOMMONS_COLORS["path"]),
+            )  # teal
             for a in self.aliases
         ]
         self.original = {}  # row key -> name before any rename, for the summary
@@ -167,7 +176,7 @@ class AliasEditorApp(App):
         yield Static(id="confirm_hint")
         with Horizontal(id="buttons", classes="buttons"):
             yield Button("Confirm", id="confirm", disabled=True, compact=True)
-            yield Button("Cancel", id="cancel",compact=True)
+            yield Button("Cancel", id="cancel", compact=True)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -177,7 +186,9 @@ class AliasEditorApp(App):
             Text("Include", justify="center"), "Alias name", "Command"
         )
         keys = table.add_rows(self.rows)
-        self.original = {key: str(row[1]) for key, row in zip(keys, self.rows, strict=True)}
+        self.original = {
+            key: str(row[1]) for key, row in zip(keys, self.rows, strict=True)
+        }
         self.query_one("#rename_bar").display = False
         # ensure screen starts at the top of the page
         self.call_after_refresh(self.screen.scroll_home, animate=False)
@@ -190,7 +201,9 @@ class AliasEditorApp(App):
         """Cap the table so the rest of the page, and the rename bar if open, fits."""
         # everything but the table takes ~12 rows: header, text, hint, buttons, footer
         reserved = 12 + (self.RENAME_BAR_ROWS if self._renaming is not None else 0)
-        self.query_one(AliasTable).styles.max_height = max(5, self.size.height - reserved)
+        self.query_one(AliasTable).styles.max_height = max(
+            5, self.size.height - reserved
+        )
 
     def update_tick(self, val: str) -> Text:
         if val == TICK_ON:
