@@ -14,6 +14,29 @@ from .roots_snapshot import changes, snapshot
 URI = "quay.io/biocontainers/samtools"
 UP = Tag("1.21--h50ea8bc_3")  # in upstream
 LOCAL = Tag("1.19--h1")  # not in upstream
+UPSTREAM = {
+    URI: UPSTREAM_SAMTOOLS,
+    "quay.io/biocontainers/bcftools": {
+        "tags": {"1.23.1--hb2cee57_0": "sha256:a"},
+        "aliases": {
+            "bcftools": "/usr/local/bin/bcftools",
+            "bgzip": "/usr/local/bin/bgzip",
+            "tabix": "/usr/local/bin/tabix",
+        },
+    },
+    "quay.io/biocontainers/vcftools": {
+        "tags": {"0.1.17--pl5321h077b44d_0": "sha256:b"},
+        "aliases": {"vcftools": "/usr/local/bin/vcftools"},
+    },
+    "quay.io/biocontainers/star": {
+        "tags": {"2.7.11a--h0033a41_0": "sha256:c"},
+        "aliases": {"STAR": "/usr/local/bin/STAR"},
+    },
+    "quay.io/biocontainers/bwa-mem2": {
+        "tags": {"2.2.1--he70b90d_8": "sha256:d"},
+        "aliases": {"bwa-mem2": "/usr/local/bin/bwa-mem2"},
+    },
+}
 
 
 def roots():
@@ -36,7 +59,7 @@ def make(shpc=None, reachable=True, discovered=None):
         return list(found)
 
     exp = ShpcExposer(
-        registry=FakeRegistry({URI: UPSTREAM_SAMTOOLS}, reachable=reachable),
+        registry=FakeRegistry(dict(UPSTREAM), reachable=reachable),
         shpc=shpc or FakeShpc(),
         discover=discover,
     )
@@ -49,20 +72,64 @@ def build(exp, tag, sif, curate=None):
 
 
 # ------------------------------------------------------------------ plans
-def test_upstream_tag_needs_no_local_entry(sif):
-    plan = make().plan("samtools", UP, sif)
+@pytest.mark.parametrize(
+    ("tool", "tag", "aliases"),
+    [
+        (
+            "samtools",
+            UP.raw,
+            [{"name": "samtools", "command": "/usr/local/bin/samtools"}],
+        ),
+        (
+            "bcftools",
+            "1.23.1--hb2cee57_0",
+            [
+                {"name": "bcftools", "command": "/usr/local/bin/bcftools"},
+                {"name": "bgzip", "command": "/usr/local/bin/bgzip"},
+                {"name": "tabix", "command": "/usr/local/bin/tabix"},
+            ],
+        ),
+        (
+            "vcftools",
+            "0.1.17--pl5321h077b44d_0",
+            [{"name": "vcftools", "command": "/usr/local/bin/vcftools"}],
+        ),
+        (
+            "star",
+            "2.7.11a--h0033a41_0",
+            [{"name": "STAR", "command": "/usr/local/bin/STAR"}],
+        ),
+    ],
+)
+def test_upstream_tag_needs_no_local_entry(sif, tool, tag, aliases):
+    plan = make().plan(tool, Tag(tag), sif)
     assert plan.in_upstream and plan.local_entry is None and plan.marker is None
-    assert plan.aliases == [{"name": "samtools", "command": "/usr/local/bin/samtools"}]
+    assert plan.aliases == aliases
 
 
-def test_tag_absent_upstream_gets_a_local_entry_with_discovered_aliases(sif):
-    exp = make(discovered=[{"name": "samtools", "command": "samtools"}])
-    plan = exp.plan("samtools", LOCAL, sif)
+@pytest.mark.parametrize(
+    ("tool", "tag", "upstream_tag"),
+    [
+        ("samtools", LOCAL.raw, UP.raw),
+        ("bcftools", "1.6--1", "1.23.1--hb2cee57_0"),
+        ("vcftools", "0.1.12b--pl5262h2e03b76_2", "0.1.17--pl5321h077b44d_0"),
+        (
+            "bwa-mem2",
+            "2.2.1--hd03093a_5",
+            "2.2.1--he70b90d_8",
+        ),  # same version, other build
+    ],
+)
+def test_tag_absent_upstream_gets_a_local_entry_with_discovered_aliases(
+    sif, tool, tag, upstream_tag
+):
+    exp = make(discovered=[{"name": tool, "command": tool}])
+    plan = exp.plan(tool, Tag(tag), sif)
     assert not plan.in_upstream
-    assert plan.local_entry["tags"][LOCAL.raw] == LOCAL_TAG_VALUE
-    assert UP.raw in plan.local_entry["tags"]  # upstream tags kept: no shadowing
-    assert plan.marker == Marker(LOCAL.raw, plan.aliases, in_upstream=False)
-    assert exp.discover_calls == [(sif, "samtools")]
+    assert plan.local_entry["tags"][tag] == LOCAL_TAG_VALUE
+    assert upstream_tag in plan.local_entry["tags"]  # upstream tags kept: no shadowing
+    assert plan.marker == Marker(tag, plan.aliases, in_upstream=False)
+    assert exp.discover_calls == [(sif, tool)]
 
 
 def test_curated_upstream_tag_is_marked_in_upstream(sif):

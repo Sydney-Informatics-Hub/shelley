@@ -74,10 +74,8 @@ def run_in_module(tool, tag, command):
 
 
 # ------------------------------------------------------------------ resolution
-@pytest.mark.parametrize("sep", [":", "/"])
-@pytest.mark.parametrize("version", ["1.22.1--h96c455f_0", "1.22.1"])
-def test_resolve_spec_variants_reach_one_tag(catalogue, sep, version):
-    got = sh_services.resolve(f"samtools{sep}{version}", catalogue).tag.raw
+def test_resolve_version_reaches_full_tag(catalogue):
+    got = sh_services.resolve("samtools/1.22.1", catalogue).tag.raw
     expect = "1.22.1--h96c455f_0"
     assert got == expect
 

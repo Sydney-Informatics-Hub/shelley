@@ -55,10 +55,24 @@ def test_resolve_never_prefix_matches(catalogue):
     assert exc.value.available == ["1.21", "1.10", "1.9"]
 
 
-def test_resolve_version_with_several_builds_is_ambiguous(catalogue):
+@pytest.mark.parametrize(
+    ("tool", "version", "matches"),
+    [
+        ("seqtk", "1.5", ["1.5--h577a1d6_1", "1.5--h577a1d6_0"]),
+        ("plink2", "2.00a5.12", ["2.00a5.12--h9948957_1", "2.00a5.12--h4ac6f70_0"]),
+        (
+            "bwa-mem2",
+            "2.2.1",
+            ["2.2.1--he70b90d_8", "2.2.1--he70b90d_7", "2.2.1--hd03093a_5"],
+        ),
+    ],
+)
+def test_resolve_version_with_several_builds_is_ambiguous(
+    catalogue, tool, version, matches
+):
     with pytest.raises(AmbiguousTag) as exc:
-        catalogue.resolve("seqtk", "1.5")
-    assert exc.value.matches == ["1.5--h577a1d6_1", "1.5--h577a1d6_0"]
+        catalogue.resolve(tool, version)
+    assert exc.value.matches == matches
 
 
 def test_resolve_mulled_without_tag(catalogue):

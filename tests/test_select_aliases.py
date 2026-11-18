@@ -28,6 +28,10 @@ def input_aliases() -> list[dict]:
             "log.py": "/usr/local/bin/log.py",
             "capnpc-c++": "/usr/local/bin/capnpc-c++",
         },
+        {  # upstream registry form: one {name: command} mapping
+            "bcftools": "/usr/local/bin/bcftools",
+            "tabix": "/usr/local/bin/tabix",
+        },
     ]
 
 
@@ -88,8 +92,19 @@ def test_normalize_aliases_empty(empty):
                 (rich_text_center(), "capnpc-c++", "/usr/local/bin/capnpc-c++"),
             ],
         ),
+        (
+            2,
+            [
+                {"name": "bcftools", "command": "/usr/local/bin/bcftools"},
+                {"name": "tabix", "command": "/usr/local/bin/tabix"},
+            ],
+            [
+                (rich_text_center(), "bcftools", "/usr/local/bin/bcftools"),
+                (rich_text_center(), "tabix", "/usr/local/bin/tabix"),
+            ],
+        ),
     ],
-    ids=["single-entry", "multi-entry"],
+    ids=["single-entry", "multi-entry", "registry-dict"],
 )
 def test_init_app(input_aliases, index, expected_aliases, expected_rows):
     app = AliasEditorApp(input_aliases[index])
