@@ -59,10 +59,10 @@ def render_tool_table(
         title=title,
         box=ROUNDED,
         border_style=border_style,
-        header_style="table.header",
+        header_style="heading",
         show_lines=False,
     )
-    table.add_column("Tool", style="tool", no_wrap=True)
+    table.add_column("Tool", style="primary", no_wrap=True)
     table.add_column("Description", style="muted")
     for name, desc in results:
         table.add_row(name, truncate(desc))

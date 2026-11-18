@@ -130,7 +130,7 @@ def format_update_notice(latest: str) -> str:
     return (
         f"[status.warning]A newer shelley is available:[/status.warning] "
         f"[version]{__version__}[/version] [muted]→[/muted] [version]{latest}[/version]\n\n"
-        f"[header]To upgrade, run:[/header] [command]shelley update[/command]\n\n"
+        f"[label]To upgrade, run:[/label] [command]shelley update[/command]\n\n"
         f"[muted]More info: [link={DOCS_URL}]install guide[/link]   •   "
         f"silence this message with [command]export {OPT_OUT_ENV}=1[/command][/muted]"
     )

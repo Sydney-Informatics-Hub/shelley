@@ -40,8 +40,10 @@ _SAFE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+\-]*")
 
 
 class BuildCancelled(ShelleyError):
-    def __init__(self, what: str = "Build cancelled"):
-        super().__init__(f"{what}; nothing was changed.")
+    """The user cancelled a prompt; shown as a Note, not an error."""
+
+    def __init__(self, message: str = "Cancelled. Nothing was changed."):
+        super().__init__(message)
 
 
 class InvalidSpec(ShelleyError):
@@ -87,7 +89,9 @@ def resolve_all(
         except ShelleyError as e:
             failed.append(BuildResult(spec, parse_spec(spec)[0], error=e))
         except ValueError:  # the version prompt was cancelled
-            cancelled = BuildCancelled("Version selection cancelled")
+            cancelled = BuildCancelled(
+                "Version selection cancelled. Nothing was changed."
+            )
             failed.append(BuildResult(spec, parse_spec(spec)[0], error=cancelled))
     return resolved, failed
 
@@ -126,8 +130,10 @@ def build_resolved(
         try:
             try:
                 plan = exposer.plan(item.tool, item.tag, item.sif, curate=curate)
-            except ValueError as e:  # questionary cancellation
-                raise BuildCancelled() from e
+            except ValueError as e:  # the alias picker was cancelled
+                raise BuildCancelled(
+                    "Cancelled. No aliases were saved and nothing was built."
+                ) from e
             module_path = exposer.apply(plan)
             warnings = ()
             if not plan.aliases and curate is None:

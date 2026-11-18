@@ -70,23 +70,41 @@ def test_parse_spec(spec, parsed):
     assert services.parse_spec(spec) == parsed
 
 
-def test_resolve_reports_the_default_and_the_versions(catalogue):
-    item = services.resolve("samtools", catalogue)
-    assert item.tag.raw == "1.21--h50ea8bc_3" and item.defaulted
-    assert item.versions == ("1.21", "1.10", "1.9")
-    assert item.sif.name == "samtools:1.21--h50ea8bc_3"
+@pytest.mark.parametrize(
+    ("spec", "tag", "versions"),
+    [
+        ("samtools", "1.21--h50ea8bc_3", ("1.21", "1.10", "1.9")),
+        ("star", "2.7.11b--h5ca1c30_8", ("2.7.11b", "2.7.11a")),
+    ],
+)
+def test_resolve_reports_the_default_and_the_versions(catalogue, spec, tag, versions):
+    item = services.resolve(spec, catalogue)
+    assert item.tag.raw == tag and item.defaulted
+    assert item.versions == versions
+    assert item.sif.name == f"{spec}:{tag}"
 
 
-def test_resolve_asks_the_chooser_for_an_ambiguous_version(catalogue):
+@pytest.mark.parametrize(
+    ("spec", "matches"),
+    [
+        ("seqtk/1.5", ["1.5--h577a1d6_1", "1.5--h577a1d6_0"]),
+        ("plink2/2.00a5.12", ["2.00a5.12--h9948957_1", "2.00a5.12--h4ac6f70_0"]),
+        (
+            "bwa-mem2/2.2.1",
+            ["2.2.1--he70b90d_8", "2.2.1--he70b90d_7", "2.2.1--hd03093a_5"],
+        ),
+    ],
+)
+def test_resolve_asks_the_chooser_for_an_ambiguous_version(catalogue, spec, matches):
     seen = []
 
     def choose(err: AmbiguousTag) -> str:
         seen.append(err.matches)
         return err.matches[-1]
 
-    item = services.resolve("seqtk/1.5", catalogue, choose)
-    assert seen == [["1.5--h577a1d6_1", "1.5--h577a1d6_0"]]
-    assert item.tag.raw == "1.5--h577a1d6_0"
+    item = services.resolve(spec, catalogue, choose)
+    assert seen == [matches]
+    assert item.tag.raw == matches[-1]
 
 
 def test_resolve_all_keeps_going_after_a_failure(catalogue):
@@ -112,8 +130,16 @@ def test_resolved_tag_must_exist_on_the_mount(catalogue):
 
 
 # ------------------------------------------------------------------ CLI (user half)
-def test_bad_spec_is_reported_before_any_sudo_prompt(catalogue, sudo):
-    assert build.run(["nosuchtool"]) == 1
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "nosuchtool",
+        "parabricks",
+        "seurat",  # on CVMFS only as r-seurat
+    ],
+)
+def test_bad_spec_is_reported_before_any_sudo_prompt(catalogue, sudo, spec):
+    assert build.run([spec]) == 1
     assert sudo == []
 
 
@@ -246,3 +272,43 @@ def test_ambiguous_version_without_a_terminal_is_a_clean_cancel(
     monkeypatch.setattr(build.questionary, "select", lambda *a, **k: NoTerminal())
     assert build.run(["seqtk/1.5"]) == 1
     assert sudo == []
+
+
+# ------------------------------------------------------------------ alias picker
+def test_interactive_build_passes_tool_and_tag_to_the_picker(
+    catalogue, fake_build_env, monkeypatch
+):
+    seen = {}
+
+    def picker(aliases, **kwargs):
+        seen.update(kwargs)
+        return aliases
+
+    monkeypatch.setattr(build, "edit_aliases_interactive", picker)
+    assert build.run(["samtools/1.10", "-i"]) == 0
+    assert seen == {"tool": "samtools", "version": "1.10--h2e538c0_3"}
+
+
+def test_cancelled_picker_is_a_note_not_an_error(
+    catalogue, fake_build_env, monkeypatch, capsys
+):
+    def cancel(aliases, **kwargs):
+        raise ValueError("Alias editing was cancelled.")
+
+    monkeypatch.setattr(build, "edit_aliases_interactive", cancel)
+    assert build.run(["samtools/1.10", "-i"]) == 1
+    out = capsys.readouterr().out
+    assert "i Note: Cancelled. No aliases were saved and nothing was built." in out
+    assert "Build Failed" not in out
+    assert fake_build_env.calls == []
+
+
+def test_cancelled_version_choice_is_a_note(catalogue, sudo, monkeypatch, capsys):
+    class NoTerminal:
+        def ask(self):
+            raise EOFError
+
+    monkeypatch.setattr(build.questionary, "select", lambda *a, **k: NoTerminal())
+    assert build.run(["seqtk/1.5"]) == 1
+    out = capsys.readouterr().out
+    assert "i Note: Version selection cancelled. Nothing was changed." in out

@@ -5,6 +5,7 @@ Accepts a spec or a tools file, and ``-i``/``--interactive``, plus the hidden
 """
 
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 
 import questionary
@@ -18,7 +19,14 @@ from ..galaxy.catalogue import GalaxyCatalogue
 from ..galaxy.exposer import ShpcExposer
 from ..results import BuildResult, Resolved
 from ..tools.lmod import Lmod
-from ..utils.style import ShelleyStyle, console, print_error, print_info, print_rule
+from ..utils.style import (
+    ShelleyStyle,
+    console,
+    print_error,
+    print_info,
+    print_rule,
+    status_markup,
+)
 
 RESOLVED_FLAG = "--resolved-tag"
 
@@ -100,10 +108,12 @@ def _apply_and_render(items: list[Resolved], interactive: bool, batch: bool) -> 
         )
         return 1
     exposer = ShpcExposer(lmod=lmod)
-    curate = edit_aliases_interactive if interactive else None
     results = []
     for item in items:
-        if curate is not None:  # the alias prompts own the terminal: no spinner
+        if interactive:  # the alias picker owns the terminal: no spinner
+            curate = partial(
+                edit_aliases_interactive, tool=item.tool, version=item.tag.raw
+            )
             results += services.build_resolved([item], exposer, curate=curate)
             continue
         with ShelleyStyle.create_status(
@@ -161,21 +171,25 @@ def _render_result(result: BuildResult) -> None:
 
 
 def _render_error(title: str, error: BaseException | None) -> None:
-    suggestion = ""
-    if not isinstance(error, ShelleyError):
-        suggestion = "Check that CVMFS is mounted and the tool exists"
-    console.print(ShelleyStyle.create_error_panel(title, str(error), suggestion))
+    if isinstance(error, services.BuildCancelled):  # the user's choice, not a failure
+        console.print(status_markup("info", str(error)))
+        return
+    message = str(error)
+    if error is not None and not isinstance(error, ShelleyError):
+        # Unexpected failure (likely a bug): name the exception so it isn't mistaken for a user error.
+        message = f"{type(error).__name__}: {error}"
+    console.print(ShelleyStyle.create_error_panel(title, message))
 
 
 def _render_summary(results: list[BuildResult]) -> None:
     print_rule("Build Results")
     table = Table(
-        title="[header]Build Summary[/header]",
+        title="[heading]Build Summary[/heading]",
         box=ROUNDED,
         border_style="border",
-        header_style="table.header",
+        header_style="heading",
     )
-    table.add_column("Tool", style="tool")
+    table.add_column("Tool", style="primary")
     table.add_column("Status", justify="center")
     table.add_column("Result", style="muted")
     for r in results:

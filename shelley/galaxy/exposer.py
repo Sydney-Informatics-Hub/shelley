@@ -18,7 +18,7 @@ import shutil
 from collections.abc import Callable
 from pathlib import Path
 
-from ..builder.guts_integration import normalize_aliases
+from ..builder.alias_editor import normalize_aliases
 from ..results import BuildPlan, CleanResult
 from ..tags import Tag
 from ..tools.lmod import Lmod

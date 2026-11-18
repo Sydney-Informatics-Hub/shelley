@@ -110,7 +110,7 @@ def update_shelley() -> int:
     mode = "system-wide" if _is_system_install() else "per-user"
 
     console.print(ShelleyStyle.create_version_info())
-    print_info(f"Detected [highlight]{mode}[/highlight] install. Running:")
+    print_info(f"Detected [label]{mode}[/label] install. Running:")
     print_command(" ".join(cmd))
     console.print()
 

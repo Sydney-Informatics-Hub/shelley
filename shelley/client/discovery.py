@@ -45,7 +45,7 @@ def _render_find(result: FindResult, verbose: bool) -> None:
         if result.suggestions:
             render_tool_table(
                 list(result.suggestions),
-                f"[warning]No exact match for '[tool]{result.query}[/tool]'. Did you mean:[/warning]",
+                f"[warning]No exact match for '[primary]{result.query}[/primary]'. Did you mean:[/warning]",
                 border_style="warning",
             )
             print_find_hint()
@@ -71,12 +71,12 @@ def _render_find(result: FindResult, verbose: bool) -> None:
         ):
             if value:
                 style = "info" if label == "Homepage" else "muted"
-                lines.append(f"[header]{label}[/header]  [{style}]{value}[/{style}]\n")
+                lines.append(f"[label]{label}[/label]  [{style}]{value}[/{style}]\n")
     title = meta.name if meta else result.query
     console.print(
         Panel(
             "\n".join(lines) or "[muted]No metadata available for this tool.[/muted]",
-            title=f"[tool]{title}[/tool]",
+            title=f"[primary]{title}[/primary]",
             box=ROUNDED,
             border_style="primary",
             padding=(1, 2),
@@ -99,8 +99,8 @@ def _render_find(result: FindResult, verbose: bool) -> None:
 
         def render_page(items, page, total_pages, total):
             info = f" — page {page + 1} of {total_pages}" if total_pages > 1 else ""
-            table = _table(f"[header]Available Builds ({total} total){info}[/header]")
-            table.add_column("Container Path", style="accent", overflow="fold")
+            table = _table(f"[heading]Available Builds ({total} total){info}[/heading]")
+            table.add_column("Container Path", style="path", overflow="fold")
             for build, state in items:
                 table.add_row(
                     build.tag.raw,
@@ -113,7 +113,7 @@ def _render_find(result: FindResult, verbose: bool) -> None:
         paginate(list(result.builds), render_page)
     else:
         shown = result.versions[:5]
-        table = _table("[header]Available Versions[/header]")
+        table = _table("[heading]Available Versions[/heading]")
         for row in shown:
             table.add_row(
                 row.version, f"[muted]{row.date}[/muted]", glyph(row.installed)
@@ -144,7 +144,7 @@ def _render_find(result: FindResult, verbose: bool) -> None:
     console.print(
         Panel(
             text,
-            title="[header]Install[/header]",
+            title="[heading]Install[/heading]",
             box=ROUNDED,
             border_style="info",
             padding=(0, 2),
@@ -157,7 +157,7 @@ def _table(title: str) -> Table:
         title=title,
         box=ROUNDED,
         border_style="primary",
-        header_style="table.header",
+        header_style="heading",
         show_lines=False,
     )
     table.add_column("Versions", style="version", no_wrap=True)
@@ -201,7 +201,7 @@ def run_search(argv: list[str]) -> int:
         suffix = "es" if total != 1 else ""
         render_tool_table(
             items,
-            f"[header]Results for '[tool]{query}[/tool]' ({total} match{suffix}){info}[/header]",
+            f"[heading]Results for '[primary]{query}[/primary]' ({total} match{suffix}){info}[/heading]",
         )
         print_find_hint(source_note="RSEC bio.tools (CVMFS-available tools)")
 
@@ -257,9 +257,9 @@ def _remove(value: str, catalogue: GalaxyCatalogue) -> int:
     console.print(
         Panel(
             f"[status.success]✅ Module Removed[/status.success]\n\n"
-            f"[header]Tool:[/header] [tool]{result.tool}[/tool]\n"
-            f"[header]Version:[/header] [version]{result.tag.raw}[/version]\n\n"
-            f"[header]Removed:[/header]\n{removed}",
+            f"[label]Tool:[/label] [primary]{result.tool}[/primary]\n"
+            f"[label]Version:[/label] [version]{result.tag.raw}[/version]\n\n"
+            f"[label]Removed:[/label]\n{removed}",
             title="[status.success]Clean Complete[/status.success]",
             box=ROUNDED,
             border_style="success",

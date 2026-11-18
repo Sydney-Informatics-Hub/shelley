@@ -4,6 +4,9 @@ Shelley Styling Module
 
 Rich-based styling for Shelley following Australian BioCommons design guidelines.
 Provides consistent colors, themes, and output formatting across the application.
+
+Rules (docs/reference/style-guide.md): hex values live here, callers use
+role names ("error", "version", "command"), Rich output never sets a text colour.
 """
 
 from pathlib import Path
@@ -29,67 +32,135 @@ from rich.theme import Theme
 BIOCOMMONS_COLORS = {
     # Primary BioCommons brand colors
     "primary": "#2cb77c",  # PANTONE 2413 - Bright Green (primary brand)
-    "secondary": "#205a86",  # PANTONE 2161 - Dark Blue
+    "secondary": "#205a86",  # PANTONE 2161 - Dark Blue (selection fill only, not text)
     "accent": "#f49f1d",  # PANTONE 7408 - Orange
     # BioCommons logo colors
     "magenta": "#ed087c",  # PANTONE 226 - Bright Pink/Magenta
     "teal": "#5ac3b1",  # PANTONE 7465 - Teal/Turquoise
-    "purple": "#b21e8d",  # PANTONE 241 - Purple/Magenta
+    "purple": "#b21e8d",  # PANTONE 241 - Purple/Magenta (not for text: fails contrast)
     "sage": "#8ea869",  # PANTONE 5777 - Sage Green
     # Status colors (adapted from BioCommons palette)
     "success": "#2cb77c",  # Bright Green
     "warning": "#f49f1d",  # Orange
-    "error": "#ed087c",  # Bright Pink
+    "error": "#f35eaa",  # Bright Pink, lightened 35% for 4.5:1 contrast
     "info": "#5ac3b1",  # Teal
-    # UI colors
-    "muted": "#708090",  # Slate Gray - muted text
-    "border": "#205a86",  # Dark Blue - borders/dividers
-    "text": "#000000",  # Black - main text
+    # UI colors (no text colour: body text uses the terminal's own foreground)
+    "muted": "#8a96a3",  # Slate Gray, lightened - muted text
+    "border": "#2cb77c",  # Bright Green - panel and table borders
     # Tool colors
     "tool": "#2cb77c",  # Bright Green - tool names
-    "version": "#205a86",  # Dark Blue - version numbers
+    "version": "#799cb6",  # Dark Blue, lightened 40% - version numbers
     "command": "#8ea869",  # Sage Green - commands
     "path": "#5ac3b1",  # Teal - file paths
+    # Textual widget grounds (not used for Rich output)
+    "background": "#1c1d20",  # typical dark terminal background
+    "surface": "#2a2c31",  # raised surface: list rows, key bar
+    "panel": "#33363c",  # title bars, column headings
+    "foreground": "#e6e6e6",  # widget text
+    "cancel": "#3a3d44",  # neutral Cancel button fill
+    "on_selection": "#ffffff",  # text on the secondary (selection) fill
 }
+
+# Roles that must never be used as text on the Textual panel colour (below 4.5:1 there).
+NOT_ON_PANEL = ("error", "version", "muted")
 
 # Rich Theme Definition
 SHELLEY_THEME = Theme(
     {
         # Basic styling
         "primary": BIOCOMMONS_COLORS["primary"],
-        "secondary": BIOCOMMONS_COLORS["secondary"],
-        "accent": BIOCOMMONS_COLORS["accent"],
         "success": BIOCOMMONS_COLORS["success"],
         "warning": BIOCOMMONS_COLORS["warning"],
         "error": BIOCOMMONS_COLORS["error"],
         "info": BIOCOMMONS_COLORS["info"],
         "muted": BIOCOMMONS_COLORS["muted"],
         # Semantic styling
-        "tool": f"bold {BIOCOMMONS_COLORS['tool']}",
-        "version": f"bold {BIOCOMMONS_COLORS['version']}",
-        "command": f"bold {BIOCOMMONS_COLORS['command']}",
-        "path": f"{BIOCOMMONS_COLORS['path']}",
-        "directory": f"bold {BIOCOMMONS_COLORS['info']}",
+        "version": BIOCOMMONS_COLORS["version"],
+        "command": BIOCOMMONS_COLORS["command"],
+        "path": BIOCOMMONS_COLORS["path"],
         # Status styling
         "status.success": f"bold {BIOCOMMONS_COLORS['success']}",
         "status.warning": f"bold {BIOCOMMONS_COLORS['warning']}",
         "status.error": f"bold {BIOCOMMONS_COLORS['error']}",
         "status.info": f"bold {BIOCOMMONS_COLORS['info']}",
         # UI elements
-        "header": f"bold {BIOCOMMONS_COLORS['primary']}",
-        "subheader": f"bold {BIOCOMMONS_COLORS['primary']}",
+        "heading": f"bold {BIOCOMMONS_COLORS['primary']}",
+        "label": f"bold {BIOCOMMONS_COLORS['primary']}",
         "prompt": f"bold {BIOCOMMONS_COLORS['primary']}",
-        "border": BIOCOMMONS_COLORS["primary"],
-        "highlight": f"bold {BIOCOMMONS_COLORS['primary']}",
-        # Table styling
-        "table.header": f"bold {BIOCOMMONS_COLORS['primary']}",
-        "table.border": BIOCOMMONS_COLORS["primary"],
+        "border": BIOCOMMONS_COLORS["border"],
+        "hint": BIOCOMMONS_COLORS["muted"],
+        "hint.command": f"bold {BIOCOMMONS_COLORS['command']}",
+        "yes": f"bold {BIOCOMMONS_COLORS['primary']}",
+        "no": BIOCOMMONS_COLORS["muted"],
         # Progress bars
-        "progress.bar": BIOCOMMONS_COLORS["primary"],
-        "progress.complete": BIOCOMMONS_COLORS["success"],
         "progress.remaining": BIOCOMMONS_COLORS["muted"],
     }
 )
+
+# Symbols to ensure interoperability (WGL4 with exceptions). No emojis as it inconsistently break rendering for borders
+STATUS = {
+    # kind: (symbol, word)
+    "success": ("√", "Done:"),
+    "info": ("i", "Note:"),
+    "warning": ("!", "Warning:"),
+    "error": ("×", "Error:"),  # U+00D7 multiplication sign, not the letter x
+}
+SPINNER = "dots"  # braille, not WGL4: kept by choice; the words carry the meaning
+TICK_ON, TICK_OFF = "[x]", "[ ]"
+POINTER = "›"
+FOCUS_LEFT, FOCUS_RIGHT = "›", "‹"  # focused button: "› Confirm ‹"
+MORE_ABOVE, MORE_BELOW = "▲", "▼"
+SEP = " · "
+ELLIPSIS = "…"
+YES, NO = "yes", "no"
+
+# Banned in any output (tests scan the source tree for these). May not be supported across all terminals and systems
+BANNED_CHARS = "✓✔✗✘⚠ℹ"
+BANNED_RANGES = [
+    (0x1F300, 0x1FAFF),  # emoji blocks
+    (0xFE0F, 0xFE0F),  # emoji variation selector
+]
+
+
+def status_markup(kind: str, message: str) -> str:
+    """One status line head + message, e.g. status_markup("error", 'No tool matches "x".')."""
+    symbol, word = STATUS[kind]
+    return f"[status.{kind}]{symbol} {word}[/] {message}"
+
+
+def make_textual_theme():
+    """Return the BioCommons Textual theme, built from BIOCOMMONS_COLORS.
+
+    Register it in the App's __init__, not on_mount (the app's CSS is parsed before mount,
+    so variables such as $shelley-cancel would be undefined), and run the App with
+    ansi_color=False, otherwise Textual ignores these values and uses the terminal palette.
+    Textual is imported lazily to keep it off the CLI's import path.
+    """
+    from textual.theme import Theme as TextualTheme
+
+    c = BIOCOMMONS_COLORS
+    return TextualTheme(
+        name="biocommons",
+        primary=c["primary"],
+        secondary=c["secondary"],  # selection fill
+        accent=c["warning"],  # reserved for warnings in dialogs
+        foreground=c["foreground"],
+        background=c["background"],
+        surface=c["surface"],
+        panel=c["panel"],
+        success=c["success"],
+        warning=c["warning"],
+        error=c["error"],
+        dark=True,
+        variables={
+            # usable in TCSS as $shelley-cancel etc.
+            "shelley-cancel": c["cancel"],
+            "shelley-muted": c["muted"],
+            "shelley-on-primary": c["background"],  # dark text on green buttons
+            "shelley-on-selection": c["on_selection"],
+        },
+    )
+
 
 # Global console instance with BioCommons theme
 console = Console(theme=SHELLEY_THEME, width=120)
@@ -123,9 +194,9 @@ class ShelleyStyle:
     def create_header(title: str, subtitle: str = "") -> Panel:
         """Create a styled header panel."""
         if subtitle:
-            content = f"[header]{title}[/header]\n[muted]{subtitle}[/muted]"
+            content = f"[heading]{title}[/heading]\n[muted]{subtitle}[/muted]"
         else:
-            content = f"[header]{title}[/header]"
+            content = f"[heading]{title}[/heading]"
 
         return Panel(
             Align.center(content), box=DOUBLE, border_style="primary", padding=(1, 2)
@@ -147,7 +218,7 @@ class ShelleyStyle:
         welcome = f"{left}{pad}{right}"
 
         return Text.from_markup(
-            f"[bold {BIOCOMMONS_COLORS['teal']}]{BANNER_ART.format(welcome=welcome)}[/]"
+            f"[bold][info]{BANNER_ART.format(welcome=welcome)}[/info][/bold]"
         )
 
     @staticmethod
@@ -157,7 +228,7 @@ class ShelleyStyle:
             title="[primary][bold]Available Commands[/bold][/primary]",
             box=ROUNDED,
             border_style="primary",
-            header_style="table.header",
+            header_style="heading",
             show_lines=True,
         )
 
@@ -177,7 +248,7 @@ class ShelleyStyle:
             title=f"[primary][bold]Available Versions for[/bold][/primary] [primary][bold]{tool_name}[/bold][/primary]",
             box=ROUNDED,
             border_style="primary",
-            header_style="table.header",
+            header_style="heading",
             show_header=False,
         )
 
@@ -198,12 +269,12 @@ class ShelleyStyle:
             title=f"[primary][bold]Available Versions for[/bold][/primary] [primary][bold]{tool_name}[/bold][/primary]",
             box=ROUNDED,
             border_style="primary",
-            header_style="table.header",
+            header_style="heading",
             show_header=False,
         )
 
         table.add_column("Version", style="primary", no_wrap=True)
-        table.add_column("Container Path", style="accent")
+        table.add_column("Container Path", style="path")
 
         for version, path in version_path_pairs:
             table.add_row(version, path)
@@ -218,13 +289,13 @@ class ShelleyStyle:
             tools = tools[:limit]
 
         table = Table(
-            title=f"[header]Bioinformatics Tools[/header] [muted]({len(tools)} shown{f' of {display_count}' if limit else ''})[/muted]",
+            title=f"[heading]Bioinformatics Tools[/heading] [muted]({len(tools)} shown{f' of {display_count}' if limit else ''})[/muted]",
             box=ROUNDED,
             border_style="border",
-            header_style="table.header",
+            header_style="heading",
         )
 
-        table.add_column("Tool", style="tool", no_wrap=True)
+        table.add_column("Tool", style="primary", no_wrap=True)
         table.add_column("Description", style="muted", ratio=2)
         table.add_column("Category", style="info")
 
@@ -244,14 +315,14 @@ class ShelleyStyle:
         """Create a styled build success message."""
         content = f"""[status.success]✅ Module Built Successfully![/status.success]
 
-[header]Tool:[/header] [tool]{tool_name}[/tool]
-[header]Version:[/header] [version]{version}[/version]
-[header]Module Path:[/header] [path]{module_path}[/path]
+[label]Tool:[/label] [primary]{tool_name}[/primary]
+[label]Version:[/label] [version]{version}[/version]
+[label]Module Path:[/label] [path]{module_path}[/path]
 
-[header]To load this module:[/header]
+[label]To load this module:[/label]
 [command]module load {tool_name}/{version}[/command]
 
-[header]To list all modules:[/header]
+[label]To list all modules:[/label]
 [command]module avail[/command]"""
 
         return Panel(
@@ -277,13 +348,13 @@ class ShelleyStyle:
 
         content = f"""[status.info]ℹ️  Version Selection[/status.info]
 
-[header]Available versions for[/header] [tool]{tool_name}[/tool]:
+[label]Available versions for[/label] [primary]{tool_name}[/primary]:
 {versions_text}
 
 [status.warning]⚠️  No version specified[/status.warning]
-[header]Building latest version:[/header] [version]{version}[/version]
+[label]Building latest version:[/label] [version]{version}[/version]
 
-[header]To specify a version:[/header]
+[label]To specify a version:[/label]
 [command]shelley build {tool_name}/{version}[/command]"""
 
         return Panel(
@@ -299,7 +370,7 @@ class ShelleyStyle:
         """Create a styled error panel."""
         content = f"[status.error]❌ {message}[/status.error]"
         if suggestion:
-            content += f"\n\n[header]Suggestion:[/header]\n[info]{suggestion}[/info]"
+            content += f"\n\n[label]Suggestion:[/label]\n[info]{suggestion}[/info]"
 
         return Panel(
             content,
@@ -335,10 +406,10 @@ class ShelleyStyle:
     def format_command_examples() -> Table:
         """Create a table of command examples."""
         table = Table(
-            title="[header]Command Examples[/header]",
+            title="[heading]Command Examples[/heading]",
             box=SIMPLE,
             border_style="border",
-            header_style="table.header",
+            header_style="heading",
         )
 
         table.add_column("Use Case", style="muted", ratio=1)
@@ -369,7 +440,7 @@ class ShelleyStyle:
         # whether shelley is pip-installed or run from a source checkout.
         from .. import __version__
 
-        return f"[header]Shelley[/header] [version]{__version__}[/version]"
+        return f"[heading]Shelley[/heading] [version]{__version__}[/version]"
 
     @staticmethod
     def create_progress_bar(description: str) -> Progress:
@@ -377,9 +448,7 @@ class ShelleyStyle:
         return Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            BarColumn(
-                bar_width=None, style="progress.bar", complete_style="progress.complete"
-            ),
+            BarColumn(bar_width=None, style="primary", complete_style="success"),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TimeElapsedColumn(),
             console=console,
@@ -403,7 +472,7 @@ class ShelleyStyle:
             style = "error"
             icon = "❌"
 
-        content = f"{icon} [header]Successfully completed:[/header] [highlight]{success}/{total}[/highlight] {operation}s"
+        content = f"{icon} [label]Successfully completed:[/label] [label]{success}/{total}[/label] {operation}s"
 
         return Panel(
             content, title=title, box=ROUNDED, border_style=style, padding=(1, 2)
@@ -412,7 +481,9 @@ class ShelleyStyle:
     @staticmethod
     def create_status(message: str) -> Status:
         """Create a styled status indicator."""
-        return Status(message, spinner="dots", spinner_style="primary", console=console)
+        return Status(
+            message, spinner=SPINNER, spinner_style="primary", console=console
+        )
 
 
 # Convenience functions for common operations
